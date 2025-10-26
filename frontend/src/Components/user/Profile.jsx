@@ -30,6 +30,10 @@ const Profile = () => {
 
   return (
     <div className="profile-container">
+      <Link to="/home" style={{ marginBottom: '20px', display: 'block' }}>
+        ← Back to Home
+      </Link>
+      
       {user ? (
         <>
           <img src={user.avatar.url} alt={user.name} className="avatar" />

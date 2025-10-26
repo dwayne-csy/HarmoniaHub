@@ -1,38 +1,47 @@
 export const authenticate = (data, next) => {
     if (window !== 'undefined') {
-        // console.log('authenticate', response)
-        sessionStorage.setItem('token', JSON.stringify(data.token));
-        sessionStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            id: data.user._id
+        }));
     }
     next();
 };
 
 export const getUser = () => {
     if (window !== 'undefined') {
-        if (sessionStorage.getItem('user')) {
-            console.log(JSON.parse(sessionStorage.getItem('user')))
-            return JSON.parse(sessionStorage.getItem('user'));
+        if (localStorage.getItem('user')) {
+            return JSON.parse(localStorage.getItem('user'));
         } else {
             return false;
         }
     }
-};
-
-// remove token from session storage
-export const logout = next => {
-    if (window !== 'undefined') {
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('user');
-    }
-    next();
 };
 
 export const getToken = () => {
     if (window !== 'undefined') {
-        if (sessionStorage.getItem('token')) {
-            return JSON.parse(sessionStorage.getItem('token'));
-        } else {
-            return false;
-        }
+        return localStorage.getItem('token');
+    }
+};
+
+export const isAdmin = () => {
+    const user = getUser();
+    return user && user.role === 'admin';
+};
+
+export const isAuthenticated = () => {
+    return getToken() !== null;
+};
+
+export const logout = (next) => {
+    if (window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+    }
+    if (next && typeof next === 'function') {
+        next();
     }
 };

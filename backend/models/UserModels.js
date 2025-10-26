@@ -34,11 +34,12 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
+        enum: ['user', 'admin'],
         default: 'user'
     },
     isVerified: {
         type: Boolean,
-        default: false // only true after clicking Mailtrap link
+        default: false
     },
     emailVerificationToken: String,
     emailVerificationExpire: Date,
@@ -50,6 +51,9 @@ const userSchema = new mongoose.Schema({
     }
 });
 
+// ... rest of your schema methods remain the same
+
+module.exports = mongoose.model('User', userSchema);
 // Encrypt password before saving user
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
