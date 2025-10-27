@@ -51,9 +51,8 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-// ... rest of your schema methods remain the same
+// ========== SCHEMA METHODS - MUST BE BEFORE MODEL EXPORT ==========
 
-module.exports = mongoose.model('User', userSchema);
 // Encrypt password before saving user
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
@@ -66,9 +65,10 @@ userSchema.pre('save', async function (next) {
 // Generate JWT token
 userSchema.methods.getJwtToken = function () {
     return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d' // Use JWT_EXPIRES_IN instead of JWT_EXPIRES_TIME
+        expiresIn: process.env.JWT_EXPIRES_IN || '7d'
     });
 };
+
 // Compare entered password with hashed password
 userSchema.methods.comparePassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
@@ -90,4 +90,5 @@ userSchema.methods.getEmailVerificationToken = function () {
     return verifyToken;
 };
 
+// ========== EXPORT MODEL ==========
 module.exports = mongoose.model('User', userSchema);

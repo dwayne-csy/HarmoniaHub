@@ -121,28 +121,63 @@ exports.verifyEmail = async (req, res) => {
 };
 
 // ========== LOGIN USER ==========
+// ========== LOGIN USER ==========
 exports.loginUser = async (req, res) => {
   try {
+    console.log('🔐 Login attempt for:', req.body.email);
     const { email, password } = req.body;
 
-    if (!email || !password)
+    if (!email || !password) {
       return res.status(400).json({ message: 'Please enter email and password' });
+    }
 
+    // Find user and include password field
     const user = await User.findOne({ email }).select('+password');
-    if (!user)
+    if (!user) {
+      console.log('❌ User not found:', email);
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
 
-    if (!user.isVerified)
+    if (!user.isVerified) {
+      console.log('❌ User not verified:', email);
       return res.status(403).json({ message: 'Please verify your email first' });
+    }
+
+    // Debug: Check if comparePassword method exists
+    console.log('🔍 User methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(user)));
+    console.log('🔍 comparePassword type:', typeof user.comparePassword);
+
+    if (typeof user.comparePassword !== 'function') {
+      console.error('❌ comparePassword is not a function!');
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
 
     const isPasswordMatched = await user.comparePassword(password);
-    if (!isPasswordMatched)
+    if (!isPasswordMatched) {
+      console.log('❌ Password mismatch for:', email);
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
 
+    console.log('✅ Login successful for:', email);
     const token = user.getJwtToken();
-    res.status(200).json({ success: true, token, user });
+    
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(200).json({ 
+      success: true, 
+      token, 
+      user: userResponse 
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ LOGIN ERROR:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Login failed. Please try again.',
+      error: error.message 
+    });
   }
 };
 

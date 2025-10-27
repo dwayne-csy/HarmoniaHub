@@ -1,150 +1,157 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getUser, logout } from '../utils/helper';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
+import { getUser, logout } from "../utils/helper";
 
 const AdminDashboard = () => {
-    const user = getUser();
-    const navigate = useNavigate();
-    
-    const handleLogout = () => {
-        logout(() => {
-            navigate('/login');
+  const user = getUser();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    products: 0,
+    suppliers: 0,
+    activeSuppliers: 0,
+    totalStock: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Base URL for backend API (port 4001)
+  const API_BASE = "http://localhost:4001/api/v1";
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      // Attempt admin-level data first
+      const [productsRes, suppliersRes] = await Promise.all([
+        axios.get(`${API_BASE}/admin/products`),
+        axios.get(`${API_BASE}/admin/suppliers`),
+      ]);
+
+      const products = productsRes.data.products || productsRes.data || [];
+      const suppliers = suppliersRes.data.suppliers || suppliersRes.data || [];
+      const activeSuppliers = suppliers.filter((s) => s.isActive);
+
+      setStats({
+        products: products.length,
+        suppliers: suppliers.length,
+        activeSuppliers: activeSuppliers.length,
+        totalStock: products.reduce(
+          (sum, product) => sum + (product.stock || 0),
+          0
+        ),
+      });
+    } catch (err) {
+      console.error("Error fetching admin data:", err);
+      // Try public fallback
+      try {
+        const [productsRes, suppliersRes] = await Promise.all([
+          axios.get(`${API_BASE}/products`),
+          axios.get(`${API_BASE}/suppliers`),
+        ]);
+
+        const products = productsRes.data.products || productsRes.data || [];
+        const suppliers = suppliersRes.data.suppliers || suppliersRes.data || [];
+
+        setStats({
+          products: products.length,
+          suppliers: suppliers.length,
+          activeSuppliers: suppliers.length,
+          totalStock: products.reduce(
+            (sum, product) => sum + (product.stock || 0),
+            0
+          ),
         });
-    };
-    
-    return (
-        <div className="admin-dashboard">
-            {/* Header with Logout Button */}
-            <div className="dashboard-header">
-                <h1>Admin Dashboard</h1>
-                <button className="btn btn-danger logout-btn" onClick={handleLogout}>
-                    Logout
-                </button>
-            </div>
-            
-            <div className="user-info">
-                <h3>Welcome, {user?.name} 👋</h3>
-                <p><strong>Email:</strong> {user?.email}</p>
-                <p><strong>Role:</strong> <span className="role-badge">{user?.role}</span></p>
-                <p><strong>User ID:</strong> {user?.id}</p>
-            </div>
-            
-            <div className="admin-actions">
-                <h4>Admin Actions:</h4>
-                <div className="action-buttons">
-                    <button className="btn btn-primary">Manage Users</button>
-                    <button className="btn btn-secondary">View Analytics</button>
-                    <button className="btn btn-warning">System Settings</button>
-                </div>
-            </div>
-            
-            <style jsx>{`
-                .admin-dashboard {
-                    padding: 20px;
-                    max-width: 1200px;
-                    margin: 0 auto;
-                }
-                .dashboard-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 30px;
-                    padding-bottom: 20px;
-                    border-bottom: 2px solid #e9ecef;
-                }
-                .dashboard-header h1 {
-                    margin: 0;
-                    color: #2c3e50;
-                }
-                .logout-btn {
-                    background: #dc3545;
-                    color: white;
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-weight: 500;
-                    transition: background 0.3s ease;
-                }
-                .logout-btn:hover {
-                    background: #c82333;
-                    transform: translateY(-2px);
-                }
-                .user-info {
-                    background: #f8f9fa;
-                    padding: 20px;
-                    border-radius: 8px;
-                    margin-bottom: 20px;
-                    border-left: 4px solid #007bff;
-                }
-                .role-badge {
-                    background: #007bff;
-                    color: white;
-                    padding: 4px 12px;
-                    border-radius: 20px;
-                    font-size: 0.8em;
-                    font-weight: bold;
-                }
-                .admin-actions {
-                    margin-top: 30px;
-                    padding: 20px;
-                    background: white;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
-                .admin-actions h4 {
-                    margin-top: 0;
-                    color: #2c3e50;
-                }
-                .action-buttons {
-                    display: flex;
-                    gap: 15px;
-                    margin-top: 15px;
-                    flex-wrap: wrap;
-                }
-                .btn {
-                    padding: 12px 24px;
-                    border: none;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-weight: 500;
-                    transition: all 0.3s ease;
-                }
-                .btn:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                }
-                .btn-primary { 
-                    background: #007bff; 
-                    color: white; 
-                }
-                .btn-primary:hover { 
-                    background: #0056b3; 
-                }
-                .btn-secondary { 
-                    background: #6c757d; 
-                    color: white; 
-                }
-                .btn-secondary:hover { 
-                    background: #545b62; 
-                }
-                .btn-warning { 
-                    background: #ffc107; 
-                    color: black; 
-                }
-                .btn-warning:hover { 
-                    background: #e0a800; 
-                }
-                .btn-danger {
-                    background: #dc3545;
-                    color: white;
-                }
-                .btn-danger:hover {
-                    background: #c82333;
-                }
-            `}</style>
+      } catch (fallbackError) {
+        console.error("Fallback failed:", fallbackError);
+        setError("Failed to load dashboard statistics.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout(() => {
+      navigate("/login");
+    });
+  };
+
+  if (loading) return <div className="loading">Loading dashboard...</div>;
+
+  return (
+    <div className="admin-dashboard page-container">
+      <div className="dashboard-header">
+        <h1>Admin Dashboard</h1>
+        <button className="btn btn-danger logout-btn" onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
+
+      {error && <div className="alert alert-warning">{error}</div>}
+
+      <div className="user-info">
+        <h3>Welcome, {user?.name} 👋</h3>
+        <p>
+          <strong>Email:</strong> {user?.email}
+        </p>
+        <p>
+          <strong>Role:</strong>{" "}
+          <span className="role-badge">{user?.role}</span>
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <h3>Total Products</h3>
+          <p className="stat-number">{stats.products}</p>
+          <Link to="/admin/products" className="stat-link">
+            Manage Products
+          </Link>
         </div>
-    );
+
+        <div className="stat-card">
+          <h3>Total Suppliers</h3>
+          <p className="stat-number">{stats.suppliers}</p>
+          <Link to="/admin/suppliers" className="stat-link">
+            Manage Suppliers
+          </Link>
+        </div>
+
+        <div className="stat-card">
+          <h3>Active Suppliers</h3>
+          <p className="stat-number">{stats.activeSuppliers}</p>
+        </div>
+
+        <div className="stat-card">
+          <h3>Total Stock</h3>
+          <p className="stat-number">{stats.totalStock}</p>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="admin-actions">
+        <h2>Quick Actions</h2>
+        <div className="action-buttons">
+          <Link to="/admin/products/new" className="action-card">
+            ➕ Add New Product
+          </Link>
+          <Link to="/admin/suppliers/new" className="action-card">
+            👥 Add New Supplier
+          </Link>
+          <Link to="/admin/products" className="action-card">
+            📋 View Products
+          </Link>
+          <Link to="/admin/suppliers" className="action-card">
+            🏢 View Suppliers
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default AdminDashboard;

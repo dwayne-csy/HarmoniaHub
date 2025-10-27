@@ -6,7 +6,7 @@ const cors = require('cors')
 app.use(cors({
     origin: 'http://localhost:5173', // Your frontend URL
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -16,6 +16,23 @@ app.use(express.urlencoded({limit: "50mb", extended: true }));
 
 // ========== ROUTES ==========
 const userRoutes = require('./routes/UserRoutes');
+const productRoutes = require('./routes/ProductRoutes');
+const supplierRoutes = require('./routes/SupplierRoutes');
+
+// Use routes
+app.use('/api/v1', productRoutes); 
+app.use('/api/v1', supplierRoutes); 
 app.use('/api/v1', userRoutes);
 
-module.exports = app
+// ========== HEALTH CHECK ENDPOINT ==========
+app.get('/api/v1/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'Backend server is running!',
+        timestamp: new Date().toISOString()
+    });
+});
+
+
+
+module.exports = app;
