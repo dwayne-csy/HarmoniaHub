@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Home = () => {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -17,6 +19,12 @@ const Home = () => {
             headers: { Authorization: `Bearer ${token}` },
           });
           setUser(data.user);
+
+          // Optional: fetch cart to get current count
+          const cartRes = await axios.get("http://localhost:4001/api/v1/cart", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setCartCount(cartRes.data.cart?.items?.length || 0);
         }
 
         // Fetch products
@@ -39,21 +47,27 @@ const Home = () => {
     }
 
     try {
-      await axios.post(
-        `http://localhost:4001/api/v1/cart/add/${productId}`,
-        {},
+      const res = await axios.post(
+        "http://localhost:4001/api/v1/cart/add",
+        { productId }, // <-- send productId in the body
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Update cart count in UI
+      setCartCount(res.data.cart.items.length);
       alert("Product added to cart!");
     } catch (error) {
       console.error("Failed to add product to cart", error);
-      alert("Failed to add product to cart.");
+      alert(error.response?.data?.message || "Failed to add product to cart.");
     }
   };
 
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  if (loading) return <div className="loading">Loading...</div>;
 
   if (!user) {
     return (
@@ -77,7 +91,13 @@ const Home = () => {
         <div className="user-info">
           <img src={user.avatar?.url} alt={user.name} className="user-avatar" />
           <span className="user-role">Role: {user.role}</span>
+          <Link to="/cart" className="btn-cart">
+            Cart ({cartCount})
+          </Link>
         </div>
+        <button className="btn-logout" onClick={handleLogout}>
+          Logout
+        </button>
       </header>
 
       <div className="welcome-message">

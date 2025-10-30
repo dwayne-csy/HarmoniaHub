@@ -21,13 +21,14 @@ const userRoutes = require('./routes/UserRoutes');
 const productRoutes = require('./routes/ProductRoutes');
 const supplierRoutes = require('./routes/SupplierRoutes');
 const manageUserRoutes = require('./routes/ManageUserRoutes');
-
+const cartRoutes = require('./routes/CartRoutes');
 // Use routes
 
 app.use('/api/v1', productRoutes); 
 app.use('/api/v1', supplierRoutes); 
 app.use('/api/v1', userRoutes);
 app.use('/api/v1', manageUserRoutes);
+app.use('/api/v1', cartRoutes);
 
 
 

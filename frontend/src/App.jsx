@@ -7,6 +7,7 @@ import UpdateProfile from "./Components/user/UpdateProfile";
 import ForgotPassword from "./Components/user/ForgotPassword";
 import ResetPassword from "./Components/user/ResetPassword";
 import Home from "./Components/user/Home";
+import Cart from "./Components/user/Cart";
 import AdminDashboard from "./Components/admin/AdminDashboard";
 import AdminRoutes from "./Components/admin/AdminRoutes";
 import { getUser } from "./Components/utils/helper";
@@ -59,6 +60,10 @@ const App = () => {
         <Route
           path="/update-profile"
           element={token ? <UpdateProfile /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/cart"
+          element={token ? <Cart /> : <Navigate to="/login" />}
         />
 
         {/* Admin Dashboard */}

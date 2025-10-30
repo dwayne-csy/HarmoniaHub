@@ -130,25 +130,22 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Please enter email and password' });
     }
 
-    // Find user and include password field
+    // Find user and include password
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       console.log('❌ User not found:', email);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // Check if user is active
+    if (!user.isActive) {
+      console.log('❌ Inactive user attempted login:', email);
+      return res.status(403).json({ message: 'Your account is inactive. Please contact support.' });
+    }
+
     if (!user.isVerified) {
       console.log('❌ User not verified:', email);
       return res.status(403).json({ message: 'Please verify your email first' });
-    }
-
-    // Debug: Check if comparePassword method exists
-    console.log('🔍 User methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(user)));
-    console.log('🔍 comparePassword type:', typeof user.comparePassword);
-
-    if (typeof user.comparePassword !== 'function') {
-      console.error('❌ comparePassword is not a function!');
-      return res.status(500).json({ message: 'Server configuration error' });
     }
 
     const isPasswordMatched = await user.comparePassword(password);
@@ -159,7 +156,7 @@ exports.loginUser = async (req, res) => {
 
     console.log('✅ Login successful for:', email);
     const token = user.getJwtToken();
-    
+
     // Remove password from response
     const userResponse = user.toObject();
     delete userResponse.password;
