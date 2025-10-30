@@ -4,29 +4,52 @@ import axios from "axios";
 
 const Home = () => {
   const [user, setUser] = useState(null);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await axios.get("http://localhost:4001/api/v1/me", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setUser(data.user);
+        // Fetch user profile
+        if (token) {
+          const { data } = await axios.get("http://localhost:4001/api/v1/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setUser(data.user);
+        }
+
+        // Fetch products
+        const productsRes = await axios.get("http://localhost:4001/api/v1/products");
+        setProducts(productsRes.data.products || productsRes.data || []);
       } catch (error) {
-        console.error("Failed to fetch user profile");
+        console.error("Failed to fetch data", error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (token) {
-      fetchUserProfile();
-    } else {
-      setLoading(false);
-    }
+    fetchData();
   }, [token]);
+
+  const handleAddToCart = async (productId) => {
+    if (!token) {
+      alert("Please log in to add products to your cart.");
+      return;
+    }
+
+    try {
+      await axios.post(
+        `http://localhost:4001/api/v1/cart/add/${productId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Product added to cart!");
+    } catch (error) {
+      console.error("Failed to add product to cart", error);
+      alert("Failed to add product to cart.");
+    }
+  };
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -38,65 +61,57 @@ const Home = () => {
         <header className="home-header">
           <h1>Welcome to HarmoniaHub</h1>
           <p>Please log in to access your dashboard</p>
-          <Link to="/login" className="btn-primary">Login</Link>
+          <Link to="/login" className="btn-primary">
+            Login
+          </Link>
         </header>
       </div>
     );
   }
 
-  // User Home Page
   return (
     <div className="home-container">
       <header className="home-header">
         <h1>Welcome back, {user.name}!</h1>
         <p>Your personal space for harmony and productivity</p>
         <div className="user-info">
-          <img src={user.avatar.url} alt={user.name} className="user-avatar" />
+          <img src={user.avatar?.url} alt={user.name} className="user-avatar" />
           <span className="user-role">Role: {user.role}</span>
         </div>
       </header>
-      
-      <div className="home-content">
-        <div className="features">
-          <div className="feature-card">
-            <h3>Manage Your Profile</h3>
-            <p>Update your personal information and avatar</p>
-            <Link to="/profile" className="feature-link">Go to Profile</Link>
-          </div>
-          
-          <div className="feature-card">
-            <h3>Update Information</h3>
-            <p>Keep your account secure and up to date</p>
-            <Link to="/update-profile" className="feature-link">Update Profile</Link>
-          </div>
 
-          <div className="feature-card">
-            <h3>Account Settings</h3>
-            <p>Manage your password and security preferences</p>
-            <Link to="/update-profile" className="feature-link">Settings</Link>
+      <div className="welcome-message">
+        <h2>Hello, {user.name}!</h2>
+        <p>Here's your account information:</p>
+        <ul className="user-tasks">
+          <li>Account Status: {user.isVerified ? "✓ Verified" : "⚠ Needs Verification"}</li>
+          <li>Member Since: {new Date(user.createdAt).toLocaleDateString()}</li>
+        </ul>
+      </div>
+
+      <div className="products-section">
+        <h2>Available Products</h2>
+        {products.length === 0 ? (
+          <p>No products available at the moment.</p>
+        ) : (
+          <div className="products-grid">
+            {products.map((product) => (
+              <div key={product._id} className="product-card">
+                <img src={product.images?.[0]?.url} alt={product.name} className="product-image" />
+                <h3>{product.name}</h3>
+                <p>Price: ${product.price}</p>
+                <p>Stock: {product.stock}</p>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleAddToCart(product._id)}
+                  disabled={product.stock === 0}
+                >
+                  {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+                </button>
+              </div>
+            ))}
           </div>
-        </div>
-        
-        <div className="welcome-message">
-          <h2>Hello, {user.name}!</h2>
-          <p>We're glad to see you again. Here's what you can do:</p>
-          <ul className="user-tasks">
-            <li>Update your profile information</li>
-            <li>Change your profile picture</li>
-            <li>Manage your account settings</li>
-            <li>Keep your information current</li>
-          </ul>
-          <div className="quick-stats">
-            <div className="stat">
-              <h4>Account Status</h4>
-              <p>{user.isVerified ? "✓ Verified" : "⚠ Needs Verification"}</p>
-            </div>
-            <div className="stat">
-              <h4>Member Since</h4>
-              <p>{new Date(user.createdAt).toLocaleDateString()}</p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
