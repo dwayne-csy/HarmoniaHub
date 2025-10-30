@@ -121,7 +121,6 @@ exports.verifyEmail = async (req, res) => {
 };
 
 // ========== LOGIN USER ==========
-// ========== LOGIN USER ==========
 exports.loginUser = async (req, res) => {
   try {
     console.log('🔐 Login attempt for:', req.body.email);
@@ -260,7 +259,10 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
+
+
 // ========== UPDATE PROFILE ==========
+// Expecting multipart/form-data with optional file field 'avatar'
 exports.updateProfile = async (req, res) => {
   try {
     console.log('📝 Update profile request received');
@@ -269,24 +271,41 @@ exports.updateProfile = async (req, res) => {
       email: req.body.email
     };
 
-    if (req.body.avatar) {
-      console.log('🖼️ Avatar update requested');
-      
-      // Generate a unique avatar using the uploaded image data
-      // Convert base64 to a data URL and use it directly
-      let avatarUrl = req.body.avatar;
-      
-      // Ensure it's a proper data URL
-      if (!avatarUrl.startsWith('data:')) {
-        avatarUrl = `data:image/jpeg;base64,${avatarUrl}`;
+    // If a file was uploaded by Multer, process it
+    if (req.file) {
+      console.log('🖼️ Avatar file detected:', req.file.path);
+      try {
+        // Get current user for deleting old avatar (if any)
+        const currentUser = await User.findById(req.user.id);
+
+        if (currentUser && currentUser.avatar && currentUser.avatar.public_id && !currentUser.avatar.url.includes('ui-avatars.com')) {
+          try {
+            await deleteFromCloudinary(currentUser.avatar.public_id);
+            console.log('✅ Old avatar deleted from Cloudinary');
+          } catch (deleteError) {
+            console.warn('⚠️ Could not delete old avatar:', deleteError.message);
+          }
+        }
+
+        // Upload new avatar file
+        const avatarResult = await uploadToCloudinary(req.file.path, 'harmoniahub/avatars');
+
+        newUserData.avatar = {
+          public_id: avatarResult.public_id,
+          url: avatarResult.url
+        };
+
+        // Cleanup temp file
+        const fs = require('fs');
+        fs.unlink(req.file.path, (e) => { if (e) console.warn('Failed to delete temp avatar file', e.message); });
+
+        console.log('✅ Avatar uploaded to Cloudinary');
+      } catch (uploadError) {
+        console.error('❌ Avatar upload failed:', uploadError.message);
+        return res.status(400).json({ success: false, message: 'Avatar upload failed. Please try again.' });
       }
-      
-      newUserData.avatar = {
-        public_id: 'user_avatar_' + Date.now(),
-        url: avatarUrl // Store the base64 image data directly
-      };
-      
-      console.log('✅ Avatar updated with uploaded image');
+    } else {
+      console.log('ℹ️ No avatar file provided; keeping existing avatar');
     }
 
     console.log('👤 Updating user in database...');
@@ -296,29 +315,18 @@ exports.updateProfile = async (req, res) => {
     });
 
     console.log('✅ Profile updated successfully');
-    res.status(200).json({ 
-      success: true, 
-      user,
-      message: 'Profile updated successfully' 
-    });
+    res.status(200).json({ success: true, user, message: 'Profile updated successfully' });
 
   } catch (error) {
-    console.error('❌ UPDATE PROFILE ERROR:');
-    console.error('Error message:', error.message);
-    
+    console.error('❌ UPDATE PROFILE ERROR:', error);
     if (error.code === 11000) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email already exists' 
-      });
+      return res.status(400).json({ success: false, message: 'Email already exists' });
     }
-    
-    res.status(500).json({ 
-      success: false, 
-      message: 'Profile update failed. Please try again.' 
-    });
+    res.status(500).json({ success: false, message: 'Profile update failed. Please try again.' });
   }
 };
+
+
 // ========== UPDATE PASSWORD ==========
 exports.updatePassword = async (req, res) => {
   try {

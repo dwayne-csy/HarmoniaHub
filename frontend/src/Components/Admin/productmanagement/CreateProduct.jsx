@@ -1,3 +1,4 @@
+// HarmoniaHub/frontend/src/Components/admin/productmanagement/CreateProduct.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -19,8 +20,8 @@ export default function CreateProduct() {
     stock: ''
   });
   const [suppliers, setSuppliers] = useState([]);
-  const [image, setImage] = useState("");       // base64 string
-  const [imagePreview, setImagePreview] = useState("");
+  const [imagesFiles, setImagesFiles] = useState([]); // File objects
+  const [imagePreviews, setImagePreviews] = useState([]); // base64 for preview
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -38,27 +39,48 @@ export default function CreateProduct() {
     fetchSuppliers();
   }, []);
 
-  // Handle file selection and convert to base64
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    if (!file.type.startsWith('image/')) {
-      setMsg({ type: 'error', text: 'Please select an image file' });
+    // Total size and per-file checks
+    const totalSize = files.reduce((t, f) => t + f.size, 0);
+    if (totalSize > 10 * 1024 * 1024) {
+      setMsg({ type: 'error', text: 'Total images size should be less than 10MB' });
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB max
-      setMsg({ type: 'error', text: 'Image size should be less than 5MB' });
-      return;
-    }
+    const validFiles = [];
+    const previews = [];
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImage(reader.result);       // base64
-      setImagePreview(reader.result); // preview
-    };
-    reader.readAsDataURL(file);
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) {
+        setMsg({ type: 'error', text: 'Please select only image files' });
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        setMsg({ type: 'error', text: `Image ${file.name} should be less than 2MB` });
+        return;
+      }
+
+      validFiles.push(file);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        previews.push(reader.result);
+        if (previews.length === validFiles.length) {
+          setImagePreviews(prev => [...prev, ...previews]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    setImagesFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeImage = (index) => {
+    setImagesFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -70,21 +92,26 @@ export default function CreateProduct() {
       return;
     }
 
-    if (!image) {
-      setMsg({ type: 'error', text: 'Please select a product image.' });
+    if (imagesFiles.length === 0) {
+      setMsg({ type: 'error', text: 'Please select at least one product image.' });
       return;
     }
 
-    const payload = {
-      ...form,
-      price: parseFloat(form.price),
-      stock: parseInt(form.stock, 10),
-      images: [{ url: image, public_id: 'local_product_' + Date.now() }]
-    };
+    const formData = new FormData();
+    formData.append('name', form.name);
+    formData.append('price', parseFloat(form.price));
+    formData.append('description', form.description);
+    formData.append('category', form.category);
+    if (form.supplier) formData.append('supplier', form.supplier);
+    formData.append('stock', parseInt(form.stock, 10));
+
+    imagesFiles.forEach((file) => {
+      formData.append('images', file);
+    });
 
     try {
       setLoading(true);
-      const res = await axios.post(`${BASE_URL}/admin/products`, payload, {
+      const res = await axios.post(`${BASE_URL}/admin/products`, formData, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setMsg({ type: 'success', text: 'Product created successfully.' });
@@ -126,13 +153,55 @@ export default function CreateProduct() {
         <label>Stock*:</label><br />
         <input type="number" value={form.stock} onChange={e=>setForm({...form, stock: e.target.value})} style={{width:'100%', padding:8}} /><br /><br />
 
-        {/* File input */}
-        <label>Product Image*:</label><br />
-        <input type="file" accept="image/*" onChange={handleFileChange} style={{width:'100%', padding:8}} /><br /><br />
+        {/* Multiple file input */}
+        <label>Product Images* (Max 5 images, 2MB each):</label><br />
+        <input 
+          type="file" 
+          accept="image/*" 
+          multiple 
+          onChange={handleFileChange}
+          style={{width:'100%', padding:8}} 
+        /><br /><br />
 
-        {imagePreview && (
-          <div style={{textAlign:'center', marginBottom:12}}>
-            <img src={imagePreview} alt="Preview" style={{width:'150px', height:'150px', objectFit:'cover', border:'1px solid #ddd'}} />
+        {/* Image previews */}
+        {imagePreviews.length > 0 && (
+          <div style={{marginBottom:12}}>
+            <strong>Image Previews:</strong>
+            <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:8}}>
+              {imagePreviews.map((preview, index) => (
+                <div key={index} style={{position:'relative'}}>
+                  <img 
+                    src={preview} 
+                    alt={`Preview ${index + 1}`} 
+                    style={{
+                      width: '100px', 
+                      height: '100px', 
+                      objectFit: 'cover', 
+                      border: '1px solid #ddd',
+                      borderRadius: '4px'
+                    }} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    style={{
+                      position: 'absolute',
+                      top: '-5px',
+                      right: '-5px',
+                      background: '#ff4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '20px',
+                      height: '20px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
