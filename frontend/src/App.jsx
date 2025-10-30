@@ -11,15 +11,19 @@ import AdminDashboard from "./Components/admin/AdminDashboard";
 import AdminRoutes from "./Components/admin/AdminRoutes";
 import { getUser } from "./Components/utils/helper";
 
-// Import Product Management Components
+// Product Management
 import ProductList from "./Components/admin/productmanagement/ProductList";
 import CreateProduct from "./Components/admin/productmanagement/CreateProduct";
-import UpdateProduct from "./Components/admin/productmanagement/UpdateProduct"; // ✅ Import UpdateProduct
+import UpdateProduct from "./Components/admin/productmanagement/UpdateProduct";
 
-// Import Supplier Management Components
+// Supplier Management
 import SupplierList from "./Components/admin/suppliermanagement/SupplierList";
 import CreateSupplier from "./Components/admin/suppliermanagement/CreateSupplier";
 import UpdateSupplier from "./Components/admin/suppliermanagement/UpdateSupplier";
+
+// ✅ User Management
+import UserList from "./Components/admin/usermanagement/UserList";
+import CreateUser from "./Components/admin/usermanagement/CreateUser";
 
 const App = () => {
   const token = localStorage.getItem("token");
@@ -34,7 +38,7 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        {/* Redirect based on role */}
+        {/* Default Route */}
         <Route path="/" element={<Navigate to={getDefaultRoute()} />} />
 
         {/* Public Routes */}
@@ -43,10 +47,19 @@ const App = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-        {/* Protected User Routes */}
-        <Route path="/home" element={token ? <Home /> : <Navigate to="/login" />} />
-        <Route path="/profile" element={token ? <Profile /> : <Navigate to="/login" />} />
-        <Route path="/update-profile" element={token ? <UpdateProfile /> : <Navigate to="/login" />} />
+        {/* User Protected Routes */}
+        <Route
+          path="/home"
+          element={token ? <Home /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/profile"
+          element={token ? <Profile /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/update-profile"
+          element={token ? <UpdateProfile /> : <Navigate to="/login" />}
+        />
 
         {/* Admin Dashboard */}
         <Route
@@ -79,7 +92,7 @@ const App = () => {
           path="/admin/products/edit/:id"
           element={
             <AdminRoutes>
-              <UpdateProduct /> {/* ✅ Fixed */}
+              <UpdateProduct />
             </AdminRoutes>
           }
         />
@@ -110,7 +123,25 @@ const App = () => {
           }
         />
 
-        {/* Catch all */}
+        {/* ✅ User Management */}
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoutes>
+              <UserList />
+            </AdminRoutes>
+          }
+        />
+        <Route
+          path="/admin/users/create"
+          element={
+            <AdminRoutes>
+              <CreateUser />
+            </AdminRoutes>
+          }
+        />
+
+        {/* Catch-all Redirect */}
         <Route path="*" element={<Navigate to={getDefaultRoute()} />} />
       </Routes>
     </Router>

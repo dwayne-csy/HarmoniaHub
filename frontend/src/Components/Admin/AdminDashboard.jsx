@@ -11,11 +11,11 @@ const AdminDashboard = () => {
     suppliers: 0,
     activeSuppliers: 0,
     totalStock: 0,
+    users: 0, // ✅ Added users count
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Base URL for backend API (port 4001)
   const API_BASE = "http://localhost:4001/api/v1";
 
   useEffect(() => {
@@ -24,59 +24,40 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      // Attempt admin-level data first
-      const [productsRes, suppliersRes] = await Promise.all([
-        axios.get(`${API_BASE}/admin/products`),
-        axios.get(`${API_BASE}/admin/suppliers`),
+      // Token for authorization
+      const token = localStorage.getItem("token");
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+      };
+
+      const [productsRes, suppliersRes, usersRes] = await Promise.all([
+        axios.get(`${API_BASE}/products`, config),
+        axios.get(`${API_BASE}/suppliers`, config),
+        axios.get(`${API_BASE}/users`, config), // fetch users count
       ]);
 
       const products = productsRes.data.products || productsRes.data || [];
       const suppliers = suppliersRes.data.suppliers || suppliersRes.data || [];
       const activeSuppliers = suppliers.filter((s) => s.isActive);
+      const users = usersRes.data.users || [];
 
       setStats({
         products: products.length,
         suppliers: suppliers.length,
         activeSuppliers: activeSuppliers.length,
-        totalStock: products.reduce(
-          (sum, product) => sum + (product.stock || 0),
-          0
-        ),
+        totalStock: products.reduce((sum, p) => sum + (p.stock || 0), 0),
+        users: users.length,
       });
     } catch (err) {
-      console.error("Error fetching admin data:", err);
-      // Try public fallback
-      try {
-        const [productsRes, suppliersRes] = await Promise.all([
-          axios.get(`${API_BASE}/products`),
-          axios.get(`${API_BASE}/suppliers`),
-        ]);
-
-        const products = productsRes.data.products || productsRes.data || [];
-        const suppliers = suppliersRes.data.suppliers || suppliersRes.data || [];
-
-        setStats({
-          products: products.length,
-          suppliers: suppliers.length,
-          activeSuppliers: suppliers.length,
-          totalStock: products.reduce(
-            (sum, product) => sum + (product.stock || 0),
-            0
-          ),
-        });
-      } catch (fallbackError) {
-        console.error("Fallback failed:", fallbackError);
-        setError("Failed to load dashboard statistics.");
-      }
+      console.error("Error fetching data:", err);
+      setError("Failed to load dashboard statistics.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
-    logout(() => {
-      navigate("/login");
-    });
+    logout(() => navigate("/login"));
   };
 
   if (loading) return <div className="loading">Loading dashboard...</div>;
@@ -130,26 +111,18 @@ const AdminDashboard = () => {
           <h3>Total Stock</h3>
           <p className="stat-number">{stats.totalStock}</p>
         </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="admin-actions">
-        <h2>Quick Actions</h2>
-        <div className="action-buttons">
-          <Link to="/admin/products/new" className="action-card">
-            ➕ Add New Product
-          </Link>
-          <Link to="/admin/suppliers/new" className="action-card">
-            👥 Add New Supplier
-          </Link>
-          <Link to="/admin/products" className="action-card">
-            📋 View Products
-          </Link>
-          <Link to="/admin/suppliers" className="action-card">
-            🏢 View Suppliers
+        {/* Users */}
+        <div className="stat-card">
+          <h3>Total Users</h3>
+          <p className="stat-number">{stats.users}</p>
+          <Link to="/admin/users" className="stat-link">
+            Manage Users
           </Link>
         </div>
       </div>
+
+
     </div>
   );
 };

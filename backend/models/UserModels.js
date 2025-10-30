@@ -37,9 +37,17 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user'
     },
+    isActive: {
+    type: Boolean,
+    default: true,
+    },
+    isDeleted: {
+    type: Boolean,
+    default: false,
+    },
     isVerified: {
-        type: Boolean,
-        default: false
+    type: Boolean,
+    default: false,
     },
     emailVerificationToken: String,
     emailVerificationExpire: Date,
