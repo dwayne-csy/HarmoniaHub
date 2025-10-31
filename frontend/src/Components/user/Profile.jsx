@@ -38,9 +38,26 @@ const Profile = () => {
               marginBottom: "15px",
             }}
           />
-          <h2>{user.name}</h2>
+
+          {/* USER NAME + VERIFIED BADGE */}
+          <h2 style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}>
+            {user.name}
+            {user.isVerified && (
+              <img
+                src="/images/verified.jpg"
+                alt="Verified"
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  borderRadius: "50%",
+                }}
+              />
+            )}
+          </h2>
+
           <p><strong>Email:</strong> {user.email}</p>
           <p><strong>Contact:</strong> {user.contact}</p>
+
           <p><strong>Address:</strong></p>
           <ul style={{ listStyle: "none", padding: 0 }}>
             <li><strong>City:</strong> {user.address?.city}</li>
@@ -48,10 +65,12 @@ const Profile = () => {
             <li><strong>Street:</strong> {user.address?.street}</li>
             <li><strong>Zipcode:</strong> {user.address?.zipcode}</li>
           </ul>
+
           <p style={{ marginTop: "10px", color: "#555" }}>
             <strong>Account Created:</strong>{" "}
             {new Date(user.createdAt).toLocaleDateString()}
           </p>
+
           <a
             href="/update-profile"
             className="btn-update"

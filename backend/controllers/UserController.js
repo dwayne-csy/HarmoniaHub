@@ -137,23 +137,32 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Check if user is active
+    // 🚫 Check if user is deleted (in trash)
+    if (user.isDeleted) {
+      console.log('🗑️ Deleted user attempted login:', email);
+      return res.status(403).json({ message: 'Your account has been deleted. Please contact support.' });
+    }
+
+    // 🚫 Check if user is inactive
     if (!user.isActive) {
       console.log('❌ Inactive user attempted login:', email);
       return res.status(403).json({ message: 'Your account is inactive. Please contact support.' });
     }
 
+    // 🚫 Check if user is verified
     if (!user.isVerified) {
       console.log('❌ User not verified:', email);
-      return res.status(403).json({ message: 'Please verify your email first' });
+      return res.status(403).json({ message: 'Please verify your email first.' });
     }
 
+    // ✅ Check password
     const isPasswordMatched = await user.comparePassword(password);
     if (!isPasswordMatched) {
       console.log('❌ Password mismatch for:', email);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // ✅ Successful login
     console.log('✅ Login successful for:', email);
     const token = user.getJwtToken();
 

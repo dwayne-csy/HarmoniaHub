@@ -25,19 +25,19 @@ const userSchema = new mongoose.Schema({
     avatar: {
         public_id: {
             type: String,
-            required: true
+            default: "",
         },
         url: {
             type: String,
-            required: true
+            default: "https://res.cloudinary.com/demo/image/upload/v1690000000/default-avatar.png",
         }
     },
     contact: {
         type: String,
-        required: [true, 'Please enter your contact number'],
+        default: "",
         validate: {
             validator: function (v) {
-                return /^(\+?\d{10,15})$/.test(v); // Allows 10–15 digits, optional "+"
+                return !v || /^(\+?\d{10,15})$/.test(v); // only validate if not empty
             },
             message: 'Please enter a valid contact number'
         }
@@ -45,22 +45,22 @@ const userSchema = new mongoose.Schema({
     address: {
         city: {
             type: String,
-            required: [true, 'Please enter your city']
+            default: ""
         },
         barangay: {
             type: String,
-            required: [true, 'Please enter your barangay']
+            default: ""
         },
         street: {
             type: String,
-            required: [true, 'Please enter your street']
+            default: ""
         },
         zipcode: {
             type: String,
-            required: [true, 'Please enter your zipcode'],
+            default: "",
             validate: {
                 validator: function (v) {
-                    return /^[0-9]{4}$/.test(v); // Must be 4 digits (typical PH ZIP)
+                    return !v || /^[0-9]{4}$/.test(v); // only validate if not empty
                 },
                 message: 'Please enter a valid 4-digit zipcode'
             }
@@ -92,8 +92,6 @@ const userSchema = new mongoose.Schema({
         default: Date.now
     }
 });
-
-// ========== SCHEMA METHODS - MUST BE BEFORE MODEL EXPORT ==========
 
 // Encrypt password before saving user
 userSchema.pre('save', async function (next) {
@@ -132,5 +130,4 @@ userSchema.methods.getEmailVerificationToken = function () {
     return verifyToken;
 };
 
-// ========== EXPORT MODEL ==========
 module.exports = mongoose.model('User', userSchema);
