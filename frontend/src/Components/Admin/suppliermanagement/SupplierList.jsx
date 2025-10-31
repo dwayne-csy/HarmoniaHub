@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Loader from '../../layouts/Loader'; // import loader
 
 const BASE_URL = 'http://localhost:4001/api/v1';
 
@@ -10,28 +11,35 @@ export default function SupplierList() {
   const [deletedSuppliers, setDeletedSuppliers] = useState([]);
   const [showDeleted, setShowDeleted] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showInitialLoader, setShowInitialLoader] = useState(true);
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
   useEffect(() => {
+    // show initial loader for 1s
+    const timer = setTimeout(() => setShowInitialLoader(false), 1000);
     fetchActiveSuppliers();
-    if (token) {
-      fetchDeletedSuppliers(); // ✅ Only fetch trash if logged in
-    }
+    if (token) fetchDeletedSuppliers();
+
+    return () => clearTimeout(timer);
   }, [token]);
 
-  // Fetch all active suppliers
+  // Fetch active suppliers
   async function fetchActiveSuppliers() {
     try {
+      setLoading(true);
       const res = await axios.get(`${BASE_URL}/suppliers`);
       setSuppliers(res.data.suppliers || []);
     } catch (err) {
       console.error(err);
       setMsg({ type: 'error', text: 'Failed to load suppliers.' });
+    } finally {
+      setLoading(false);
     }
   }
 
-  // Fetch all soft-deleted suppliers
+  // Fetch deleted suppliers
   async function fetchDeletedSuppliers() {
     try {
       const res = await axios.get(`${BASE_URL}/admin/suppliers/trash`, {
@@ -43,7 +51,7 @@ export default function SupplierList() {
     }
   }
 
-  // Soft delete a supplier
+  // Soft delete
   async function handleDelete(id) {
     if (!window.confirm('Soft delete this supplier?')) return;
     try {
@@ -58,7 +66,7 @@ export default function SupplierList() {
     }
   }
 
-  // Restore a soft-deleted supplier
+  // Restore
   async function handleRestore(id) {
     if (!window.confirm('Restore this supplier?')) return;
     try {
@@ -69,12 +77,20 @@ export default function SupplierList() {
       fetchActiveSuppliers();
       fetchDeletedSuppliers();
     } catch (err) {
-      console.error(err);
-      setMsg({ type: 'error', text: err?.response?.data?.message || err.message });
+      setMsg({ type: 'error', text: 'Failed to restore user.' });
     }
   }
 
   const displayedSuppliers = showDeleted ? deletedSuppliers : suppliers;
+
+  // Show initial loader before page
+  if (showInitialLoader) {
+    return (
+      <div className="loader-container">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 900, margin: '24px auto', padding: 16 }}>
@@ -86,7 +102,6 @@ export default function SupplierList() {
             ➕ Create Supplier
           </button>
         )}
-
         {token && (
           <button
             onClick={() => setShowDeleted(!showDeleted)}
@@ -103,53 +118,62 @@ export default function SupplierList() {
         </div>
       )}
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #ddd', textAlign: 'left' }}>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>City</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayedSuppliers.map((s) => (
-            <tr key={s._id} style={{ borderBottom: '1px solid #f2f2f2' }}>
-              <td>{s.name}</td>
-              <td>{s.email}</td>
-              <td>{s.phone}</td>
-              <td>{s.address?.city || '—'}</td>
-              <td>{s.isActive ? 'Active' : 'Deleted'}</td>
-              <td>
-                {showDeleted ? (
-                  <button onClick={() => handleRestore(s._id)}>♻️ Restore</button>
-                ) : (
-                  <>
-                <button onClick={() => navigate(`/admin/suppliers/edit/${s._id}`)} style={{ marginLeft: 6 }}>
-                Edit
-                </button>
-                    <button
-                      onClick={() => handleDelete(s._id)}
-                      style={{ marginLeft: 6 }}
-                    >
-                      🗑️ Soft Delete
-                    </button>
-                  </>
-                )}
-              </td>
+      {loading ? (
+        <div className="loader-container">
+          <Loader />
+        </div>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #ddd', textAlign: 'left' }}>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>City</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          ))}
-          {displayedSuppliers.length === 0 && (
-            <tr>
-              <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>
-                {showDeleted ? 'No deleted suppliers.' : 'No active suppliers.'}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {displayedSuppliers.map((s) => (
+              <tr key={s._id} style={{ borderBottom: '1px solid #f2f2f2' }}>
+                <td>{s.name}</td>
+                <td>{s.email}</td>
+                <td>{s.phone}</td>
+                <td>{s.address?.city || '—'}</td>
+                <td>{s.isActive ? 'Active' : 'Deleted'}</td>
+                <td>
+                  {showDeleted ? (
+                    <button onClick={() => handleRestore(s._id)}>♻️ Restore</button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => navigate(`/admin/suppliers/edit/${s._id}`)}
+                        style={{ marginLeft: 6 }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(s._id)}
+                        style={{ marginLeft: 6 }}
+                      >
+                        🗑️ Soft Delete
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {displayedSuppliers.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>
+                  {showDeleted ? 'No deleted suppliers.' : 'No active suppliers.'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
