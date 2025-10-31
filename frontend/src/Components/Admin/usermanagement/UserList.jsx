@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Loader from "../../layouts/loader"; // import your Loader
+import Loader from "../../layouts/Loader";
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
