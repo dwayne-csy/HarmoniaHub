@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { getUser, logout } from "../utils/helper";
+import Loader from "../layouts/Loader"; // ✅ import Loader
 
 const AdminDashboard = () => {
   const user = getUser();
@@ -9,9 +10,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     products: 0,
     suppliers: 0,
-    activeSuppliers: 0,
-    totalStock: 0,
-    users: 0, // ✅ Added users count
+    users: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -24,28 +23,22 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      // Token for authorization
       const token = localStorage.getItem("token");
-      const config = {
-        headers: { Authorization: `Bearer ${token}` },
-      };
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const [productsRes, suppliersRes, usersRes] = await Promise.all([
         axios.get(`${API_BASE}/products`, config),
         axios.get(`${API_BASE}/suppliers`, config),
-        axios.get(`${API_BASE}/users`, config), // fetch users count
+        axios.get(`${API_BASE}/users`, config),
       ]);
 
       const products = productsRes.data.products || productsRes.data || [];
       const suppliers = suppliersRes.data.suppliers || suppliersRes.data || [];
-      const activeSuppliers = suppliers.filter((s) => s.isActive);
       const users = usersRes.data.users || [];
 
       setStats({
         products: products.length,
         suppliers: suppliers.length,
-        activeSuppliers: activeSuppliers.length,
-        totalStock: products.reduce((sum, p) => sum + (p.stock || 0), 0),
         users: users.length,
       });
     } catch (err) {
@@ -60,7 +53,12 @@ const AdminDashboard = () => {
     logout(() => navigate("/login"));
   };
 
-  if (loading) return <div className="loading">Loading dashboard...</div>;
+  if (loading)
+    return (
+      <div className="loader-container">
+        <Loader />
+      </div>
+    );
 
   return (
     <div className="admin-dashboard page-container">
@@ -102,16 +100,6 @@ const AdminDashboard = () => {
           </Link>
         </div>
 
-        <div className="stat-card">
-          <h3>Active Suppliers</h3>
-          <p className="stat-number">{stats.activeSuppliers}</p>
-        </div>
-
-        <div className="stat-card">
-          <h3>Total Stock</h3>
-          <p className="stat-number">{stats.totalStock}</p>
-        </div>
-
         {/* Users */}
         <div className="stat-card">
           <h3>Total Users</h3>
@@ -121,8 +109,6 @@ const AdminDashboard = () => {
           </Link>
         </div>
       </div>
-
-
     </div>
   );
 };
