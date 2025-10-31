@@ -246,11 +246,23 @@ exports.resetPassword = async (req, res) => {
 // ========== GET USER PROFILE ==========
 exports.getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('-password');
     if (!user)
       return res.status(404).json({ message: 'User not found' });
 
-    res.status(200).json({ success: true, user });
+    res.status(200).json({ 
+      success: true, 
+      user: {
+        name: user.name,
+        email: user.email,
+        contact: user.contact,
+        address: user.address,
+        avatar: user.avatar,
+        role: user.role,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -259,23 +271,38 @@ exports.getUserProfile = async (req, res) => {
 
 
 // ========== UPDATE PROFILE ==========
-// Expecting multipart/form-data with optional file field 'avatar'
 exports.updateProfile = async (req, res) => {
   try {
     console.log('📝 Update profile request received');
     const newUserData = {
       name: req.body.name,
-      email: req.body.email
+      email: req.body.email,
+      contact: req.body.contact,
+      address: {
+        city: req.body.city,
+        barangay: req.body.barangay,
+        street: req.body.street,
+        zipcode: req.body.zipcode
+      }
     };
+
+    // Remove undefined fields
+    Object.keys(newUserData.address).forEach(key => {
+      if (!newUserData.address[key]) delete newUserData.address[key];
+    });
 
     // If a file was uploaded by Multer, process it
     if (req.file) {
       console.log('🖼️ Avatar file detected:', req.file.path);
       try {
-        // Get current user for deleting old avatar (if any)
         const currentUser = await User.findById(req.user.id);
 
-        if (currentUser && currentUser.avatar && currentUser.avatar.public_id && !currentUser.avatar.url.includes('ui-avatars.com')) {
+        if (
+          currentUser &&
+          currentUser.avatar &&
+          currentUser.avatar.public_id &&
+          !currentUser.avatar.url.includes('ui-avatars.com')
+        ) {
           try {
             await deleteFromCloudinary(currentUser.avatar.public_id);
             console.log('✅ Old avatar deleted from Cloudinary');
@@ -284,7 +311,6 @@ exports.updateProfile = async (req, res) => {
           }
         }
 
-        // Upload new avatar file
         const avatarResult = await uploadToCloudinary(req.file.path, 'harmoniahub/avatars');
 
         newUserData.avatar = {
@@ -292,9 +318,10 @@ exports.updateProfile = async (req, res) => {
           url: avatarResult.url
         };
 
-        // Cleanup temp file
         const fs = require('fs');
-        fs.unlink(req.file.path, (e) => { if (e) console.warn('Failed to delete temp avatar file', e.message); });
+        fs.unlink(req.file.path, (e) => { 
+          if (e) console.warn('Failed to delete temp avatar file', e.message); 
+        });
 
         console.log('✅ Avatar uploaded to Cloudinary');
       } catch (uploadError) {
@@ -312,7 +339,11 @@ exports.updateProfile = async (req, res) => {
     });
 
     console.log('✅ Profile updated successfully');
-    res.status(200).json({ success: true, user, message: 'Profile updated successfully' });
+    res.status(200).json({ 
+      success: true, 
+      user, 
+      message: 'Profile updated successfully' 
+    });
 
   } catch (error) {
     console.error('❌ UPDATE PROFILE ERROR:', error);
@@ -323,22 +354,45 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-
 // ========== UPDATE PASSWORD ==========
 exports.updatePassword = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('+password');
-    const isMatched = await user.comparePassword(req.body.oldPassword);
+    console.log("🔐 Password update request received for user:", req.user.id);
 
-    if (!isMatched)
-      return res.status(400).json({ message: 'Old password is incorrect' });
+    const user = await User.findById(req.user.id).select("+password");
 
-    user.password = req.body.password;
-    await user.save();
+    if (!user) {
+      console.log("❌ User not found");
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
-    const token = user.getJwtToken();
-    res.status(200).json({ success: true, token, user });
+    const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
+    if (!isPasswordMatched) {
+      console.log("❌ Old password incorrect");
+      return res.status(400).json({ success: false, message: "Old password is incorrect" });
+    }
+
+    if (req.body.newPassword !== req.body.confirmPassword) {
+      console.log("❌ New passwords do not match");
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    // Update the password
+    user.password = req.body.newPassword;
+
+    // Save the user without triggering re-validation of required fields
+    await user.save({ validateBeforeSave: false });
+
+    console.log("✅ Password updated successfully");
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("❌ UPDATE PASSWORD ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update password",
+    });
   }
 };

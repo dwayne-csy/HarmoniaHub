@@ -1,47 +1,73 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
 
 const Profile = () => {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    if (!token) return navigate("/login");
+    if (!token) return;
 
     const fetchProfile = async () => {
       try {
         const { data } = await axios.get("http://localhost:4001/api/v1/me", {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         setUser(data.user);
       } catch (error) {
-        navigate("/login");
+        console.error("Error fetching profile:", error);
       }
     };
-    fetchProfile();
-  }, [navigate, token]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
+    fetchProfile();
+  }, [token]);
 
   return (
     <div className="profile-container">
-      <Link to="/home" style={{ marginBottom: '20px', display: 'block' }}>
-        ← Back to Home
-      </Link>
-      
       {user ? (
-        <>
-          <img src={user.avatar.url} alt={user.name} className="avatar" />
+        <div className="profile-card" style={{ textAlign: "center" }}>
+          <img
+            src={user.avatar?.url}
+            alt={user.name}
+            className="avatar"
+            style={{
+              width: "120px",
+              height: "120px",
+              borderRadius: "50%",
+              objectFit: "cover",
+              marginBottom: "15px",
+            }}
+          />
           <h2>{user.name}</h2>
-          <p>{user.email}</p>
-          <Link to="/update-profile">Update Profile</Link>
-          <button onClick={handleLogout}>Logout</button>
-        </>
+          <p><strong>Email:</strong> {user.email}</p>
+          <p><strong>Contact:</strong> {user.contact}</p>
+          <p><strong>Address:</strong></p>
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            <li><strong>City:</strong> {user.address?.city}</li>
+            <li><strong>Barangay:</strong> {user.address?.barangay}</li>
+            <li><strong>Street:</strong> {user.address?.street}</li>
+            <li><strong>Zipcode:</strong> {user.address?.zipcode}</li>
+          </ul>
+          <p style={{ marginTop: "10px", color: "#555" }}>
+            <strong>Account Created:</strong>{" "}
+            {new Date(user.createdAt).toLocaleDateString()}
+          </p>
+          <a
+            href="/update-profile"
+            className="btn-update"
+            style={{
+              display: "inline-block",
+              marginTop: "15px",
+              padding: "8px 16px",
+              backgroundColor: "#007bff",
+              color: "#fff",
+              borderRadius: "5px",
+              textDecoration: "none",
+            }}
+          >
+            Update Profile
+          </a>
+        </div>
       ) : (
         <p>Loading profile...</p>
       )}

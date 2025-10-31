@@ -13,21 +13,18 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch user profile
         if (token) {
           const { data } = await axios.get("http://localhost:4001/api/v1/me", {
             headers: { Authorization: `Bearer ${token}` },
           });
           setUser(data.user);
 
-          // Optional: fetch cart to get current count
           const cartRes = await axios.get("http://localhost:4001/api/v1/cart", {
             headers: { Authorization: `Bearer ${token}` },
           });
           setCartCount(cartRes.data.cart?.items?.length || 0);
         }
 
-        // Fetch products
         const productsRes = await axios.get("http://localhost:4001/api/v1/products");
         setProducts(productsRes.data.products || productsRes.data || []);
       } catch (error) {
@@ -49,11 +46,10 @@ const Home = () => {
     try {
       const res = await axios.post(
         "http://localhost:4001/api/v1/cart/add",
-        { productId }, // <-- send productId in the body
+        { productId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Update cart count in UI
       setCartCount(res.data.cart.items.length);
       alert("Product added to cart!");
     } catch (error) {
@@ -86,53 +82,48 @@ const Home = () => {
   return (
     <div className="home-container">
       <header className="home-header">
-        <h1>Welcome back, {user.name}!</h1>
-        <p>Your personal space for harmony and productivity</p>
-        <div className="user-info">
-          <img src={user.avatar?.url} alt={user.name} className="user-avatar" />
-          <span className="user-role">Role: {user.role}</span>
+        <div className="header-actions" style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+          <Link to="/profile" className="btn-profile">
+            Profile
+          </Link>
           <Link to="/cart" className="btn-cart">
             Cart ({cartCount})
           </Link>
+          <button className="btn-logout" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
-        <button className="btn-logout" onClick={handleLogout}>
-          Logout
-        </button>
       </header>
 
-      <div className="welcome-message">
-        <h2>Hello, {user.name}!</h2>
-        <p>Here's your account information:</p>
-        <ul className="user-tasks">
-          <li>Account Status: {user.isVerified ? "✓ Verified" : "⚠ Needs Verification"}</li>
-          <li>Member Since: {new Date(user.createdAt).toLocaleDateString()}</li>
-        </ul>
-      </div>
-
-      <div className="products-section">
+      <main className="products-section">
         <h2>Available Products</h2>
         {products.length === 0 ? (
           <p>No products available at the moment.</p>
         ) : (
           <div className="products-grid">
-            {products.map((product) => (
-              <div key={product._id} className="product-card">
-                <img src={product.images?.[0]?.url} alt={product.name} className="product-image" />
-                <h3>{product.name}</h3>
-                <p>Price: ${product.price}</p>
-                <p>Stock: {product.stock}</p>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => handleAddToCart(product._id)}
-                  disabled={product.stock === 0}
-                >
-                  {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
-                </button>
-              </div>
-            ))}
+            {products
+              .filter((product) => product.stock > 0)
+              .map((product) => (
+                <div key={product._id} className="product-card">
+                  <img
+                    src={product.images?.[0]?.url}
+                    alt={product.name}
+                    className="product-image"
+                  />
+                  <h3>{product.name}</h3>
+                  <p>Price: ${product.price}</p>
+                  <p>Stock: {product.stock}</p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleAddToCart(product._id)}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+              ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

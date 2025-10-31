@@ -32,22 +32,56 @@ const userSchema = new mongoose.Schema({
             required: true
         }
     },
+    contact: {
+        type: String,
+        required: [true, 'Please enter your contact number'],
+        validate: {
+            validator: function (v) {
+                return /^(\+?\d{10,15})$/.test(v); // Allows 10–15 digits, optional "+"
+            },
+            message: 'Please enter a valid contact number'
+        }
+    },
+    address: {
+        city: {
+            type: String,
+            required: [true, 'Please enter your city']
+        },
+        barangay: {
+            type: String,
+            required: [true, 'Please enter your barangay']
+        },
+        street: {
+            type: String,
+            required: [true, 'Please enter your street']
+        },
+        zipcode: {
+            type: String,
+            required: [true, 'Please enter your zipcode'],
+            validate: {
+                validator: function (v) {
+                    return /^[0-9]{4}$/.test(v); // Must be 4 digits (typical PH ZIP)
+                },
+                message: 'Please enter a valid 4-digit zipcode'
+            }
+        }
+    },
     role: {
         type: String,
         enum: ['user', 'admin'],
         default: 'user'
     },
     isActive: {
-    type: Boolean,
-    default: true,
+        type: Boolean,
+        default: true,
     },
     isDeleted: {
-    type: Boolean,
-    default: false,
+        type: Boolean,
+        default: false,
     },
     isVerified: {
-    type: Boolean,
-    default: false,
+        type: Boolean,
+        default: false,
     },
     emailVerificationToken: String,
     emailVerificationExpire: Date,
