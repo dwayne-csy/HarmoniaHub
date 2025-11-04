@@ -8,6 +8,7 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true); // loader for products only
   const [cartCount, setCartCount] = useState(0);
+  const [currentImageIndexes, setCurrentImageIndexes] = useState({}); // Track current image index for each product
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
@@ -27,7 +28,17 @@ const Home = () => {
         }
 
         const productsRes = await axios.get("http://localhost:4001/api/v1/products");
-        setProducts(productsRes.data.products || productsRes.data || []);
+        const productsData = productsRes.data.products || productsRes.data || [];
+        setProducts(productsData);
+        
+        // Initialize image indexes for all products
+        const initialIndexes = {};
+        productsData.forEach(product => {
+          if (product.images && product.images.length > 0) {
+            initialIndexes[product._id] = 0;
+          }
+        });
+        setCurrentImageIndexes(initialIndexes);
       } catch (error) {
         console.error("Failed to fetch data", error);
       } finally {
@@ -37,6 +48,43 @@ const Home = () => {
 
     fetchData();
   }, [token]);
+
+  // Navigation functions for image carousel
+  const nextImage = (productId, totalImages, e) => {
+    e.stopPropagation(); // Prevent card click events
+    setCurrentImageIndexes(prev => ({
+      ...prev,
+      [productId]: (prev[productId] + 1) % totalImages
+    }));
+  };
+
+  const prevImage = (productId, totalImages, e) => {
+    e.stopPropagation(); // Prevent card click events
+    setCurrentImageIndexes(prev => ({
+      ...prev,
+      [productId]: (prev[productId] - 1 + totalImages) % totalImages
+    }));
+  };
+
+  // Auto-slide effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndexes(prev => {
+        const newIndexes = { ...prev };
+        
+        // Update all products with multiple images
+        products.forEach(product => {
+          if (product.images && product.images.length > 1) {
+            newIndexes[product._id] = (prev[product._id] + 1) % product.images.length;
+          }
+        });
+        
+        return newIndexes;
+      });
+    }, 3000); // Change image every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [products]);
 
   const handleAddToCart = async (productId) => {
     if (!token) {
@@ -103,24 +151,96 @@ const Home = () => {
             <div className="products-grid">
               {products
                 .filter((product) => product.stock > 0)
-                .map((product) => (
-                  <div key={product._id} className="product-card">
-                    <img
-                      src={product.images?.[0]?.url}
-                      alt={product.name}
-                      className="product-image"
-                    />
-                    <h3>{product.name}</h3>
-                    <p>Price: ${product.price}</p>
-                    <p>Stock: {product.stock}</p>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleAddToCart(product._id)}
-                    >
-                      Add to Cart
-                    </button>
-                  </div>
-                ))}
+                .map((product) => {
+                  const currentIndex = currentImageIndexes[product._id] || 0;
+                  const totalImages = product.images?.length || 0;
+                  const hasMultipleImages = totalImages > 1;
+                  
+                  return (
+                    <div key={product._id} className="product-card">
+                      <div style={{ position: 'relative' }}>
+                        <img
+                          src={product.images?.[currentIndex]?.url}
+                          alt={product.name}
+                          className="product-image"
+                        />
+                        
+                        {/* Navigation arrows for multiple images */}
+                        {hasMultipleImages && (
+                          <>
+                            <button
+                              onClick={(e) => prevImage(product._id, totalImages, e)}
+                              style={{
+                                position: 'absolute',
+                                left: 5,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(0,0,0,0.5)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 25,
+                                height: 25,
+                                fontSize: 14,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              ‹
+                            </button>
+                            <button
+                              onClick={(e) => nextImage(product._id, totalImages, e)}
+                              style={{
+                                position: 'absolute',
+                                right: 5,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(0,0,0,0.5)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 25,
+                                height: 25,
+                                fontSize: 14,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              ›
+                            </button>
+                            
+                            {/* Image counter */}
+                            <div style={{
+                              position: 'absolute',
+                              bottom: 5,
+                              right: 5,
+                              background: 'rgba(0,0,0,0.6)',
+                              color: 'white',
+                              fontSize: 10,
+                              padding: '2px 6px',
+                              borderRadius: 8
+                            }}>
+                              {currentIndex + 1}/{totalImages}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <h3>{product.name}</h3>
+                      <p>Price: ${product.price}</p>
+                      <p>Stock: {product.stock}</p>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleAddToCart(product._id)}
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </main>

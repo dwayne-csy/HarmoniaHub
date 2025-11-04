@@ -147,7 +147,7 @@ export default function CreateProduct() {
         <label>Supplier (optional):</label><br />
         <select value={form.supplier} onChange={e=>setForm({...form, supplier: e.target.value})} style={{width:'100%', padding:8}}>
           <option value=''>-- None --</option>
-          {suppliers.map(s => <option key={s._id} value={s._id}>{s.name} ({s.email})</option>)}
+          {suppliers.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
         </select><br /><br />
 
         <label>Stock*:</label><br />
