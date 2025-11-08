@@ -108,9 +108,6 @@ export default function ViewUser() {
       <div style={{ marginBottom: 16 }}>
         <strong>Created At:</strong> {new Date(user.createdAt).toLocaleString()}
       </div>
-      <div style={{ marginBottom: 16 }}>
-        <strong>Updated At:</strong> {new Date(user.updatedAt).toLocaleString()}
-      </div>
 
       <Button variant="contained" onClick={() => navigate("/admin/users")}>
         Back to Users

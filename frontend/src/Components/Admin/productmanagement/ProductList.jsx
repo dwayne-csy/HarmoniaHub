@@ -14,7 +14,7 @@ export default function ProductList() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentImageIndexes, setCurrentImageIndexes] = useState({});
-  const [selectedRows, setSelectedRows] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [supplierFilter, setSupplierFilter] = useState('');
   const [suppliers, setSuppliers] = useState([]);
@@ -47,17 +47,14 @@ export default function ProductList() {
       const res = await axios.get(`${BASE_URL}/products`);
       setProducts(res.data.products || []);
 
-      // Set initial image indexes
       const initialIndexes = {};
       res.data.products?.forEach(p => {
         if (p.images?.length > 0) initialIndexes[p._id] = 0;
       });
       setCurrentImageIndexes(initialIndexes);
 
-      // Set unique suppliers
       const uniqueSuppliers = [...new Set(res.data.products.map(p => p.supplier?.name).filter(Boolean))];
       setSuppliers(uniqueSuppliers);
-
     } catch (err) {
       console.error(err);
     } finally {
@@ -71,6 +68,7 @@ export default function ProductList() {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setDeletedProducts(res.data.products || []);
+
       const initialIndexes = {};
       res.data.products?.forEach(p => {
         if (p.images?.length > 0) initialIndexes[p._id] = 0;
@@ -96,34 +94,32 @@ export default function ProductList() {
   };
 
   const handleBulkDelete = async () => {
-    if (selectedRows.length === 0) return alert('No products selected.');
-    if (!window.confirm(`Soft delete ${selectedRows.length} selected products?`)) return;
+    if (selectedIds.length === 0) return alert('No products selected.');
+    if (!window.confirm(`Soft delete ${selectedIds.length} selected products?`)) return;
 
     try {
-      await Promise.all(selectedRows.map(i => {
-        const id = displayedProducts[i]._id;
-        return axios.delete(`${BASE_URL}/admin/products/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      }));
+      await Promise.all(selectedIds.map(id =>
+        axios.delete(`${BASE_URL}/admin/products/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      ));
       fetchActiveProducts();
       fetchDeletedProducts();
-      setSelectedRows([]);
+      setSelectedIds([]);
     } catch (err) {
       console.error(err);
     }
   };
 
   const handleRestore = async () => {
-    if (selectedRows.length === 0) return alert('No products selected.');
-    if (!window.confirm(`Restore ${selectedRows.length} selected products?`)) return;
+    if (selectedIds.length === 0) return alert('No products selected.');
+    if (!window.confirm(`Restore ${selectedIds.length} selected products?`)) return;
 
     try {
-      await Promise.all(selectedRows.map(i => {
-        const id = displayedProducts[i]._id;
-        return axios.patch(`${BASE_URL}/admin/products/restore/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      }));
+      await Promise.all(selectedIds.map(id =>
+        axios.patch(`${BASE_URL}/admin/products/restore/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      ));
       fetchActiveProducts();
       fetchDeletedProducts();
-      setSelectedRows([]);
+      setSelectedIds([]);
     } catch (err) {
       console.error(err);
     }
@@ -212,8 +208,11 @@ export default function ProductList() {
   const options = {
     selectableRows: "multiple",
     selectableRowsOnClick: true,
-    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) => {
-      setSelectedRows(rowsSelected);
+    // Fix checkbox selection
+    rowsSelected: displayedProducts.map((p, i) => selectedIds.includes(p._id) ? i : null).filter(i => i !== null),
+    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelectedIndexes) => {
+      const ids = rowsSelectedIndexes.map(i => displayedProducts[i]._id);
+      setSelectedIds(ids);
     },
     download: false,
     print: false,
@@ -227,12 +226,7 @@ export default function ProductList() {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '80vh',
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
         <Loader />
       </div>
     );
@@ -242,7 +236,6 @@ export default function ProductList() {
     <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16 }}>
       <h2>{showDeleted ? 'Deleted Products (Trash)' : 'Active Products'}</h2>
 
-      {/* Filter Dropdowns */}
       <Stack direction="row" spacing={2} mb={2}>
         <FormControl size="small" sx={{ minWidth: 180 }}>
           <InputLabel>Category</InputLabel>

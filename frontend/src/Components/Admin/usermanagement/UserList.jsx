@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import MUIDataTable from "mui-datatables";
-import { Button } from "@mui/material";
+import { Button, FormControl, InputLabel, Select, MenuItem, Stack } from "@mui/material";
 import Loader from "../../layouts/Loader";
 
 const BASE_URL = "http://localhost:4001/api/v1";
@@ -14,10 +14,14 @@ export default function UserList() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [verifiedFilter, setVerifiedFilter] = useState('');
+
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  const displayedUsers = showDeleted ? deletedUsers : users;
+  const originalUsers = showDeleted ? deletedUsers : users;
 
   useEffect(() => {
     fetchActiveUsers();
@@ -80,7 +84,7 @@ export default function UserList() {
     if (!window.confirm(`Soft delete ${selectedRows.length} selected users?`)) return;
     try {
       await Promise.all(selectedRows.map(i => {
-        const id = displayedUsers[i]._id;
+        const id = originalUsers[i]._id;
         return axios.delete(`${BASE_URL}/users/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -98,7 +102,7 @@ export default function UserList() {
     if (!window.confirm(`Restore ${selectedRows.length} selected users?`)) return;
     try {
       await Promise.all(selectedRows.map(i => {
-        const id = displayedUsers[i]._id;
+        const id = originalUsers[i]._id;
         return axios.patch(`${BASE_URL}/users/restore/${id}`, {}, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -111,93 +115,83 @@ export default function UserList() {
     }
   };
 
+  // Filter function for display
+  const filteredUsers = originalUsers.filter(u =>
+    (roleFilter ? u.role === roleFilter : true) &&
+    (statusFilter ? (statusFilter === "Active" ? u.isActive : !u.isActive) : true) &&
+    (verifiedFilter ? (verifiedFilter === "Verified" ? u.isVerified : !u.isVerified) : true)
+  );
+
   const columns = [
-    { name: "name", label: "Name" },
+    {
+      name: "name",
+      label: "Name",
+      options: {
+        customBodyRenderLite: (dataIndex) => {
+          const u = filteredUsers[dataIndex];
+          return (
+            <span>
+              {u.name} {u.isVerified && <img src="/images/verified.jpg" alt="Verified" style={{ width: 16, height: 16, marginLeft: 4 }} />}
+            </span>
+          );
+        }
+      }
+    },
     {
       name: "role",
       label: "Role",
       options: {
         customBodyRenderLite: (dataIndex) => {
-          const u = displayedUsers[dataIndex];
+          const u = filteredUsers[dataIndex];
           return !showDeleted ? (
-            <select
-              value={u.role}
-              onChange={(e) => handleRoleChange(u._id, e.target.value)}
-              style={{
-                padding: "4px 8px",
-                borderRadius: 5,
-                border: "1px solid #ccc",
-              }}
-            >
+            <select value={u.role} onChange={(e) => handleRoleChange(u._id, e.target.value)} style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #ccc" }}>
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
-          ) : (
-            u.role
-          );
-        },
-      },
+          ) : u.role;
+        }
+      }
     },
     {
       name: "status",
       label: "Status",
       options: {
         customBodyRenderLite: (dataIndex) => {
-          const u = displayedUsers[dataIndex];
+          const u = filteredUsers[dataIndex];
           return !showDeleted ? (
-            <select
-              value={u.isActive ? "Active" : "Inactive"}
-              onChange={(e) => handleStatusChange(u._id, e.target.value)}
-              style={{
-                padding: "4px 8px",
-                borderRadius: 5,
-                border: "1px solid #ccc",
-              }}
-            >
+            <select value={u.isActive ? "Active" : "Inactive"} onChange={(e) => handleStatusChange(u._id, e.target.value)} style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #ccc" }}>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-          ) : (
-            u.isActive ? "Active" : "Inactive"
-          );
-        },
-      },
+          ) : u.isActive ? "Active" : "Inactive";
+        }
+      }
     },
-   {
+{
   name: "_id",
   label: "Actions",
   options: {
     filter: false,
     sort: false,
-    display: showDeleted ? "excluded" : "true",
     customBodyRenderLite: (dataIndex) => {
-      const u = displayedUsers[dataIndex];
-      return showDeleted ? (
-        <Button
-          variant="contained"
-          color="success"
-          onClick={() => handleRestore()}
-        >
-          Restore
-        </Button>
-      ) : (
-        <Button
-          onClick={() => navigate(`/admin/users/view/${u._id}`)}
-        >
-          View
-        </Button>
-
-      );
-    },
-  },
+      const u = filteredUsers[dataIndex];
+      return !showDeleted ? (
+        <Button onClick={() => navigate(`/admin/users/view/${u._id}`)}>View</Button>
+      ) : null; // remove per-user restore button in Trash
+    }
+  }
 }
+
   ];
 
   const options = {
     selectableRows: "multiple",
     selectableRowsOnClick: true,
+    rowsSelected: selectedRows,
     onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) => {
-      setSelectedRows(rowsSelected);
+      // Map filtered index to original index
+      const originalIndexes = rowsSelected.map(i => originalUsers.findIndex(u => u._id === filteredUsers[i]._id));
+      setSelectedRows(originalIndexes);
     },
     download: false,
     print: false,
@@ -206,50 +200,57 @@ export default function UserList() {
     search: true,
     rowsPerPage: 10,
     rowsPerPageOptions: [5, 10, 25, 50],
-    elevation: 0,
+    elevation: 0
   };
 
   if (loading) {
-    return (
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "80vh",
-      }}>
-        <Loader />
-      </div>
-    );
+    return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh" }}><Loader /></div>;
   }
 
   return (
     <div style={{ maxWidth: 1200, margin: "24px auto", padding: 16 }}>
       <h2>{showDeleted ? "Deleted Users (Trash)" : "Active Users"}</h2>
+
+      {/* Filter Dropdowns */}
+      <Stack direction="row" spacing={2} mb={2}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Role</InputLabel>
+          <Select value={roleFilter} label="Role" onChange={(e) => setRoleFilter(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="user">User</MenuItem>
+            <MenuItem value="admin">Admin</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Status</InputLabel>
+          <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="Active">Active</MenuItem>
+            <MenuItem value="Inactive">Inactive</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Verified</InputLabel>
+          <Select value={verifiedFilter} label="Verified" onChange={(e) => setVerifiedFilter(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="Verified">Verified</MenuItem>
+            <MenuItem value="NotVerified">Not Verified</MenuItem>
+          </Select>
+        </FormControl>
+      </Stack>
+
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {!showDeleted && (
-          <Button variant="contained" onClick={() => navigate("/admin/users/create")}>
-            ➕ Create User
-          </Button>
-        )}
+        {!showDeleted && <Button variant="contained" onClick={() => navigate("/admin/users/create")}>➕ Create User</Button>}
         <Button variant="contained" color={showDeleted ? "success" : "primary"} onClick={() => setShowDeleted(!showDeleted)}>
           {showDeleted ? "Show Active" : "Trash"}
         </Button>
-        {showDeleted ? (
-          <Button variant="contained" color="success" onClick={handleRestore}>
-            Restore Selected
-          </Button>
-        ) : (
-          <Button variant="contained" color="error" onClick={handleDelete}>
-            Delete Selected
-          </Button>
-        )}
+        {showDeleted ? <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button> :
+                       <Button variant="contained" color="error" onClick={handleDelete}>Delete Selected</Button>}
       </div>
 
-      <MUIDataTable
-        data={displayedUsers}
-        columns={columns}
-        options={options}
-      />
+      <MUIDataTable data={filteredUsers} columns={columns} options={options} />
     </div>
   );
 }
