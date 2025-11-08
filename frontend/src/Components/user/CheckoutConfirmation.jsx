@@ -20,6 +20,7 @@ const CheckoutConfirmation = () => {
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const TAX_RATE = 0.1; // 10%
   const SHIPPING_PRICE = 50; // flat shipping fee
@@ -38,7 +39,8 @@ const CheckoutConfirmation = () => {
         });
         setUser(data.user);
       } catch (error) {
-        console.error("Failed to fetch user info:", error);
+        console.error("Failed to fetch user info:", error.response?.data || error.message);
+        if (error.response?.status === 401) navigate("/login");
       } finally {
         setLoading(false);
       }
@@ -66,41 +68,61 @@ const CheckoutConfirmation = () => {
   const taxPrice = itemsPrice * TAX_RATE;
   const totalPrice = itemsPrice + taxPrice + SHIPPING_PRICE;
 
- const handleConfirmCheckout = async () => {
-  try {
-    const res = await axios.post("http://localhost:4001/api/v1/checkout", {
-      cart: cart,
-      token: token,
-    });
-
-    if (res.data.success) {
-      console.log("Checkout successful");
-      // navigate or show success
-    } else {
-      console.log("Checkout failed:", res.data.message);
+  // Confirm checkout
+  const handleConfirmCheckout = async () => {
+    if (!token) {
+      alert("You must log in first!");
+      navigate("/login");
+      return;
     }
-  } catch (error) {
-    console.error("Checkout failed:", error.response?.data || error.message);
-  }
-};
 
+    if (!user?.address) {
+      alert("Please update your profile with a shipping address first!");
+      return;
+    }
+
+    setCheckoutLoading(true);
+
+    try {
+      const res = await axios.post(
+        "http://localhost:4001/api/v1/checkout",
+        {}, // backend fetches cart from DB
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.data.success) {
+        alert("Order placed successfully!");
+        navigate("/orders"); // redirect to orders page
+      } else {
+        alert(res.data.message || "Checkout failed");
+      }
+    } catch (error) {
+      console.error("Checkout failed:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Checkout failed");
+      if (error.response?.status === 401) navigate("/login");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
     <Box p={3}>
       <Typography variant="h4" mb={3}>Confirm Your Order</Typography>
 
       {/* User Info */}
-      {user ? (
+      {user && (
         <Box mb={3} p={2} border="1px solid #ccc" borderRadius={2}>
           <Typography variant="h6">Customer Information</Typography>
           <Typography>Name: {user.name}</Typography>
           {user.address ? (
             <>
-              <Typography>Address: {user.address.address}</Typography>
+              <Typography>Address: {user.address.street}</Typography>
               <Typography>City: {user.address.city}</Typography>
-              <Typography>Postal Code: {user.address.postalCode}</Typography>
-              <Typography>Country: {user.address.country}</Typography>
-              <Typography>Phone: {user.address.phoneNo}</Typography>
+              <Typography>Postal Code: {user.address.zipcode}</Typography>
+              <Typography>Country: {user.address.country || "N/A"}</Typography>
+              <Typography>Phone: {user.contact || "N/A"}</Typography>
             </>
           ) : (
             <Typography color="error">
@@ -108,11 +130,11 @@ const CheckoutConfirmation = () => {
             </Typography>
           )}
         </Box>
-      ) : null}
+      )}
 
       {/* Cart Items */}
       <Stack spacing={2}>
-        {cart.items.map(item => (
+        {cart.items.map((item) => (
           <Card key={item.product._id} sx={{ display: "flex", p: 1 }}>
             <CardMedia
               component="img"
@@ -124,7 +146,7 @@ const CheckoutConfirmation = () => {
               <Typography variant="h6">{item.product.name}</Typography>
               <Typography>Quantity: {item.quantity}</Typography>
               <Typography>Price: ${item.product.price}</Typography>
-              <Typography>Subtotal: ${item.product.price * item.quantity}</Typography>
+              <Typography>Subtotal: ${(item.product.price * item.quantity).toFixed(2)}</Typography>
             </CardContent>
           </Card>
         ))}
@@ -140,13 +162,13 @@ const CheckoutConfirmation = () => {
       </Box>
 
       <Box mt={3} display="flex" justifyContent="flex-end">
-        <Button 
-          variant="contained" 
-          color="primary" 
+        <Button
+          variant="contained"
+          color="primary"
           onClick={handleConfirmCheckout}
-          disabled={!user?.address}
+          disabled={checkoutLoading || !user?.address}
         >
-          Confirm Checkout
+          {checkoutLoading ? "Processing..." : "Confirm Checkout"}
         </Button>
       </Box>
     </Box>
