@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from "react";
+// HarmoniaHub/frontend/src/Components/admin/userManagement/UserList.jsx
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import MUIDataTable from "mui-datatables";
+import { Button } from "@mui/material";
 import Loader from "../../layouts/Loader";
 
 const BASE_URL = "http://localhost:4001/api/v1";
@@ -9,21 +12,19 @@ export default function UserList() {
   const [users, setUsers] = useState([]);
   const [deletedUsers, setDeletedUsers] = useState([]);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [msg, setMsg] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showInitialLoader, setShowInitialLoader] = useState(true);
+  const [selectedRows, setSelectedRows] = useState([]);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
+  const displayedUsers = showDeleted ? deletedUsers : users;
+
   useEffect(() => {
-    const timer = setTimeout(() => setShowInitialLoader(false), 1000); // 1s initial loader
     fetchActiveUsers();
     if (token) fetchDeletedUsers();
-    return () => clearTimeout(timer);
   }, [token]);
 
-  // Fetch active users
-  async function fetchActiveUsers() {
+  const fetchActiveUsers = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${BASE_URL}/users/all`, {
@@ -32,263 +33,223 @@ export default function UserList() {
       setUsers(res.data.users || []);
     } catch (err) {
       console.error(err);
-      setMsg({ type: "error", text: "Failed to load users." });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  // Fetch deleted users
-  async function fetchDeletedUsers() {
+  const fetchDeletedUsers = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/users/deleted`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDeletedUsers(res.data.users || []);
     } catch (err) {
-      console.error("Failed to load deleted users:", err);
+      console.error(err);
     }
-  }
+  };
 
-  // Role change
-  async function handleRoleChange(id, newRole) {
+  const handleRoleChange = async (id, newRole) => {
     try {
       await axios.patch(
         `${BASE_URL}/users/role/${id}`,
         { role: newRole },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setMsg({ type: "success", text: "Role updated successfully." });
       fetchActiveUsers();
-    } catch {
-      setMsg({ type: "error", text: "Failed to update role." });
+    } catch (err) {
+      console.error(err);
     }
-  }
+  };
 
-  // Status change
-  async function handleStatusChange(id, newStatus) {
+  const handleStatusChange = async (id, newStatus) => {
     try {
       await axios.patch(
         `${BASE_URL}/users/status/${id}`,
         { isActive: newStatus === "Active" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setMsg({ type: "success", text: "Status updated successfully." });
       fetchActiveUsers();
-    } catch {
-      setMsg({ type: "error", text: "Failed to update status." });
+    } catch (err) {
+      console.error(err);
     }
-  }
+  };
 
-  // Soft delete
-  async function handleDelete(id) {
-    if (!window.confirm("Soft delete this user?")) return;
+  const handleDelete = async () => {
+    if (selectedRows.length === 0) return alert("No users selected.");
+    if (!window.confirm(`Soft delete ${selectedRows.length} selected users?`)) return;
     try {
-      await axios.delete(`${BASE_URL}/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMsg({ type: "success", text: "User moved to trash." });
+      await Promise.all(selectedRows.map(i => {
+        const id = displayedUsers[i]._id;
+        return axios.delete(`${BASE_URL}/users/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }));
       fetchActiveUsers();
       fetchDeletedUsers();
-    } catch {
-      setMsg({ type: "error", text: "Failed to delete user." });
+      setSelectedRows([]);
+    } catch (err) {
+      console.error(err);
     }
-  }
+  };
 
-  // Restore
-  async function handleRestore(id) {
-    if (!window.confirm("Restore this user?")) return;
+  const handleRestore = async () => {
+    if (selectedRows.length === 0) return alert("No users selected.");
+    if (!window.confirm(`Restore ${selectedRows.length} selected users?`)) return;
     try {
-      await axios.patch(`${BASE_URL}/users/restore/${id}`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMsg({ type: "success", text: "User restored successfully." });
+      await Promise.all(selectedRows.map(i => {
+        const id = displayedUsers[i]._id;
+        return axios.patch(`${BASE_URL}/users/restore/${id}`, {}, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }));
       fetchActiveUsers();
       fetchDeletedUsers();
-    } catch {
-      setMsg({ type: "error", text: "Failed to restore user." });
+      setSelectedRows([]);
+    } catch (err) {
+      console.error(err);
     }
-  }
+  };
 
-  const displayedUsers = showDeleted ? deletedUsers : users;
+  const columns = [
+    { name: "name", label: "Name" },
+    {
+      name: "role",
+      label: "Role",
+      options: {
+        customBodyRenderLite: (dataIndex) => {
+          const u = displayedUsers[dataIndex];
+          return !showDeleted ? (
+            <select
+              value={u.role}
+              onChange={(e) => handleRoleChange(u._id, e.target.value)}
+              style={{
+                padding: "4px 8px",
+                borderRadius: 5,
+                border: "1px solid #ccc",
+              }}
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          ) : (
+            u.role
+          );
+        },
+      },
+    },
+    {
+      name: "status",
+      label: "Status",
+      options: {
+        customBodyRenderLite: (dataIndex) => {
+          const u = displayedUsers[dataIndex];
+          return !showDeleted ? (
+            <select
+              value={u.isActive ? "Active" : "Inactive"}
+              onChange={(e) => handleStatusChange(u._id, e.target.value)}
+              style={{
+                padding: "4px 8px",
+                borderRadius: 5,
+                border: "1px solid #ccc",
+              }}
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          ) : (
+            u.isActive ? "Active" : "Inactive"
+          );
+        },
+      },
+    },
+   {
+  name: "_id",
+  label: "Actions",
+  options: {
+    filter: false,
+    sort: false,
+    display: showDeleted ? "excluded" : "true",
+    customBodyRenderLite: (dataIndex) => {
+      const u = displayedUsers[dataIndex];
+      return showDeleted ? (
+        <Button
+          variant="contained"
+          color="success"
+          onClick={() => handleRestore()}
+        >
+          Restore
+        </Button>
+      ) : (
+        <Button
+          onClick={() => navigate(`/admin/users/view/${u._id}`)}
+        >
+          View
+        </Button>
 
-  // Show initial loader
-  if (showInitialLoader) {
+      );
+    },
+  },
+}
+  ];
+
+  const options = {
+    selectableRows: "multiple",
+    selectableRowsOnClick: true,
+    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) => {
+      setSelectedRows(rowsSelected);
+    },
+    download: false,
+    print: false,
+    viewColumns: false,
+    filter: false,
+    search: true,
+    rowsPerPage: 10,
+    rowsPerPageOptions: [5, 10, 25, 50],
+    elevation: 0,
+  };
+
+  if (loading) {
     return (
-      <div className="loader-container">
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "80vh",
+      }}>
         <Loader />
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1000, margin: "30px auto", padding: "20px" }}>
+    <div style={{ maxWidth: 1200, margin: "24px auto", padding: 16 }}>
       <h2>{showDeleted ? "Deleted Users (Trash)" : "Active Users"}</h2>
-
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {!showDeleted && (
-          <button
-            onClick={() => navigate("/admin/users/create")}
-            style={{
-              padding: "8px 14px",
-              background: "#007bff",
-              color: "#fff",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-            }}
-          >
+          <Button variant="contained" onClick={() => navigate("/admin/users/create")}>
             ➕ Create User
-          </button>
+          </Button>
         )}
-        <button
-          onClick={() => setShowDeleted(!showDeleted)}
-          style={{
-            marginLeft: 10,
-            padding: "8px 14px",
-            background: showDeleted ? "#28a745" : "#6c757d",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          {showDeleted ? "👥 Show Active Users" : "🗑️ View Trash"}
-        </button>
+        <Button variant="contained" color={showDeleted ? "success" : "primary"} onClick={() => setShowDeleted(!showDeleted)}>
+          {showDeleted ? "Show Active" : "Trash"}
+        </Button>
+        {showDeleted ? (
+          <Button variant="contained" color="success" onClick={handleRestore}>
+            Restore Selected
+          </Button>
+        ) : (
+          <Button variant="contained" color="error" onClick={handleDelete}>
+            Delete Selected
+          </Button>
+        )}
       </div>
 
-      {msg && (
-        <div
-          style={{
-            backgroundColor: msg.type === "error" ? "#f8d7da" : "#d4edda",
-            color: msg.type === "error" ? "#721c24" : "#155724",
-            padding: "10px",
-            borderRadius: "6px",
-            marginBottom: "10px",
-          }}
-        >
-          {msg.text}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="loader-container">
-          <Loader />
-        </div>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
-          <thead>
-            <tr style={{ background: "#f1f3f5", borderBottom: "1px solid #ddd" }}>
-              <th style={{ padding: 12 }}>Name</th>
-              <th>Address</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th style={{ textAlign: "center" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedUsers.map((u) => (
-              <tr key={u._id} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ padding: 12, fontWeight: 600, display: "flex", alignItems: "center" }}>
-                  {u.name}
-                  {u.isVerified && (
-                    <img
-                      src="/images/verified.jpg"
-                      alt="Verified"
-                      style={{ width: 16, height: 16, marginLeft: 6, borderRadius: "50%" }}
-                    />
-                  )}
-                </td>
-                <td>
-                  {u.address
-                    ? `${u.address.city}, ${u.address.barangay}, ${u.address.street}, ${u.address.zipcode}`
-                    : "—"}
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  {!showDeleted ? (
-                    <select
-                      value={u.role}
-                      onChange={(e) => handleRoleChange(u._id, e.target.value)}
-                      style={{
-                        padding: "5px 8px",
-                        borderRadius: "5px",
-                        border: "1px solid #ccc",
-                        backgroundColor: u.role === "admin" ? "#fde8e8" : "#e8f8ee",
-                        color: u.role === "admin" ? "#b10000" : "#0a640a",
-                        fontWeight: "500",
-                      }}
-                    >
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  ) : (
-                    u.role
-                  )}
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  {!showDeleted ? (
-                    <select
-                      value={u.isActive ? "Active" : "Inactive"}
-                      onChange={(e) => handleStatusChange(u._id, e.target.value)}
-                      style={{
-                        padding: "5px 8px",
-                        borderRadius: "5px",
-                        border: "1px solid #ccc",
-                        backgroundColor: u.isActive ? "#e8f8ee" : "#fde8e8",
-                        color: u.isActive ? "#155724" : "#721c24",
-                        fontWeight: "500",
-                      }}
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  ) : (
-                    u.isActive ? "Active" : "Inactive"
-                  )}
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  {showDeleted ? (
-                    <button
-                      onClick={() => handleRestore(u._id)}
-                      style={{
-                        background: "#28a745",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: "5px",
-                        padding: "5px 10px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      ♻️ Restore
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleDelete(u._id)}
-                      style={{
-                        background: "#dc3545",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: "5px",
-                        padding: "5px 10px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      🗑️Delete
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {displayedUsers.length === 0 && (
-              <tr>
-                <td colSpan="5" style={{ textAlign: "center", color: "#666", padding: "15px" }}>
-                  {showDeleted ? "No deleted users." : "No active users."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      )}
+      <MUIDataTable
+        data={displayedUsers}
+        columns={columns}
+        options={options}
+      />
     </div>
   );
 }

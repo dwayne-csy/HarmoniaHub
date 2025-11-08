@@ -2,7 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import Loader from '../../layouts/Loader'; 
+import MUIDataTable from "mui-datatables";
+import { Button } from '@mui/material';
+import Loader from '../../layouts/Loader';
 
 const BASE_URL = 'http://localhost:4001/api/v1';
 
@@ -10,170 +12,152 @@ export default function SupplierList() {
   const [suppliers, setSuppliers] = useState([]);
   const [deletedSuppliers, setDeletedSuppliers] = useState([]);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [msg, setMsg] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showInitialLoader, setShowInitialLoader] = useState(true);
+  const [selectedRows, setSelectedRows] = useState([]);
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
+  const displayedSuppliers = showDeleted ? deletedSuppliers : suppliers;
+
   useEffect(() => {
-    // show initial loader for 1s
-    const timer = setTimeout(() => setShowInitialLoader(false), 1000);
     fetchActiveSuppliers();
     if (token) fetchDeletedSuppliers();
-
-    return () => clearTimeout(timer);
   }, [token]);
 
-  // Fetch active suppliers
-  async function fetchActiveSuppliers() {
+  const fetchActiveSuppliers = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${BASE_URL}/suppliers`);
       setSuppliers(res.data.suppliers || []);
     } catch (err) {
       console.error(err);
-      setMsg({ type: 'error', text: 'Failed to load suppliers.' });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  // Fetch deleted suppliers
-  async function fetchDeletedSuppliers() {
+  const fetchDeletedSuppliers = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/admin/suppliers/trash`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setDeletedSuppliers(res.data.suppliers || []);
     } catch (err) {
-      console.error('Failed to load deleted suppliers:', err);
+      console.error(err);
     }
-  }
+  };
 
-  // Soft delete
-  async function handleDelete(id) {
-    if (!window.confirm('Soft delete this supplier?')) return;
+  const handleBulkDelete = async () => {
+    if (selectedRows.length === 0) return alert('No suppliers selected.');
+    if (!window.confirm(`Soft delete ${selectedRows.length} selected suppliers?`)) return;
+
     try {
-      await axios.delete(`${BASE_URL}/admin/suppliers/${id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      setMsg({ type: 'success', text: 'Supplier moved to trash.' });
+      await Promise.all(selectedRows.map(i => {
+        const id = displayedSuppliers[i]._id;
+        return axios.delete(`${BASE_URL}/admin/suppliers/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      }));
       fetchActiveSuppliers();
       fetchDeletedSuppliers();
+      setSelectedRows([]);
     } catch (err) {
-      setMsg({ type: 'error', text: err?.response?.data?.message || err.message });
+      console.error(err);
     }
-  }
+  };
 
-  // Restore
-  async function handleRestore(id) {
-    if (!window.confirm('Restore this supplier?')) return;
+  const handleRestore = async () => {
+    if (selectedRows.length === 0) return alert('No suppliers selected.');
+    if (!window.confirm(`Restore ${selectedRows.length} selected suppliers?`)) return;
+
     try {
-      await axios.patch(`${BASE_URL}/admin/suppliers/restore/${id}`, {}, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      setMsg({ type: 'success', text: 'Supplier restored successfully.' });
+      await Promise.all(selectedRows.map(i => {
+        const id = displayedSuppliers[i]._id;
+        return axios.patch(`${BASE_URL}/admin/suppliers/restore/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      }));
       fetchActiveSuppliers();
       fetchDeletedSuppliers();
+      setSelectedRows([]);
     } catch (err) {
-      setMsg({ type: 'error', text: 'Failed to restore user.' });
+      console.error(err);
     }
-  }
+  };
 
-  const displayedSuppliers = showDeleted ? deletedSuppliers : suppliers;
+  const columns = [
+    { name: "name", label: "Name" },
+    { name: "email", label: "Email" },
+    { name: "phone", label: "Phone" },
+    { name: "address.city", label: "City", options: { customBodyRenderLite: (dataIndex) => displayedSuppliers[dataIndex].address?.city || '—' } },
+    { name: "isActive", label: "Status", options: { customBodyRenderLite: (dataIndex) => displayedSuppliers[dataIndex].isActive ? 'Active' : 'Deleted' } },
+    {
+      name: "_id",
+      label: "Actions",
+      options: {
+        filter: false,
+        sort: false,
+        display: showDeleted ? 'excluded' : 'true',
+        customBodyRenderLite: (dataIndex) => {
+          const supplier = displayedSuppliers[dataIndex];
+          return showDeleted ? (
+            <Button variant="contained" color="success" onClick={() => handleRestore([dataIndex])}>♻️ Restore</Button>
+          ) : (
+            <>
+            <Button onClick={() => navigate(`/admin/suppliers/view/${supplier._id}`)}>View</Button>
+            <Button onClick={() => navigate(`/admin/suppliers/edit/${supplier._id}`)}>Edit</Button>
+            </>
+          );
+        }
+      }
+    }
+  ];
 
-  // Show initial loader before page
-  if (showInitialLoader) {
+  const options = {
+    selectableRows: "multiple",
+    selectableRowsOnClick: true,
+    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) => {
+      setSelectedRows(rowsSelected);
+    },
+    download: false,
+    print: false,
+    viewColumns: false,
+    filter: false,
+    search: true,
+    rowsPerPage: 10,
+    rowsPerPageOptions: [5, 10, 25, 50],
+    elevation: 0
+  };
+
+  if (loading) {
     return (
-      <div className="loader-container">
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '80vh',
+      }}>
         <Loader />
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '24px auto', padding: 16 }}>
+    <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16 }}>
       <h2>{showDeleted ? 'Deleted Suppliers (Trash)' : 'Active Suppliers'}</h2>
-
-      <div style={{ marginBottom: 12 }}>
-        {!showDeleted && (
-          <button onClick={() => navigate('/admin/suppliers/new')}>
-            ➕ Create Supplier
-          </button>
-        )}
-        {token && (
-          <button
-            onClick={() => setShowDeleted(!showDeleted)}
-            style={{ marginLeft: 8 }}
-          >
-            {showDeleted ? 'Show Active' : '🗑️ View Trash'}
-          </button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {!showDeleted && <Button variant="contained" onClick={() => navigate('/admin/suppliers/new')}>➕ Create Supplier</Button>}
+        <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
+          {showDeleted ? 'Show Active' : 'Trash'}
+        </Button>
+        {showDeleted ? (
+          <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
+        ) : (
+          <Button variant="contained" color="error" onClick={handleBulkDelete}>Delete Selected</Button>
         )}
       </div>
 
-      {msg && (
-        <div style={{ color: msg.type === 'error' ? '#a00' : '#0a0', marginBottom: 8 }}>
-          {msg.text}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="loader-container">
-          <Loader />
-        </div>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #ddd', textAlign: 'left' }}>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>City</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedSuppliers.map((s) => (
-              <tr key={s._id} style={{ borderBottom: '1px solid #f2f2f2' }}>
-                <td>{s.name}</td>
-                <td>{s.email}</td>
-                <td>{s.phone}</td>
-                <td>{s.address?.city || '—'}</td>
-                <td>{s.isActive ? 'Active' : 'Deleted'}</td>
-                <td>
-                  {showDeleted ? (
-                    <button onClick={() => handleRestore(s._id)}>♻️ Restore</button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => navigate(`/admin/suppliers/edit/${s._id}`)}
-                        style={{ marginLeft: 6 }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(s._id)}
-                        style={{ marginLeft: 6 }}
-                      >
-                        🗑️ Soft Delete
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {displayedSuppliers.length === 0 && (
-              <tr>
-                <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>
-                  {showDeleted ? 'No deleted suppliers.' : 'No active suppliers.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      )}
+      <MUIDataTable
+        data={displayedSuppliers}
+        columns={columns}
+        options={options}
+      />
     </div>
   );
 }

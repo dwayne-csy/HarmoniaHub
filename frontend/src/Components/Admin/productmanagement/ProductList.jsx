@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import MUIDataTable from "mui-datatables";
+import { Button } from '@mui/material';
 import Loader from '../../layouts/Loader';
 
 const BASE_URL = 'http://localhost:4001/api/v1';
@@ -10,22 +12,20 @@ export default function ProductList() {
   const [products, setProducts] = useState([]);
   const [deletedProducts, setDeletedProducts] = useState([]);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [msg, setMsg] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showInitialLoader, setShowInitialLoader] = useState(true);
   const [currentImageIndexes, setCurrentImageIndexes] = useState({});
-  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [selectedRows, setSelectedRows] = useState([]);
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
+  const displayedProducts = showDeleted ? deletedProducts : products;
+
   useEffect(() => {
-    const timer = setTimeout(() => setShowInitialLoader(false), 1000);
     fetchActiveProducts();
     if (token) fetchDeletedProducts();
-    return () => clearTimeout(timer);
   }, [token]);
 
-  async function fetchActiveProducts() {
+  const fetchActiveProducts = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${BASE_URL}/products`);
@@ -37,354 +37,205 @@ export default function ProductList() {
       setCurrentImageIndexes(initialIndexes);
     } catch (err) {
       console.error(err);
-      setMsg({ type: 'error', text: 'Failed to load products.' });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function fetchDeletedProducts() {
+  const fetchDeletedProducts = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/admin/products/trash`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setDeletedProducts(res.data.products || []);
-      const deletedIndexes = {};
+      const initialIndexes = {};
       res.data.products?.forEach(p => {
-        if (p.images?.length > 0) deletedIndexes[p._id] = 0;
+        if (p.images?.length > 0) initialIndexes[p._id] = 0;
       });
-      setCurrentImageIndexes(prev => ({ ...prev, ...deletedIndexes }));
+      setCurrentImageIndexes(prev => ({ ...prev, ...initialIndexes }));
     } catch (err) {
-      console.error('Failed to load deleted products:', err);
+      console.error(err);
     }
-  }
+  };
 
-  const nextImage = (id, total, e) => {
-    e.stopPropagation();
+  const nextImage = (id, total) => {
     setCurrentImageIndexes(prev => ({
       ...prev,
       [id]: (prev[id] + 1) % total
     }));
   };
 
-  const prevImage = (id, total, e) => {
-    e.stopPropagation();
+  const prevImage = (id, total) => {
     setCurrentImageIndexes(prev => ({
       ...prev,
       [id]: (prev[id] - 1 + total) % total
     }));
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndexes(prev => {
-        const newIndexes = { ...prev };
-        [...products, ...deletedProducts].forEach(p => {
-          if (p.images && p.images.length > 1) {
-            newIndexes[p._id] = (prev[p._id] + 1) % p.images.length;
-          }
-        });
-        return newIndexes;
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [products, deletedProducts]);
+  const handleBulkDelete = async () => {
+    if (selectedRows.length === 0) return alert('No products selected.');
+    if (!window.confirm(`Soft delete ${selectedRows.length} selected products?`)) return;
 
-  const toggleSelect = (id) => {
-    setSelectedProducts(prev =>
-      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
-    );
-  };
-
-  const selectAll = (e) => {
-    if (e.target.checked) {
-      const ids = displayedProducts.map(p => p._id);
-      setSelectedProducts(ids);
-    } else {
-      setSelectedProducts([]);
+    try {
+      await Promise.all(selectedRows.map(i => {
+        const id = displayedProducts[i]._id;
+        return axios.delete(`${BASE_URL}/admin/products/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      }));
+      fetchActiveProducts();
+      fetchDeletedProducts();
+      setSelectedRows([]);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  async function handleBulkDelete() {
-    if (selectedProducts.length === 0) return alert('No products selected.');
-    if (!window.confirm(`Soft delete ${selectedProducts.length} selected products?`)) return;
+  const handleRestore = async () => {
+    if (selectedRows.length === 0) return alert('No products selected.');
+    if (!window.confirm(`Restore ${selectedRows.length} selected products?`)) return;
 
     try {
-      await Promise.all(
-        selectedProducts.map(id =>
-          axios.delete(`${BASE_URL}/admin/products/${id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-          })
-        )
-      );
-      setMsg({ type: 'success', text: 'Selected products moved to trash.' });
-      setSelectedProducts([]);
+      await Promise.all(selectedRows.map(i => {
+        const id = displayedProducts[i]._id;
+        return axios.patch(`${BASE_URL}/admin/products/restore/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      }));
       fetchActiveProducts();
       fetchDeletedProducts();
+      setSelectedRows([]);
     } catch (err) {
-      setMsg({ type: 'error', text: err?.response?.data?.message || err.message });
+      console.error(err);
     }
-  }
+  };
 
-  async function handleBulkRestore() {
-    if (selectedProducts.length === 0) return alert('No products selected.');
-    if (!window.confirm(`Restore ${selectedProducts.length} selected products?`)) return;
-
-    try {
-      await Promise.all(
-        selectedProducts.map(id =>
-          axios.patch(`${BASE_URL}/admin/products/restore/${id}`, {}, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-          })
-        )
-      );
-      setMsg({ type: 'success', text: 'Selected products restored successfully.' });
-      setSelectedProducts([]);
-      fetchActiveProducts();
-      fetchDeletedProducts();
-    } catch (err) {
-      setMsg({ type: 'error', text: err?.response?.data?.message || err.message });
+  const columns = [
+    {
+      name: "images",
+      label: "Image",
+      options: {
+        filter: false,
+        sort: false,
+        customBodyRenderLite: (dataIndex) => {
+          const product = displayedProducts[dataIndex];
+          const total = product.images?.length || 0;
+          const currentIndex = currentImageIndexes[product._id] || 0;
+          if (total === 0) return '—';
+          return (
+            <div style={{ position: 'relative', width: 60, height: 60 }}>
+              <img
+                src={product.images[currentIndex].url}
+                alt={product.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+              />
+              {total > 1 && (
+                <>
+                  <button
+                    onClick={() => prevImage(product._id, total)}
+                    style={{
+                      position: 'absolute', left: 2, top: '50%',
+                      transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)',
+                      color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20
+                    }}>‹</button>
+                  <button
+                    onClick={() => nextImage(product._id, total)}
+                    style={{
+                      position: 'absolute', right: 2, top: '50%',
+                      transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)',
+                      color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20
+                    }}>›</button>
+                  <div style={{
+                    position: 'absolute', bottom: 2, right: 2,
+                    background: 'rgba(0,0,0,0.6)', color: '#fff',
+                    fontSize: 10, padding: '1px 4px', borderRadius: 8
+                  }}>
+                    {currentIndex + 1}/{total}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        }
+      }
+    },
+    { name: "name", label: "Name" },
+    { name: "price", label: "Price" },
+    { name: "category", label: "Category" },
+    { name: "stock", label: "Stock" },
+    {
+      name: "supplier",
+      label: "Supplier",
+      options: {
+        customBodyRenderLite: (dataIndex) => displayedProducts[dataIndex].supplier?.name || '—'
+      }
+    },
+    {
+      name: "_id",
+      label: "Actions",
+      options: {
+        filter: false,
+        sort: false,
+        display: showDeleted ? 'excluded' : 'true',
+        customBodyRenderLite: (dataIndex) => {
+          const product = displayedProducts[dataIndex];
+          return (
+            <>
+              <Button onClick={() => navigate(`/admin/products/view/${product._id}`)}>View</Button>
+              <Button onClick={() => navigate(`/admin/products/edit/${product._id}`)}>Edit</Button>
+            </>
+          );
+        }
+      }
     }
-  }
+  ];
 
-  const displayedProducts = showDeleted ? deletedProducts : products;
+  const options = {
+    selectableRows: "multiple",
+    selectableRowsOnClick: true,
+    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) => {
+      setSelectedRows(rowsSelected);
+    },
+    download: false,
+    print: false,
+    viewColumns: false,
+    filter: false,
+    search: true,
+    rowsPerPage: 10,
+    rowsPerPageOptions: [5, 10, 25, 50],
+    elevation: 0
+  };
 
-  if (showInitialLoader) {
-    return (
-      <div className="loader-container">
-        <Loader />
-      </div>
-    );
-  }
+if (loading) {
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '80vh', // or '100vh' if you want full viewport
+    }}>
+      <Loader />
+    </div>
+  );
+}
+
 
   return (
-    <div style={{ maxWidth: 1000, margin: '24px auto', padding: 16 }}>
+    <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16 }}>
       <h2>{showDeleted ? 'Deleted Products (Trash)' : 'Active Products'}</h2>
-
-      <div style={{ marginBottom: 12 }}>
-        {!showDeleted && (
-          <button onClick={() => navigate('/admin/products/new')} style={{ padding: '6px 12px' }}>
-            ➕ Create Product
-          </button>
-        )}
-        {token && (
-          <button
-            onClick={() => { setShowDeleted(!showDeleted); setSelectedProducts([]); }}
-            style={{ marginLeft: 8 }}
-          >
-            {showDeleted ? 'Show Active' : '🗑️ View Trash'}
-          </button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {!showDeleted && <Button variant="contained" onClick={() => navigate('/admin/products/new')}>➕ Create Product</Button>}
+        <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
+          {showDeleted ? 'Show Active' : 'Trash'}
+        </Button>
+        {showDeleted ? (
+          <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
+        ) : (
+          <Button variant="contained" color="error" onClick={handleBulkDelete}>Delete Selected</Button>
         )}
       </div>
 
-      {msg && (
-        <div style={{ color: msg.type === 'error' ? '#a00' : '#0a0', marginBottom: 8 }}>
-          {msg.text}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="loader-container">
-          <Loader />
-        </div>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-              <th>Image</th>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Category</th>
-              <th>Stock</th>
-              <th>Supplier</th>
-              <th>Actions</th>
-              <th style={{ textAlign: 'center', minWidth: '150px' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      onChange={selectAll}
-                      checked={
-                        displayedProducts.length > 0 &&
-                        selectedProducts.length === displayedProducts.length
-                      }
-                      title="Click to select or deselect all products"
-                    />
-                    <label style={{ fontSize: '14px', color: '#333', fontWeight: '500' }}>
-                      Select All Products
-                    </label>
-                  </div>
-                  <small style={{ color: '#666', fontSize: '12px' }}>
-                    Check to select all items below
-                  </small>
-
-                  {!showDeleted && selectedProducts.length > 0 && (
-                    <button
-                      onClick={handleBulkDelete}
-                      style={{
-                        backgroundColor: '#c00',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 4,
-                        padding: '4px 8px',
-                        marginTop: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      🗑️ Delete ({selectedProducts.length})
-                    </button>
-                  )}
-
-                  {showDeleted && selectedProducts.length > 0 && (
-                    <button
-                      onClick={handleBulkRestore}
-                      style={{
-                        backgroundColor: 'green',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 4,
-                        padding: '4px 8px',
-                        marginTop: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ♻️ Restore ({selectedProducts.length})
-                    </button>
-                  )}
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedProducts.map(p => {
-              const currentIndex = currentImageIndexes[p._id] || 0;
-              const totalImages = p.images?.length || 0;
-              const hasMultipleImages = totalImages > 1;
-
-              return (
-                <tr key={p._id} style={{ borderBottom: '1px solid #f2f2f2' }}>
-                  <td>
-                    {totalImages > 0 ? (
-                      <div style={{ position: 'relative', width: 60, height: 60 }}>
-                        <img
-                          src={p.images[currentIndex].url}
-                          alt={p.name}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            borderRadius: 4
-                          }}
-                        />
-                        {hasMultipleImages && (
-                          <>
-                            <button
-                              onClick={(e) => prevImage(p._id, totalImages, e)}
-                              style={{
-                                position: 'absolute',
-                                left: 2,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                background: 'rgba(0,0,0,0.5)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: 20,
-                                height: 20,
-                                fontSize: 12,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              ‹
-                            </button>
-                            <button
-                              onClick={(e) => nextImage(p._id, totalImages, e)}
-                              style={{
-                                position: 'absolute',
-                                right: 2,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                background: 'rgba(0,0,0,0.5)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: 20,
-                                height: 20,
-                                fontSize: 12,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              ›
-                            </button>
-                            <div
-                              style={{
-                                position: 'absolute',
-                                bottom: 2,
-                                right: 2,
-                                background: 'rgba(0,0,0,0.6)',
-                                color: 'white',
-                                fontSize: 10,
-                                padding: '1px 4px',
-                                borderRadius: 8
-                              }}
-                            >
-                              {currentIndex + 1}/{totalImages}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td>{p.name}</td>
-                  <td>{p.price}</td>
-                  <td>{p.category}</td>
-                  <td>{p.stock}</td>
-                  <td>{p.supplier ? p.supplier.name : '—'}</td>
-                  <td>
-                    {!showDeleted ? (
-                      <>
-                        <button onClick={() => navigate(`/admin/products/${p._id}`)}>View</button>
-                        <button
-                          onClick={() => navigate(`/admin/products/edit/${p._id}`)}
-                          style={{ marginLeft: 6 }}
-                        >
-                          Edit
-                        </button>
-                      </>
-                    ) : (
-                      <button onClick={() => handleBulkRestore([p._id])}>♻️ Restore</button>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedProducts.includes(p._id)}
-                      onChange={() => toggleSelect(p._id)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-            {displayedProducts.length === 0 && (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', color: '#666' }}>
-                  {showDeleted ? 'No deleted products.' : 'No active products.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      )}
+      <MUIDataTable
+        data={displayedProducts}
+        columns={columns}
+        options={options}
+      />
     </div>
   );
 }

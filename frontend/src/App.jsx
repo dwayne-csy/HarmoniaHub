@@ -16,15 +16,18 @@ import { getUser } from "./Components/utils/helper";
 import ProductList from "./Components/admin/productmanagement/ProductList";
 import CreateProduct from "./Components/admin/productmanagement/CreateProduct";
 import UpdateProduct from "./Components/admin/productmanagement/UpdateProduct";
+import ViewProduct from './Components/admin/productmanagement/ViewProduct';
 
 // Supplier Management
 import SupplierList from "./Components/admin/suppliermanagement/SupplierList";
 import CreateSupplier from "./Components/admin/suppliermanagement/CreateSupplier";
 import UpdateSupplier from "./Components/admin/suppliermanagement/UpdateSupplier";
+import ViewSupplier from "./Components/admin/suppliermanagement/ViewSupplier";
 
 // ✅ User Management
 import UserList from "./Components/admin/usermanagement/UserList";
 import CreateUser from "./Components/admin/usermanagement/CreateUser";
+import ViewUser from "./Components/admin/usermanagement/ViewUser";
 
 const App = () => {
   const token = localStorage.getItem("token");
@@ -101,6 +104,14 @@ const App = () => {
             </AdminRoutes>
           }
         />
+        <Route 
+          path="/admin/products/view/:id" 
+          element={
+            <AdminRoutes>
+              <ViewProduct />
+            </AdminRoutes>
+          } 
+        />
 
         {/* Supplier Management */}
         <Route
@@ -127,6 +138,14 @@ const App = () => {
             </AdminRoutes>
           }
         />
+        <Route 
+          path="/admin/suppliers/view/:id" 
+          element={
+            <AdminRoutes>
+              <ViewSupplier />
+            </AdminRoutes>
+          } 
+        />
 
         {/* ✅ User Management */}
         <Route
@@ -144,6 +163,14 @@ const App = () => {
               <CreateUser />
             </AdminRoutes>
           }
+        />
+        <Route 
+          path="/admin/users/view/:id" 
+          element={
+            <AdminRoutes>
+              <ViewUser />
+            </AdminRoutes>
+          } 
         />
 
         {/* Catch-all Redirect */}
