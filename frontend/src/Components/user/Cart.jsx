@@ -72,14 +72,17 @@ const Cart = () => {
 
   const handleRemoveAll = async () => {
     try {
-      const { data } = await axios.delete(
-        "http://localhost:4001/api/v1/cart/remove-all",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.delete("http://localhost:4001/api/v1/cart/remove-all", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setCart({ items: [] });
     } catch (error) {
       console.error("Failed to remove all items:", error);
     }
+  };
+
+  const handleCheckout = () => {
+    navigate("/checkout-confirmation", { state: { cart } });
   };
 
   if (loading)
@@ -149,9 +152,14 @@ const Cart = () => {
 
       <Box mt={3} display="flex" justifyContent="space-between" alignItems="center">
         <Typography variant="h5">Total: ${total}</Typography>
-        <Button variant="contained" color="error" onClick={handleRemoveAll}>
-          Remove All
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button variant="contained" color="error" onClick={handleRemoveAll}>
+            Remove All
+          </Button>
+          <Button variant="contained" color="primary" onClick={handleCheckout}>
+            Checkout
+          </Button>
+        </Stack>
       </Box>
     </Box>
   );

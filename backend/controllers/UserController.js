@@ -282,10 +282,10 @@ exports.getUserProfile = async (req, res) => {
 // ========== UPDATE PROFILE ==========
 exports.updateProfile = async (req, res) => {
   try {
-    console.log('📝 Update profile request received');
+    console.log('📝 Update profile request received for user:', req.user.id);
+
     const newUserData = {
       name: req.body.name,
-      email: req.body.email,
       contact: req.body.contact,
       address: {
         city: req.body.city,
@@ -295,63 +295,53 @@ exports.updateProfile = async (req, res) => {
       }
     };
 
-    // Remove undefined fields
+    // Remove undefined address fields
     Object.keys(newUserData.address).forEach(key => {
       if (!newUserData.address[key]) delete newUserData.address[key];
     });
 
-    // If a file was uploaded by Multer, process it
+    // Handle avatar upload
     if (req.file) {
       console.log('🖼️ Avatar file detected:', req.file.path);
-      try {
-        const currentUser = await User.findById(req.user.id);
+      const currentUser = await User.findById(req.user.id);
 
-        if (
-          currentUser &&
-          currentUser.avatar &&
-          currentUser.avatar.public_id &&
-          !currentUser.avatar.url.includes('ui-avatars.com')
-        ) {
-          try {
-            await deleteFromCloudinary(currentUser.avatar.public_id);
-            console.log('✅ Old avatar deleted from Cloudinary');
-          } catch (deleteError) {
-            console.warn('⚠️ Could not delete old avatar:', deleteError.message);
-          }
+      // Delete old avatar if exists and not default ui-avatars
+      if (currentUser.avatar?.public_id && !currentUser.avatar.url.includes('ui-avatars.com')) {
+        try {
+          await deleteFromCloudinary(currentUser.avatar.public_id);
+          console.log('✅ Old avatar deleted from Cloudinary');
+        } catch (err) {
+          console.warn('⚠️ Could not delete old avatar:', err.message);
         }
-
-        const avatarResult = await uploadToCloudinary(req.file.path, 'harmoniahub/avatars');
-
-        newUserData.avatar = {
-          public_id: avatarResult.public_id,
-          url: avatarResult.url
-        };
-
-        const fs = require('fs');
-        fs.unlink(req.file.path, (e) => { 
-          if (e) console.warn('Failed to delete temp avatar file', e.message); 
-        });
-
-        console.log('✅ Avatar uploaded to Cloudinary');
-      } catch (uploadError) {
-        console.error('❌ Avatar upload failed:', uploadError.message);
-        return res.status(400).json({ success: false, message: 'Avatar upload failed. Please try again.' });
       }
-    } else {
-      console.log('ℹ️ No avatar file provided; keeping existing avatar');
+
+      // Upload new avatar
+      const avatarResult = await uploadToCloudinary(req.file.path, 'harmoniahub/avatars');
+      newUserData.avatar = {
+        public_id: avatarResult.public_id,
+        url: avatarResult.url
+      };
+
+      // Remove temp file
+      const fs = require('fs');
+      fs.unlink(req.file.path, err => {
+        if (err) console.warn('⚠️ Failed to delete temp avatar file:', err.message);
+      });
+
+      console.log('✅ Avatar uploaded to Cloudinary');
     }
 
-    console.log('👤 Updating user in database...');
-    const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
+    // Update user in DB
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, newUserData, {
       new: true,
       runValidators: true
     });
 
     console.log('✅ Profile updated successfully');
-    res.status(200).json({ 
-      success: true, 
-      user, 
-      message: 'Profile updated successfully' 
+    res.status(200).json({
+      success: true,
+      user: updatedUser,
+      message: 'Profile updated successfully'
     });
 
   } catch (error) {
@@ -362,6 +352,7 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ success: false, message: 'Profile update failed. Please try again.' });
   }
 };
+
 
 // ========== UPDATE PASSWORD ==========
 exports.updatePassword = async (req, res) => {

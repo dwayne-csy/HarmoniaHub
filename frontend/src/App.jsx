@@ -8,6 +8,7 @@ import ForgotPassword from "./Components/user/ForgotPassword";
 import ResetPassword from "./Components/user/ResetPassword";
 import Home from "./Components/user/Home";
 import Cart from "./Components/user/Cart";
+import CheckoutConfirmation from "./Components/user/CheckoutConfirmation";
 import AdminDashboard from "./Components/admin/AdminDashboard";
 import AdminRoutes from "./Components/admin/AdminRoutes";
 import { getUser } from "./Components/utils/helper";
@@ -24,7 +25,7 @@ import CreateSupplier from "./Components/admin/suppliermanagement/CreateSupplier
 import UpdateSupplier from "./Components/admin/suppliermanagement/UpdateSupplier";
 import ViewSupplier from "./Components/admin/suppliermanagement/ViewSupplier";
 
-// ✅ User Management
+// User Management
 import UserList from "./Components/admin/usermanagement/UserList";
 import CreateUser from "./Components/admin/usermanagement/CreateUser";
 import ViewUser from "./Components/admin/usermanagement/ViewUser";
@@ -67,6 +68,10 @@ const App = () => {
         <Route
           path="/cart"
           element={token ? <Cart /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/checkout-confirmation"
+          element={token ? <CheckoutConfirmation /> : <Navigate to="/login" />}
         />
 
         {/* Admin Dashboard */}
@@ -147,7 +152,7 @@ const App = () => {
           } 
         />
 
-        {/* ✅ User Management */}
+        {/* User Management */}
         <Route
           path="/admin/users"
           element={

@@ -22,13 +22,15 @@ const productRoutes = require('./routes/ProductRoutes');
 const supplierRoutes = require('./routes/SupplierRoutes');
 const manageUserRoutes = require('./routes/ManageUserRoutes');
 const cartRoutes = require('./routes/CartRoutes');
-// Use routes
+const checkoutRoutes = require('./routes/CheckoutRoutes');
 
+// Use routes
+app.use('/api/v1', userRoutes);
 app.use('/api/v1', productRoutes); 
 app.use('/api/v1', supplierRoutes); 
-app.use('/api/v1', userRoutes);
 app.use('/api/v1', manageUserRoutes);
 app.use('/api/v1', cartRoutes);
+app.use('/api/v1', checkoutRoutes);
 
 
 

@@ -50,6 +50,7 @@ const UpdateProfile = () => {
         setAvatarPreview(data.user.avatar?.url || "");
       } catch (error) {
         setMessage("Failed to load profile");
+        console.error(error);
       }
     };
     fetchProfile();
@@ -97,7 +98,12 @@ const UpdateProfile = () => {
       const { data } = await axios.put(
         "http://localhost:4001/api/v1/me/update",
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       setMessage("Profile updated successfully!");
@@ -168,7 +174,6 @@ const UpdateProfile = () => {
           onChange={handleChange}
           required
         />
-
         <input
           type="email"
           name="email"
@@ -176,7 +181,6 @@ const UpdateProfile = () => {
           readOnly
           style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
         />
-
         <input
           type="text"
           name="contact"
@@ -184,7 +188,6 @@ const UpdateProfile = () => {
           value={user.contact}
           onChange={handleChange}
         />
-
         <input
           type="text"
           name="city"
@@ -235,7 +238,6 @@ const UpdateProfile = () => {
 
       <hr style={{ margin: "30px 0" }} />
 
-      {/* Password Section */}
       <div style={{ textAlign: "center" }}>
         {!showPasswordForm ? (
           <button onClick={() => setShowPasswordForm(true)} className="btn-secondary">

@@ -25,9 +25,8 @@ router.post('/password/forgot', forgotPassword);
 router.put('/password/reset/:token', resetPassword);
 router.put('/password/update', isAuthenticatedUser, updatePassword);
 
-// PROFILE
+
 router.get('/me', isAuthenticatedUser, getUserProfile);
-// Use upload.single('avatar') to accept file
 router.put('/me/update', isAuthenticatedUser, upload.single('avatar'), updateProfile);
 
 module.exports = router;
