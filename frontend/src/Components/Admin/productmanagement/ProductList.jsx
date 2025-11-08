@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import MUIDataTable from "mui-datatables";
-import { Button } from '@mui/material';
+import { Button, Box, FormControl, InputLabel, Select, MenuItem, Stack } from '@mui/material';
 import Loader from '../../layouts/Loader';
 
 const BASE_URL = 'http://localhost:4001/api/v1';
@@ -15,10 +15,26 @@ export default function ProductList() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndexes, setCurrentImageIndexes] = useState({});
   const [selectedRows, setSelectedRows] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [supplierFilter, setSupplierFilter] = useState('');
+  const [suppliers, setSuppliers] = useState([]);
+
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
-  const displayedProducts = showDeleted ? deletedProducts : products;
+  const categoryOptions = [
+    'Idiophones',
+    'Membranophones',
+    'Chordophones',
+    'Aerophones',
+    'Electrophones',
+    'Keyboard Instruments'
+  ];
+
+  const displayedProducts = (showDeleted ? deletedProducts : products).filter(p => {
+    return (categoryFilter ? p.category === categoryFilter : true) &&
+           (supplierFilter ? p.supplier?.name === supplierFilter : true);
+  });
 
   useEffect(() => {
     fetchActiveProducts();
@@ -30,11 +46,18 @@ export default function ProductList() {
       setLoading(true);
       const res = await axios.get(`${BASE_URL}/products`);
       setProducts(res.data.products || []);
+
+      // Set initial image indexes
       const initialIndexes = {};
       res.data.products?.forEach(p => {
         if (p.images?.length > 0) initialIndexes[p._id] = 0;
       });
       setCurrentImageIndexes(initialIndexes);
+
+      // Set unique suppliers
+      const uniqueSuppliers = [...new Set(res.data.products.map(p => p.supplier?.name).filter(Boolean))];
+      setSuppliers(uniqueSuppliers);
+
     } catch (err) {
       console.error(err);
     } finally {
@@ -202,23 +225,42 @@ export default function ProductList() {
     elevation: 0
   };
 
-if (loading) {
-  return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '80vh', // or '100vh' if you want full viewport
-    }}>
-      <Loader />
-    </div>
-  );
-}
-
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '80vh',
+      }}>
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16 }}>
       <h2>{showDeleted ? 'Deleted Products (Trash)' : 'Active Products'}</h2>
+
+      {/* Filter Dropdowns */}
+      <Stack direction="row" spacing={2} mb={2}>
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel>Category</InputLabel>
+          <Select value={categoryFilter} label="Category" onChange={e => setCategoryFilter(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            {categoryOptions.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel>Supplier</InputLabel>
+          <Select value={supplierFilter} label="Supplier" onChange={e => setSupplierFilter(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            {suppliers.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          </Select>
+        </FormControl>
+      </Stack>
+
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {!showDeleted && <Button variant="contained" onClick={() => navigate('/admin/products/new')}>➕ Create Product</Button>}
         <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>

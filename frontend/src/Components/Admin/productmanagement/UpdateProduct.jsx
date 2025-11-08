@@ -1,31 +1,56 @@
 // HarmoniaHub/frontend/src/Components/admin/productmanagement/UpdateProduct.jsx
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  TextField,
+  Button,
+  MenuItem,
+  Typography,
+  Box,
+  Select,
+  InputLabel,
+  FormControl,
+  CircularProgress,
+  Grid,
+  IconButton,
+  Card,
+  CardMedia,
+  Stack
+} from "@mui/material";
+import { Close as CloseIcon } from "@mui/icons-material";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const BASE_URL = 'http://localhost:4001/api/v1';
+const BASE_URL = "http://localhost:4001/api/v1";
+
 const categories = [
-  'Idiophones','Membranophones','Chordophones','Aerophones','Electrophones','Keyboard Instruments'
+  "Idiophones",
+  "Membranophones",
+  "Chordophones",
+  "Aerophones",
+  "Electrophones",
+  "Keyboard Instruments",
 ];
 
 export default function UpdateProduct() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
   const [form, setForm] = useState({
-    name: '',
-    price: '',
-    description: '',
+    name: "",
+    price: "",
+    description: "",
     category: categories[0],
-    supplier: '',
-    stock: 0
+    supplier: "",
+    stock: 0,
   });
   const [suppliers, setSuppliers] = useState([]);
-  const [existingImages, setExistingImages] = useState([]); // objects {public_id, url}
-  const [newFiles, setNewFiles] = useState([]); // File objects
+  const [existingImages, setExistingImages] = useState([]);
+  const [newFiles, setNewFiles] = useState([]);
   const [newPreviews, setNewPreviews] = useState([]);
-  const [msg, setMsg] = useState(null);
   const [loading, setLoading] = useState(false);
-  const token = localStorage.getItem('token');
 
   useEffect(() => {
     if (id) {
@@ -35,54 +60,51 @@ export default function UpdateProduct() {
     // eslint-disable-next-line
   }, [id]);
 
-  async function fetchProduct() {
+  const fetchProduct = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/products/${id}`);
       const product = res.data.product;
       setForm({
-        name: product.name || '',
-        price: product.price || '',
-        description: product.description || '',
+        name: product.name || "",
+        price: product.price || "",
+        description: product.description || "",
         category: product.category || categories[0],
-        supplier: product.supplier?._id || '',
-        stock: product.stock || 0
+        supplier: product.supplier?._id || "",
+        stock: product.stock || 0,
       });
       setExistingImages(product.images || []);
     } catch (err) {
-      setMsg({ type: 'error', text: 'Failed to load product.' });
+      toast.error("Failed to load product", { position: "top-center" });
     }
-  }
+  };
 
-  async function fetchSuppliers() {
+  const fetchSuppliers = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/suppliers/dropdown`);
       setSuppliers(res.data.suppliers || []);
     } catch (err) {
-      console.warn('Failed to fetch suppliers', err);
+      toast.error("Failed to fetch suppliers", { position: "top-center" });
     }
-  }
-
-  // Remove an existing image (mark for deletion)
-  const removeExistingImage = (index) => {
-    setExistingImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Handle new files
+  const removeExistingImage = (index) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleNewFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-    setMsg(null);
 
     const previews = [];
     const validFiles = [];
 
-    files.forEach(file => {
-      if (!file.type.startsWith('image/')) {
-        setMsg({ type: 'error', text: 'Please select image files only' });
+    files.forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select only image files", { position: "top-center" });
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        setMsg({ type: 'error', text: 'Each image must be less than 5MB' });
+        toast.error("Each image must be less than 5MB", { position: "top-center" });
         return;
       }
       validFiles.push(file);
@@ -90,126 +112,184 @@ export default function UpdateProduct() {
       reader.onloadend = () => {
         previews.push(reader.result);
         if (previews.length === validFiles.length) {
-          setNewPreviews(prev => [...prev, ...previews]);
+          setNewPreviews((prev) => [...prev, ...previews]);
         }
       };
       reader.readAsDataURL(file);
     });
 
-    setNewFiles(prev => [...prev, ...validFiles]);
+    setNewFiles((prev) => [...prev, ...validFiles]);
   };
 
   const removeNewFile = (index) => {
-    setNewFiles(prev => prev.filter((_, i) => i !== index));
-    setNewPreviews(prev => prev.filter((_, i) => i !== index));
+    setNewFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMsg(null);
     setLoading(true);
 
-    if (!form.name) {
-      setMsg({ type: 'error', text: 'Name required' });
+    if (!form.name || !form.price || !form.description) {
+      toast.error("Please fill all required fields", { position: "top-center" });
       setLoading(false);
       return;
     }
 
     try {
       const formData = new FormData();
-      formData.append('name', form.name);
-      formData.append('price', parseFloat(form.price || 0));
-      formData.append('description', form.description);
-      formData.append('category', form.category);
-      if (form.supplier) formData.append('supplier', form.supplier);
-      formData.append('stock', parseInt(form.stock || 0, 10));
-
-      // Pass existing images metadata as JSON string, so backend can keep them
-      formData.append('existingImages', JSON.stringify(existingImages));
-
-      // Append new files
-      newFiles.forEach(file => {
-        formData.append('images', file);
-      });
+      formData.append("name", form.name);
+      formData.append("price", parseFloat(form.price));
+      formData.append("description", form.description);
+      formData.append("category", form.category);
+      if (form.supplier) formData.append("supplier", form.supplier);
+      formData.append("stock", parseInt(form.stock, 10));
+      formData.append("existingImages", JSON.stringify(existingImages));
+      newFiles.forEach((file) => formData.append("images", file));
 
       await axios.put(`${BASE_URL}/admin/products/${id}`, formData, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
-      setMsg({ type:'success', text:'Product updated successfully.' });
       setLoading(false);
-      setTimeout(() => navigate('/admin/products'), 1200);
+      toast.success("Product updated successfully", { position: "top-center" });
+      setTimeout(() => navigate("/admin/products"), 1000);
     } catch (err) {
       setLoading(false);
-      setMsg({ type:'error', text: err?.response?.data?.message || err.message });
+      toast.error(err?.response?.data?.message || err.message, { position: "top-center" });
     }
   };
 
-  if (!form.name && !loading) return <div style={{maxWidth:700, margin:'24px auto'}}>Loading...</div>;
+  if (!form.name && !loading) return <div style={{ maxWidth: 700, margin: "24px auto" }}>Loading...</div>;
 
   return (
-    <div style={{maxWidth:800, margin:'24px auto', padding:16, border:'1px solid #ddd', borderRadius:6}}>
-      <h2>Update Product</h2>
-      {msg && <div style={{ marginBottom: 12, color: msg.type === 'error' ? '#a00' : '#0a0' }}>{msg.text}</div>}
-      
+    <Box sx={{ maxWidth: 800, mx: "auto", p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
+      <Typography variant="h5" mb={2}>
+        Update Product
+      </Typography>
+
       <form onSubmit={handleSubmit}>
-        {/* ... name/price/desc/category/supplier/stock fields same as before */}
-        <label><strong>Name:</strong></label><br />
-        <input value={form.name} onChange={e=>setForm({...form, name:e.target.value})} style={{width:'100%', padding:8, marginBottom:12}} required />
+        <Stack spacing={2}>
+          <TextField
+            label="Name*"
+            fullWidth
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+          <TextField
+            label="Price*"
+            type="number"
+            fullWidth
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+          />
+          <TextField
+            label="Description*"
+            multiline
+            rows={4}
+            fullWidth
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+          <FormControl fullWidth>
+            <InputLabel>Category*</InputLabel>
+            <Select
+              value={form.category}
+              label="Category*"
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            >
+              {categories.map((c) => (
+                <MenuItem key={c} value={c}>{c}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth>
+            <InputLabel>Supplier</InputLabel>
+            <Select
+              value={form.supplier}
+              label="Supplier"
+              onChange={(e) => setForm({ ...form, supplier: e.target.value })}
+            >
+              <MenuItem value="">-- None --</MenuItem>
+              {suppliers.map((s) => (
+                <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Stock*"
+            type="number"
+            fullWidth
+            value={form.stock}
+            onChange={(e) => setForm({ ...form, stock: e.target.value })}
+          />
 
-        <label><strong>Price:</strong></label><br />
-        <input type="number" step="0.01" value={form.price} onChange={e=>setForm({...form, price:e.target.value})} style={{width:'100%', padding:8, marginBottom:12}} />
-
-        <label><strong>Description:</strong></label><br />
-        <textarea value={form.description} onChange={e=>setForm({...form, description:e.target.value})} rows={4} style={{width:'100%', padding:8, marginBottom:12}} />
-
-        <label><strong>Category:</strong></label><br />
-        <select value={form.category} onChange={e=>setForm({...form, category:e.target.value})} style={{width:'100%', padding:8, marginBottom:12}}>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-
-        <label><strong>Supplier:</strong></label><br />
-        <select value={form.supplier} onChange={e=>setForm({...form, supplier:e.target.value})} style={{width:'100%', padding:8, marginBottom:12}}>
-          <option value=''>-- None --</option>
-          {suppliers.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-        </select>
-
-        <label><strong>Stock:</strong></label><br />
-        <input type="number" value={form.stock} onChange={e=>setForm({...form, stock:e.target.value})} style={{width:'100%', padding:8, marginBottom:12}} />
-
-        {/* Existing images */}
-        <label><strong>Existing Images:</strong></label>
-        <div style={{display:'flex', gap:8, flexWrap:'wrap', margin:'8px 0 16px 0'}}>
-          {existingImages.length === 0 && <div style={{color:'#666'}}>No existing images</div>}
-          {existingImages.map((img, idx) => (
-            <div key={idx} style={{position:'relative'}}>
-              <img src={img.url} alt={`img-${idx}`} style={{width:100, height:100, objectFit:'cover', borderRadius:4}} />
-              <button type="button" onClick={() => removeExistingImage(idx)} style={{position:'absolute', top:-8, right:-8, background:'#ff4444', color:'#fff', border:'none', borderRadius:'50%', width:24, height:24}}>×</button>
-            </div>
-          ))}
-        </div>
-
-        {/* New files */}
-        <label><strong>Add New Images:</strong></label>
-        <input type="file" multiple accept="image/*" onChange={handleNewFileChange} style={{width:'100%', padding:8, marginBottom:12}} />
-        {newPreviews.length > 0 && (
-          <div style={{display:'flex', gap:8, flexWrap:'wrap', marginBottom:12}}>
-            {newPreviews.map((p, i) => (
-              <div key={i} style={{position:'relative'}}>
-                <img src={p} alt={`new-${i}`} style={{width:100, height:100, objectFit:'cover', borderRadius:4, border:'2px solid #007bff'}} />
-                <button type="button" onClick={() => removeNewFile(i)} style={{position:'absolute', top:-8, right:-8, background:'#ff4444', color:'#fff', border:'none', borderRadius:'50%', width:24, height:24}}>×</button>
-              </div>
+          {/* Existing images */}
+          <Typography>Existing Images:</Typography>
+          <Grid container spacing={2}>
+            {existingImages.length === 0 && <Typography color="text.secondary">No existing images</Typography>}
+            {existingImages.map((img, idx) => (
+              <Grid item key={idx}>
+                <Card sx={{ position: "relative", width: 100, height: 100 }}>
+                  <CardMedia
+                    component="img"
+                    image={img.url}
+                    alt={`img-${idx}`}
+                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                  <IconButton
+                    size="small"
+                    sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
+                    onClick={() => removeExistingImage(idx)}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Card>
+              </Grid>
             ))}
-          </div>
-        )}
+          </Grid>
 
-        <div style={{display:'flex', gap:8, marginTop:12}}>
-          <button type="submit" disabled={loading} style={{padding:'10px 20px', backgroundColor:loading?'#ccc':'#007bff', color:'#fff', border:'none', borderRadius:4}}>
-            {loading ? 'Updating...' : 'Save Changes'}
-          </button>
-          <button type="button" onClick={()=>navigate('/admin/products')} style={{padding:'10px 20px', backgroundColor:'#6c757d', color:'#fff', border:'none', borderRadius:4}}>Cancel</button>
-        </div>
+          {/* New files */}
+          <Button variant="contained" component="label">
+            Choose New Images* (Max 5, 5MB each)
+            <input type="file" hidden multiple accept="image/*" onChange={handleNewFileChange} />
+          </Button>
+          {newPreviews.length > 0 && (
+            <Grid container spacing={2}>
+              {newPreviews.map((p, i) => (
+                <Grid item key={i}>
+                  <Card sx={{ position: "relative", width: 100, height: 100 }}>
+                    <CardMedia
+                      component="img"
+                      image={p}
+                      alt={`new-${i}`}
+                      sx={{ width: "100%", height: "100%", objectFit: "cover", border: "2px solid #007bff" }}
+                    />
+                    <IconButton
+                      size="small"
+                      sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
+                      onClick={() => removeNewFile(i)}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+
+          <Stack direction="row" spacing={2} mt={2}>
+            <Button type="submit" variant="contained" disabled={loading}>
+              {loading ? <CircularProgress size={18} /> : "Update Product"}
+            </Button>
+            <Button variant="outlined" onClick={() => navigate("/admin/products")}>
+              Cancel
+            </Button>
+          </Stack>
+        </Stack>
       </form>
-    </div>
+
+      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
+    </Box>
   );
 }

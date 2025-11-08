@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import MUIDataTable from "mui-datatables";
-import { Button } from '@mui/material';
+import { Button, MenuItem, FormControl, Select, InputLabel, Stack } from '@mui/material';
 import Loader from '../../layouts/Loader';
 
 const BASE_URL = 'http://localhost:4001/api/v1';
@@ -11,18 +11,23 @@ const BASE_URL = 'http://localhost:4001/api/v1';
 export default function SupplierList() {
   const [suppliers, setSuppliers] = useState([]);
   const [deletedSuppliers, setDeletedSuppliers] = useState([]);
+  const [displayedSuppliers, setDisplayedSuppliers] = useState([]);
   const [showDeleted, setShowDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [cityFilter, setCityFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
-
-  const displayedSuppliers = showDeleted ? deletedSuppliers : suppliers;
 
   useEffect(() => {
     fetchActiveSuppliers();
     if (token) fetchDeletedSuppliers();
   }, [token]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [suppliers, deletedSuppliers, showDeleted, cityFilter, statusFilter]);
 
   const fetchActiveSuppliers = async () => {
     try {
@@ -45,6 +50,21 @@ export default function SupplierList() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const applyFilters = () => {
+    const list = showDeleted ? deletedSuppliers : suppliers;
+    let filtered = [...list];
+
+    if (cityFilter) {
+      filtered = filtered.filter(s => s.address?.city === cityFilter);
+    }
+    if (statusFilter) {
+      const isActive = statusFilter === 'Active';
+      filtered = filtered.filter(s => s.isActive === isActive);
+    }
+
+    setDisplayedSuppliers(filtered);
   };
 
   const handleBulkDelete = async () => {
@@ -81,6 +101,9 @@ export default function SupplierList() {
     }
   };
 
+  // Generate unique cities for filter dropdown
+  const cities = [...new Set(suppliers.concat(deletedSuppliers).map(s => s.address?.city).filter(Boolean))];
+
   const columns = [
     { name: "name", label: "Name" },
     { name: "email", label: "Email" },
@@ -93,15 +116,15 @@ export default function SupplierList() {
       options: {
         filter: false,
         sort: false,
-        display: showDeleted ? 'excluded' : 'true',
+        display: !showDeleted,
         customBodyRenderLite: (dataIndex) => {
           const supplier = displayedSuppliers[dataIndex];
           return showDeleted ? (
-            <Button variant="contained" color="success" onClick={() => handleRestore([dataIndex])}>♻️ Restore</Button>
+            <Button variant="contained" color="success" onClick={handleRestore}>♻️ Restore</Button>
           ) : (
             <>
-            <Button onClick={() => navigate(`/admin/suppliers/view/${supplier._id}`)}>View</Button>
-            <Button onClick={() => navigate(`/admin/suppliers/edit/${supplier._id}`)}>Edit</Button>
+              <Button onClick={() => navigate(`/admin/suppliers/view/${supplier._id}`)}>View</Button>
+              <Button onClick={() => navigate(`/admin/suppliers/edit/${supplier._id}`)}>Edit</Button>
             </>
           );
         }
@@ -141,6 +164,24 @@ export default function SupplierList() {
   return (
     <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16 }}>
       <h2>{showDeleted ? 'Deleted Suppliers (Trash)' : 'Active Suppliers'}</h2>
+
+      {/* Filter */}
+      <Stack direction="row" spacing={2} mb={2} alignItems="center">
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>City</InputLabel>
+          <Select
+            value={cityFilter}
+            label="City"
+            onChange={e => setCityFilter(e.target.value)}
+          >
+            <MenuItem value="">All</MenuItem>
+            {cities.map(city => (
+              <MenuItem key={city} value={city}>{city}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Stack>
+
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {!showDeleted && <Button variant="contained" onClick={() => navigate('/admin/suppliers/new')}>➕ Create Supplier</Button>}
         <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>

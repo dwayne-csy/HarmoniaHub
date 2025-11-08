@@ -1,25 +1,33 @@
 // HarmoniaHub/frontend/src/Components/admin/suppliermanagement/UpdateSupplier.jsx
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  Box,
+  TextField,
+  Button,
+  Stack,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const BASE_URL = 'http://localhost:4001/api/v1';
+const BASE_URL = "http://localhost:4001/api/v1";
 
 export default function UpdateSupplier() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
 
   const [supplier, setSupplier] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: { city: '', street: '' },
+    name: "",
+    email: "",
+    phone: "",
+    address: { street: "", city: "", state: "", country: "", zipCode: "" },
   });
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState(null);
 
-  // ✅ Fetch the supplier to edit (use admin route)
   useEffect(() => {
     async function fetchSupplier() {
       try {
@@ -28,31 +36,29 @@ export default function UpdateSupplier() {
         });
 
         if (res.data.supplier) {
-          // Ensure address object exists
           const fetchedSupplier = {
             ...res.data.supplier,
-            address: res.data.supplier.address || { city: '', street: '' },
+            address: res.data.supplier.address || { street: "", city: "", state: "", country: "", zipCode: "" },
           };
           setSupplier(fetchedSupplier);
         } else {
-          setMsg({ type: 'error', text: 'Supplier not found.' });
+          toast.error("Supplier not found.", { position: "top-center" });
         }
       } catch (err) {
-        console.error(err);
-        setMsg({ type: 'error', text: 'Failed to load supplier data.' });
+        toast.error("Failed to load supplier data.", { position: "top-center" });
       } finally {
         setLoading(false);
       }
     }
+
     fetchSupplier();
   }, [id, token]);
 
-  // ✅ Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    if (name.startsWith('address.')) {
-      const field = name.split('.')[1];
+    if (name.startsWith("address.")) {
+      const field = name.split(".")[1];
       setSupplier((prev) => ({
         ...prev,
         address: { ...prev.address, [field]: value },
@@ -62,108 +68,134 @@ export default function UpdateSupplier() {
     }
   };
 
-  // ✅ Update supplier data
-  async function handleUpdate(e) {
+  const handleUpdate = async (e) => {
     e.preventDefault();
+
+    // Validate all required fields
+    const requiredFields = [
+      "name",
+      "email",
+      "phone",
+      "street",
+      "city",
+      "state",
+      "country",
+      "zipCode",
+    ];
+    for (let field of requiredFields) {
+      if (field in supplier) {
+        if (!supplier[field]) {
+          toast.error(`Please enter ${field}`, { position: "top-center" });
+          return;
+        }
+      } else if (field in supplier.address) {
+        if (!supplier.address[field]) {
+          toast.error(`Please enter ${field}`, { position: "top-center" });
+          return;
+        }
+      }
+    }
+
     try {
       await axios.put(`${BASE_URL}/admin/suppliers/${id}`, supplier, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      setMsg({ type: 'success', text: 'Supplier updated successfully.' });
-      setTimeout(() => navigate('/admin/suppliers'), 1000);
+      toast.success("Supplier updated successfully.", { position: "top-center" });
+      setTimeout(() => navigate("/admin/suppliers"), 1000);
     } catch (err) {
-      console.error(err);
-      setMsg({
-        type: 'error',
-        text: err?.response?.data?.message || 'Failed to update supplier.',
-      });
+      toast.error(err?.response?.data?.message || "Failed to update supplier.", { position: "top-center" });
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', marginTop: '40px' }}>
-        <p>Loading supplier details...</p>
-      </div>
+      <Box sx={{ textAlign: "center", mt: 6 }}>
+        <CircularProgress />
+        <Typography mt={2}>Loading supplier details...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: '24px auto', padding: 16 }}>
-      <h2>Update Supplier</h2>
-
-      {msg && (
-        <div
-          style={{
-            color: msg.type === 'error' ? '#a00' : '#0a0',
-            marginBottom: 8,
-          }}
-        >
-          {msg.text}
-        </div>
-      )}
+    <Box sx={{ maxWidth: 700, mx: "auto", mt: 4, p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
+      <Typography variant="h5" mb={2}>Update Supplier</Typography>
 
       <form onSubmit={handleUpdate}>
-        <div style={{ marginBottom: 10 }}>
-          <label>Name:</label>
-          <input
-            type="text"
+        <Stack spacing={2}>
+          <TextField
+            label="Name*"
             name="name"
-            value={supplier.name || ''}
-            onChange={handleChange}
+            fullWidth
             required
+            value={supplier.name || ""}
+            onChange={handleChange}
           />
-        </div>
-
-        <div style={{ marginBottom: 10 }}>
-          <label>Email:</label>
-          <input
-            type="email"
+          <TextField
+            label="Email*"
             name="email"
-            value={supplier.email || ''}
-            onChange={handleChange}
+            type="email"
+            fullWidth
             required
+            value={supplier.email || ""}
+            onChange={handleChange}
           />
-        </div>
-
-        <div style={{ marginBottom: 10 }}>
-          <label>Phone:</label>
-          <input
-            type="text"
+          <TextField
+            label="Phone*"
             name="phone"
-            value={supplier.phone || ''}
-            onChange={handleChange}
+            fullWidth
             required
-          />
-        </div>
-
-        <div style={{ marginBottom: 10 }}>
-          <label>City:</label>
-          <input
-            type="text"
-            name="address.city"
-            value={supplier.address?.city || ''}
+            value={supplier.phone || ""}
             onChange={handleChange}
           />
-        </div>
-
-        <div style={{ marginBottom: 10 }}>
-          <label>Street:</label>
-          <input
-            type="text"
+          <TextField
+            label="Street*"
             name="address.street"
-            value={supplier.address?.street || ''}
+            fullWidth
+            required
+            value={supplier.address?.street || ""}
             onChange={handleChange}
           />
-        </div>
+          <TextField
+            label="City*"
+            name="address.city"
+            fullWidth
+            required
+            value={supplier.address?.city || ""}
+            onChange={handleChange}
+          />
+          <TextField
+            label="State*"
+            name="address.state"
+            fullWidth
+            required
+            value={supplier.address?.state || ""}
+            onChange={handleChange}
+          />
+          <TextField
+            label="Country*"
+            name="address.country"
+            fullWidth
+            required
+            value={supplier.address?.country || ""}
+            onChange={handleChange}
+          />
+          <TextField
+            label="Zip Code*"
+            name="address.zipCode"
+            fullWidth
+            required
+            value={supplier.address?.zipCode || ""}
+            onChange={handleChange}
+          />
 
-        <button type="submit" style={{ marginRight: 8 }}>
-          Update
-        </button>
-        <button type="button" onClick={() => navigate('/admin/suppliers')}>
-          Cancel
-        </button>
+          <Stack direction="row" spacing={2} mt={2}>
+            <Button type="submit" variant="contained">Update Supplier</Button>
+            <Button variant="outlined" onClick={() => navigate("/admin/suppliers")}>Cancel</Button>
+          </Stack>
+        </Stack>
       </form>
-    </div>
+
+      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
+    </Box>
   );
 }

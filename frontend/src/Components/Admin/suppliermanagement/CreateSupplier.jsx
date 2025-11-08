@@ -1,33 +1,36 @@
-// HarmoniaHub/frontend/src/Components/admin/suppliermanagement/CreateSupplier.jsx
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { Box, TextField, Button, Stack, Typography } from "@mui/material";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const BASE_URL = 'http://localhost:4001/api/v1';
+const BASE_URL = "http://localhost:4001/api/v1";
 
 export default function CreateSupplier() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    street: '',
-    city: '',
-    state: '',
-    country: '',
-    zipCode: ''
+    name: "",
+    email: "",
+    phone: "",
+    street: "",
+    city: "",
+    state: "",
+    country: "",
+    zipCode: "",
   });
-  const [msg, setMsg] = useState(null);
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setMsg(null);
 
-    // Basic validation
-    if (!form.name || !form.email || !form.phone) {
-      setMsg({ type: 'error', text: 'Name, email and phone are required.' });
-      return;
+    // Validate required fields
+    const requiredFields = ["name","email","phone","street","city","state","country","zipCode"];
+    for (let field of requiredFields) {
+      if (!form[field]) {
+        toast.error(`Please enter ${field}`, { position: "top-center" });
+        return;
+      }
     }
 
     const payload = {
@@ -39,61 +42,44 @@ export default function CreateSupplier() {
         city: form.city,
         state: form.state,
         country: form.country,
-        zipCode: form.zipCode
-      }
+        zipCode: form.zipCode,
+      },
     };
 
     try {
-      const res = await axios.post(`${BASE_URL}/admin/suppliers`, payload, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      await axios.post(`${BASE_URL}/admin/suppliers`, payload, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      setMsg({ type: 'success', text: 'Supplier created.' });
-      setTimeout(()=> navigate('/admin/suppliers'), 700);
+      toast.success("Supplier created successfully.", { position: "top-center" });
+      setTimeout(() => navigate("/admin/suppliers"), 1000);
     } catch (err) {
-      setMsg({ type: 'error', text: err?.response?.data?.message || err.message });
+      toast.error(err?.response?.data?.message || err.message, { position: "top-center" });
     }
-  }
+  };
 
   return (
-    <div style={{maxWidth:700, margin:'24px auto', padding:16, border:'1px solid #ddd', borderRadius:6}}>
-      <h2>Create Supplier</h2>
-      {msg && <div style={{color: msg.type === 'error' ? '#a00' : '#0a0'}}>{msg.text}</div>}
+    <Box sx={{ maxWidth: 700, mx: "auto", mt: 4, p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
+      <Typography variant="h5" mb={2}>Create Supplier</Typography>
+
       <form onSubmit={handleSubmit}>
-        <label>Name*:</label><br />
-        <input value={form.name} onChange={e=>setForm({...form, name: e.target.value})} style={{width:'100%', padding:8}}/>
-        <br /><br />
+        <Stack spacing={2}>
+          <TextField label="Name*" fullWidth value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required />
+          <TextField label="Email*" type="email" fullWidth value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required />
+          <TextField label="Phone*" fullWidth value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} required />
+          <TextField label="Street*" fullWidth value={form.street} onChange={e=>setForm({...form,street:e.target.value})} required />
+          <TextField label="City*" fullWidth value={form.city} onChange={e=>setForm({...form,city:e.target.value})} required />
+          <TextField label="State*" fullWidth value={form.state} onChange={e=>setForm({...form,state:e.target.value})} required />
+          <TextField label="Country*" fullWidth value={form.country} onChange={e=>setForm({...form,country:e.target.value})} required />
+          <TextField label="Zip Code*" fullWidth value={form.zipCode} onChange={e=>setForm({...form,zipCode:e.target.value})} required />
 
-        <label>Email*:</label><br />
-        <input value={form.email} type="email" onChange={e=>setForm({...form, email: e.target.value})} style={{width:'100%', padding:8}}/>
-        <br /><br />
-
-        <label>Phone*:</label><br />
-        <input value={form.phone} onChange={e=>setForm({...form, phone: e.target.value})} style={{width:'100%', padding:8}}/>
-        <br /><br />
-
-        <label>Street:</label><br />
-        <input value={form.street} onChange={e=>setForm({...form, street: e.target.value})} style={{width:'100%', padding:8}}/>
-        <br /><br />
-
-        <label>City:</label><br />
-        <input value={form.city} onChange={e=>setForm({...form, city: e.target.value})} style={{width:'100%', padding:8}}/>
-        <br /><br />
-
-        <label>State:</label><br />
-        <input value={form.state} onChange={e=>setForm({...form, state: e.target.value})} style={{width:'100%', padding:8}}/>
-        <br /><br />
-
-        <label>Country:</label><br />
-        <input value={form.country} onChange={e=>setForm({...form, country: e.target.value})} style={{width:'100%', padding:8}}/>
-        <br /><br />
-
-        <label>Zip Code:</label><br />
-        <input value={form.zipCode} onChange={e=>setForm({...form, zipCode: e.target.value})} style={{width:'100%', padding:8}}/>
-        <br /><br />
-
-        <button type="submit">Create Supplier</button>
-        <button type="button" onClick={()=>navigate('/admin/suppliers')} style={{marginLeft:8}}>Back</button>
+          <Stack direction="row" spacing={2} mt={2}>
+            <Button type="submit" variant="contained">Create Supplier</Button>
+            <Button variant="outlined" onClick={()=>navigate("/admin/suppliers")}>Back</Button>
+          </Stack>
+        </Stack>
       </form>
-    </div>
+
+      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
+    </Box>
   );
 }
