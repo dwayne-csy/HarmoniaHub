@@ -1,11 +1,12 @@
-
 // HarmoniaHub/frontend/src/Components/admin/suppliermanagement/SupplierList.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import MUIDataTable from "mui-datatables";
-import { Button, MenuItem, FormControl, Select, InputLabel, Stack } from '@mui/material';
+import { Button, MenuItem, FormControl, Select, InputLabel, Stack, Box } from '@mui/material';
 import Loader from '../../layouts/Loader';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const BASE_URL = 'http://localhost:4001/api/v1';
 
@@ -17,7 +18,6 @@ export default function SupplierList() {
   const [loading, setLoading] = useState(true);
   const [selectedRows, setSelectedRows] = useState([]);
   const [cityFilter, setCityFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
@@ -28,7 +28,7 @@ export default function SupplierList() {
 
   useEffect(() => {
     applyFilters();
-  }, [suppliers, deletedSuppliers, showDeleted, cityFilter, statusFilter]);
+  }, [suppliers, deletedSuppliers, showDeleted, cityFilter]);
 
   const fetchActiveSuppliers = async () => {
     try {
@@ -57,13 +57,7 @@ export default function SupplierList() {
     const list = showDeleted ? deletedSuppliers : suppliers;
     let filtered = [...list];
 
-    if (cityFilter) {
-      filtered = filtered.filter(s => s.address?.city === cityFilter);
-    }
-    if (statusFilter) {
-      const isActive = statusFilter === 'Active';
-      filtered = filtered.filter(s => s.isActive === isActive);
-    }
+    if (cityFilter) filtered = filtered.filter(s => s.address?.city === cityFilter);
 
     setDisplayedSuppliers(filtered);
   };
@@ -102,7 +96,36 @@ export default function SupplierList() {
     }
   };
 
-  // Generate unique cities for filter dropdown
+  // Export PDF
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('HarmoniaHub', 14, 15);
+    doc.setFontSize(12);
+    doc.text('Supplier List', 14, 25);
+
+    const tableColumn = ["Name", "Email", "Phone", "City", "Status"];
+    const tableRows = [];
+
+    displayedSuppliers.forEach(supplier => {
+      tableRows.push([
+        supplier.name,
+        supplier.email,
+        supplier.phone,
+        supplier.address?.city || '—',
+        supplier.isActive ? 'Active' : 'Deleted'
+      ]);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30
+    });
+
+    doc.save('SupplierList.pdf');
+  };
+
   const cities = [...new Set(suppliers.concat(deletedSuppliers).map(s => s.address?.city).filter(Boolean))];
 
   const columns = [
@@ -151,12 +174,7 @@ export default function SupplierList() {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '80vh',
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
         <Loader />
       </div>
     );
@@ -200,6 +218,13 @@ export default function SupplierList() {
         columns={columns}
         options={options}
       />
+
+      {/* PDF Export Button below table */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+        <Button variant="contained" color="secondary" onClick={exportPDF}>
+          CSV
+        </Button>
+      </Box>
     </div>
   );
 }

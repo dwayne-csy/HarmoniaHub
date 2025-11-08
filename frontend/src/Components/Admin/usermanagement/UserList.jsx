@@ -3,8 +3,10 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import MUIDataTable from "mui-datatables";
-import { Button, FormControl, InputLabel, Select, MenuItem, Stack } from "@mui/material";
+import { Button, FormControl, InputLabel, Select, MenuItem, Stack, Box } from "@mui/material";
 import Loader from "../../layouts/Loader";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
@@ -31,9 +33,7 @@ export default function UserList() {
   const fetchActiveUsers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE_URL}/users/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(`${BASE_URL}/users/all`, { headers: { Authorization: `Bearer ${token}` } });
       setUsers(res.data.users || []);
     } catch (err) {
       console.error(err);
@@ -44,9 +44,7 @@ export default function UserList() {
 
   const fetchDeletedUsers = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/users/deleted`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(`${BASE_URL}/users/deleted`, { headers: { Authorization: `Bearer ${token}` } });
       setDeletedUsers(res.data.users || []);
     } catch (err) {
       console.error(err);
@@ -55,11 +53,7 @@ export default function UserList() {
 
   const handleRoleChange = async (id, newRole) => {
     try {
-      await axios.patch(
-        `${BASE_URL}/users/role/${id}`,
-        { role: newRole },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.patch(`${BASE_URL}/users/role/${id}`, { role: newRole }, { headers: { Authorization: `Bearer ${token}` } });
       fetchActiveUsers();
     } catch (err) {
       console.error(err);
@@ -68,11 +62,7 @@ export default function UserList() {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await axios.patch(
-        `${BASE_URL}/users/status/${id}`,
-        { isActive: newStatus === "Active" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.patch(`${BASE_URL}/users/status/${id}`, { isActive: newStatus === "Active" }, { headers: { Authorization: `Bearer ${token}` } });
       fetchActiveUsers();
     } catch (err) {
       console.error(err);
@@ -85,9 +75,7 @@ export default function UserList() {
     try {
       await Promise.all(selectedRows.map(i => {
         const id = originalUsers[i]._id;
-        return axios.delete(`${BASE_URL}/users/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        return axios.delete(`${BASE_URL}/users/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       }));
       fetchActiveUsers();
       fetchDeletedUsers();
@@ -103,9 +91,7 @@ export default function UserList() {
     try {
       await Promise.all(selectedRows.map(i => {
         const id = originalUsers[i]._id;
-        return axios.patch(`${BASE_URL}/users/restore/${id}`, {}, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        return axios.patch(`${BASE_URL}/users/restore/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
       }));
       fetchActiveUsers();
       fetchDeletedUsers();
@@ -115,12 +101,35 @@ export default function UserList() {
     }
   };
 
-  // Filter function for display
   const filteredUsers = originalUsers.filter(u =>
     (roleFilter ? u.role === roleFilter : true) &&
     (statusFilter ? (statusFilter === "Active" ? u.isActive : !u.isActive) : true) &&
     (verifiedFilter ? (verifiedFilter === "Verified" ? u.isVerified : !u.isVerified) : true)
   );
+
+  // Export PDF
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('HarmoniaHub', 14, 15);
+    doc.setFontSize(12);
+    doc.text('User List', 14, 25);
+
+    const tableColumn = ["Name", "Role", "Status", "Verified"];
+    const tableRows = [];
+
+    filteredUsers.forEach(u => {
+      tableRows.push([
+        u.name,
+        u.role,
+        u.isActive ? "Active" : "Inactive",
+        u.isVerified ? "Verified" : "Not Verified"
+      ]);
+    });
+
+    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 30 });
+    doc.save('UserList.pdf');
+  };
 
   const columns = [
     {
@@ -167,21 +176,20 @@ export default function UserList() {
         }
       }
     },
-{
-  name: "_id",
-  label: "Actions",
-  options: {
-    filter: false,
-    sort: false,
-    customBodyRenderLite: (dataIndex) => {
-      const u = filteredUsers[dataIndex];
-      return !showDeleted ? (
-        <Button onClick={() => navigate(`/admin/users/view/${u._id}`)}>View</Button>
-      ) : null; // remove per-user restore button in Trash
+    {
+      name: "_id",
+      label: "Actions",
+      options: {
+        filter: false,
+        sort: false,
+        customBodyRenderLite: (dataIndex) => {
+          const u = filteredUsers[dataIndex];
+          return !showDeleted ? (
+            <Button onClick={() => navigate(`/admin/users/view/${u._id}`)}>View</Button>
+          ) : null;
+        }
+      }
     }
-  }
-}
-
   ];
 
   const options = {
@@ -189,7 +197,6 @@ export default function UserList() {
     selectableRowsOnClick: true,
     rowsSelected: selectedRows,
     onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) => {
-      // Map filtered index to original index
       const originalIndexes = rowsSelected.map(i => originalUsers.findIndex(u => u._id === filteredUsers[i]._id));
       setSelectedRows(originalIndexes);
     },
@@ -251,6 +258,13 @@ export default function UserList() {
       </div>
 
       <MUIDataTable data={filteredUsers} columns={columns} options={options} />
+
+      {/* PDF Export Button below table */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+        <Button variant="contained" color="secondary" onClick={exportPDF}>
+          CSV
+        </Button>
+      </Box>
     </div>
   );
 }

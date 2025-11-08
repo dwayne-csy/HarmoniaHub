@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import MUIDataTable from "mui-datatables";
 import { Button, Box, FormControl, InputLabel, Select, MenuItem, Stack } from '@mui/material';
 import Loader from '../../layouts/Loader';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const BASE_URL = 'http://localhost:4001/api/v1';
 
@@ -39,6 +41,7 @@ export default function ProductList() {
   useEffect(() => {
     fetchActiveProducts();
     if (token) fetchDeletedProducts();
+    fetchSuppliers();
   }, [token]);
 
   const fetchActiveProducts = async () => {
@@ -52,9 +55,6 @@ export default function ProductList() {
         if (p.images?.length > 0) initialIndexes[p._id] = 0;
       });
       setCurrentImageIndexes(initialIndexes);
-
-      const uniqueSuppliers = [...new Set(res.data.products.map(p => p.supplier?.name).filter(Boolean))];
-      setSuppliers(uniqueSuppliers);
     } catch (err) {
       console.error(err);
     } finally {
@@ -76,6 +76,17 @@ export default function ProductList() {
       setCurrentImageIndexes(prev => ({ ...prev, ...initialIndexes }));
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/suppliers`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      setSuppliers(res.data.suppliers?.map(s => s.name) || []);
+    } catch (err) {
+      console.error('Failed to fetch suppliers:', err);
     }
   };
 
@@ -123,6 +134,39 @@ export default function ProductList() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(16);
+    doc.text('HarmoniaHub', 14, 15);
+
+    // Sub-title
+    doc.setFontSize(12);
+    doc.text('Product List', 14, 25);
+
+    const tableColumn = ["Name", "Price", "Category", "Stock", "Supplier"];
+    const tableRows = [];
+
+    displayedProducts.forEach(product => {
+      tableRows.push([
+        product.name,
+        product.price,
+        product.category,
+        product.stock,
+        product.supplier?.name || '—'
+      ]);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30
+    });
+
+    doc.save('ProductList.pdf');
   };
 
   const columns = [
@@ -208,7 +252,6 @@ export default function ProductList() {
   const options = {
     selectableRows: "multiple",
     selectableRowsOnClick: true,
-    // Fix checkbox selection
     rowsSelected: displayedProducts.map((p, i) => selectedIds.includes(p._id) ? i : null).filter(i => i !== null),
     onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelectedIndexes) => {
       const ids = rowsSelectedIndexes.map(i => displayedProducts[i]._id);
@@ -233,7 +276,7 @@ export default function ProductList() {
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16 }}>
+    <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16, position: 'relative' }}>
       <h2>{showDeleted ? 'Deleted Products (Trash)' : 'Active Products'}</h2>
 
       <Stack direction="row" spacing={2} mb={2}>
@@ -271,6 +314,13 @@ export default function ProductList() {
         columns={columns}
         options={options}
       />
+
+      {/* PDF Export Button below the table, scrolls with content */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+        <Button variant="contained" color="secondary" onClick={exportPDF}>
+          CSV
+        </Button>
+      </Box>
     </div>
   );
 }
