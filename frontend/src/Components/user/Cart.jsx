@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import {
+  Box,
+  Button,
+  Typography,
+  Card,
+  CardContent,
+  CardMedia,
+  IconButton,
+  Stack,
+  CircularProgress,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 
 const Cart = () => {
   const [cart, setCart] = useState({ items: [] });
@@ -35,7 +49,7 @@ const Cart = () => {
     try {
       const { data } = await axios.patch(
         "http://localhost:4001/api/v1/cart/update",
-        { productId, action }, // action = 'increase' or 'decrease'
+        { productId, action },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setCart(data.cart || { items: [] });
@@ -56,49 +70,90 @@ const Cart = () => {
     }
   };
 
-  if (loading) return <div className="loading">Loading cart...</div>;
-  if (!cart.items.length) return <p>Your cart is empty.</p>;
+  const handleRemoveAll = async () => {
+    try {
+      const { data } = await axios.delete(
+        "http://localhost:4001/api/v1/cart/remove-all",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCart({ items: [] });
+    } catch (error) {
+      console.error("Failed to remove all items:", error);
+    }
+  };
+
+  if (loading)
+    return (
+      <Box display="flex" justifyContent="center" mt={5}>
+        <CircularProgress />
+      </Box>
+    );
+
+  if (!cart.items.length)
+    return (
+      <Typography variant="h6" align="center" mt={5}>
+        Your cart is empty.
+      </Typography>
+    );
+
+  const total = cart.items.reduce(
+    (acc, item) => acc + item.product.price * item.quantity,
+    0
+  );
 
   return (
-    <div className="cart-container">
-      <h2>Your Shopping Cart</h2>
-      {cart.items.map((item) => (
-        <div key={item.product._id} className="cart-item">
-          <img
-            src={item.product.images?.[0]?.url}
-            alt={item.product.name}
-            className="cart-item-image"
-          />
-          <div className="cart-item-info">
-            <h4>{item.product.name}</h4>
-            <p>Price: ${item.product.price}</p>
-            <div className="quantity-control">
-              <button
-                onClick={() => handleQuantityChange(item.product._id, "decrease")}
-                disabled={item.quantity <= 1}
+    <Box p={3}>
+      <Typography variant="h4" mb={3}>
+        Your Shopping Cart
+      </Typography>
+
+      <Stack spacing={2}>
+        {cart.items.map((item) => (
+          <Card key={item.product._id} sx={{ display: "flex", p: 1 }}>
+            <CardMedia
+              component="img"
+              sx={{ width: 120, height: 120, objectFit: "cover" }}
+              image={item.product.images?.[0]?.url || ""}
+              alt={item.product.name}
+            />
+            <CardContent sx={{ flex: 1 }}>
+              <Typography variant="h6">{item.product.name}</Typography>
+              <Typography>Price: ${item.product.price}</Typography>
+              <Stack direction="row" alignItems="center" spacing={1} mt={1}>
+                <IconButton
+                  onClick={() => handleQuantityChange(item.product._id, "decrease")}
+                  disabled={item.quantity <= 1}
+                >
+                  <RemoveIcon />
+                </IconButton>
+                <Typography>{item.quantity}</Typography>
+                <IconButton
+                  onClick={() => handleQuantityChange(item.product._id, "increase")}
+                  disabled={item.quantity >= item.product.stock}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Stack>
+              <Button
+                startIcon={<DeleteIcon />}
+                color="error"
+                sx={{ mt: 1 }}
+                onClick={() => handleRemove(item.product._id)}
               >
-                -
-              </button>
-              <span>{item.quantity}</span>
-              <button
-                onClick={() => handleQuantityChange(item.product._id, "increase")}
-                disabled={item.quantity >= item.product.stock}
-              >
-                +
-              </button>
-            </div>
-            <button onClick={() => handleRemove(item.product._id)}>Remove</button>
-          </div>
-        </div>
-      ))}
-      <h3>
-        Total: $
-        {cart.items.reduce(
-          (acc, item) => acc + item.product.price * item.quantity,
-          0
-        )}
-      </h3>
-    </div>
+                Remove
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </Stack>
+
+      <Box mt={3} display="flex" justifyContent="space-between" alignItems="center">
+        <Typography variant="h5">Total: ${total}</Typography>
+        <Button variant="contained" color="error" onClick={handleRemoveAll}>
+          Remove All
+        </Button>
+      </Box>
+    </Box>
   );
 };
 
