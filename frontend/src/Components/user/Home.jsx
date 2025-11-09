@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Loader from "../layouts/Loader"; // import loader
+import Loader from "../layouts/Loader";
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 const Home = () => {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true); // loader for products only
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [cartCount, setCartCount] = useState(0);
-  const [currentImageIndexes, setCurrentImageIndexes] = useState({}); // Track current image index for each product
+  const [currentImageIndexes, setCurrentImageIndexes] = useState({});
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
@@ -30,8 +32,7 @@ const Home = () => {
         const productsRes = await axios.get("http://localhost:4001/api/v1/products");
         const productsData = productsRes.data.products || productsRes.data || [];
         setProducts(productsData);
-        
-        // Initialize image indexes for all products
+
         const initialIndexes = {};
         productsData.forEach(product => {
           if (product.images && product.images.length > 0) {
@@ -42,16 +43,15 @@ const Home = () => {
       } catch (error) {
         console.error("Failed to fetch data", error);
       } finally {
-        setLoadingProducts(false); // stop loader after products fetch
+        setLoadingProducts(false);
       }
     };
 
     fetchData();
   }, [token]);
 
-  // Navigation functions for image carousel
   const nextImage = (productId, totalImages, e) => {
-    e.stopPropagation(); // Prevent card click events
+    e.stopPropagation();
     setCurrentImageIndexes(prev => ({
       ...prev,
       [productId]: (prev[productId] + 1) % totalImages
@@ -59,29 +59,25 @@ const Home = () => {
   };
 
   const prevImage = (productId, totalImages, e) => {
-    e.stopPropagation(); // Prevent card click events
+    e.stopPropagation();
     setCurrentImageIndexes(prev => ({
       ...prev,
       [productId]: (prev[productId] - 1 + totalImages) % totalImages
     }));
   };
 
-  // Auto-slide effect
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndexes(prev => {
         const newIndexes = { ...prev };
-        
-        // Update all products with multiple images
         products.forEach(product => {
           if (product.images && product.images.length > 1) {
             newIndexes[product._id] = (prev[product._id] + 1) % product.images.length;
           }
         });
-        
         return newIndexes;
       });
-    }, 3000); // Change image every 3 seconds
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [products]);
@@ -103,6 +99,11 @@ const Home = () => {
       console.error("Failed to add product to cart", error);
       alert(error.response?.data?.message || "Failed to add product to cart.");
     }
+  };
+
+  const handleCheckoutSolo = (product) => {
+    // Redirect to checkout confirmation page for single product
+    navigate("/checkout-confirmation", { state: { cart: { items: [{ product, quantity: 1 }] } } });
   };
 
   const handleLogout = () => {
@@ -141,7 +142,7 @@ const Home = () => {
         <main className="products-section">
           <h2>Available Products</h2>
 
-          {loadingProducts ? ( // loader affects only products
+          {loadingProducts ? (
             <div className="loader-container">
               <Loader />
             </div>
@@ -155,17 +156,30 @@ const Home = () => {
                   const currentIndex = currentImageIndexes[product._id] || 0;
                   const totalImages = product.images?.length || 0;
                   const hasMultipleImages = totalImages > 1;
-                  
+
                   return (
-                    <div key={product._id} className="product-card">
+                    <div key={product._id} className="product-card" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      padding: 15,
+                      borderRadius: 12,
+                      boxShadow: '0px 4px 10px rgba(0,0,0,0.1)',
+                      backgroundColor: '#fff',
+                    }}>
                       <div style={{ position: 'relative' }}>
                         <img
                           src={product.images?.[currentIndex]?.url}
                           alt={product.name}
                           className="product-image"
+                          style={{
+                            width: '100%',
+                            height: '180px',
+                            objectFit: 'cover',
+                            borderRadius: 10
+                          }}
                         />
-                        
-                        {/* Navigation arrows for multiple images */}
+
                         {hasMultipleImages && (
                           <>
                             <button
@@ -175,12 +189,12 @@ const Home = () => {
                                 left: 5,
                                 top: '50%',
                                 transform: 'translateY(-50%)',
-                                background: 'rgba(0,0,0,0.5)',
+                                background: 'rgba(0,0,0,0.4)',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '50%',
-                                width: 25,
-                                height: 25,
+                                width: 28,
+                                height: 28,
                                 fontSize: 14,
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -197,12 +211,12 @@ const Home = () => {
                                 right: 5,
                                 top: '50%',
                                 transform: 'translateY(-50%)',
-                                background: 'rgba(0,0,0,0.5)',
+                                background: 'rgba(0,0,0,0.4)',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '50%',
-                                width: 25,
-                                height: 25,
+                                width: 28,
+                                height: 28,
                                 fontSize: 14,
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -212,8 +226,7 @@ const Home = () => {
                             >
                               ›
                             </button>
-                            
-                            {/* Image counter */}
+
                             <div style={{
                               position: 'absolute',
                               bottom: 5,
@@ -229,15 +242,60 @@ const Home = () => {
                           </>
                         )}
                       </div>
-                      <h3>{product.name}</h3>
-                      <p>Price: ${product.price}</p>
-                      <p>Stock: {product.stock}</p>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleAddToCart(product._id)}
-                      >
-                        Add to Cart
-                      </button>
+
+                      <div style={{ marginTop: 10 }}>
+                        <h3 style={{ fontSize: '1.1rem', marginBottom: 5 }}>{product.name}</h3>
+                        <p style={{ marginBottom: 5 }}>Price: ${product.price}</p>
+                        <p style={{ marginBottom: 10, color: '#555' }}>Stock: {product.stock}</p>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between' }}>
+                        <button
+                          onClick={() => handleAddToCart(product._id)}
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            padding: '8px 10px',
+                            backgroundColor: '#1976d2',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 8,
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            transition: '0.3s'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#115293'}
+                          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#1976d2'}
+                        >
+                          <ShoppingCartIcon fontSize="small" /> Add to Cart
+                        </button>
+
+                        <button
+                          onClick={() => handleCheckoutSolo(product)}
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            padding: '8px 10px',
+                            backgroundColor: '#388e3c',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 8,
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            transition: '0.3s'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#2e7d32'}
+                          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#388e3c'}
+                        >
+                          Checkout <ArrowForwardIcon fontSize="small" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
