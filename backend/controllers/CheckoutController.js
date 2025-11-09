@@ -2,6 +2,7 @@
 const Order = require("../models/OrderModels");
 const User = require("../models/UserModels");
 const Cart = require("../models/CartModels");
+const Product = require("../models/ProductModels"); // Import product model
 
 exports.checkout = async (req, res) => {
   try {
@@ -22,7 +23,7 @@ exports.checkout = async (req, res) => {
       address: `${user.address.street || ""}, ${user.address.barangay || ""}`,
       city: user.address.city || "",
       postalCode: user.address.zipcode || "",
-      country: "Philippines", // Default if you don’t store country in user schema
+      country: "Philippines",
       phoneNo: user.contact || "",
     };
 
@@ -65,6 +66,16 @@ exports.checkout = async (req, res) => {
       totalPrice,
       orderStatus: "Processing",
     });
+
+    // Decrease stock for each product
+    for (const item of cart.items) {
+      const product = await Product.findById(item.product._id);
+      if (!product) continue;
+
+      // Reduce stock
+      product.stock = Math.max(product.stock - item.quantity, 0);
+      await product.save();
+    }
 
     // Clear user's cart
     cart.items = [];

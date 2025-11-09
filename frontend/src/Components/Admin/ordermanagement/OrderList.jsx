@@ -1,14 +1,16 @@
 // HarmoniaHub/frontend/src/Components/admin/ordermanagement/OrderList.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import MUIDataTable from "mui-datatables";
 import { Button, Stack, FormControl, InputLabel, Select, MenuItem, Box } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import Loader from "../../layouts/Loader";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const BASE_URL = "http://localhost:4001/api/v1";
+
+const statusOptions = ["Processing", "Accepted", "Cancelled", "Out for Delivery", "Delivered"];
 
 export default function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -16,8 +18,8 @@ export default function OrderList() {
   const [loading, setLoading] = useState(true);
   const [selectedRows, setSelectedRows] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
-  const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchOrders();
@@ -43,8 +45,31 @@ export default function OrderList() {
 
   const applyFilters = () => {
     let filtered = [...orders];
-    if (statusFilter) filtered = filtered.filter(o => o.orderStatus === statusFilter);
+    if (statusFilter) {
+      filtered = filtered.filter((o) => o.orderStatus === statusFilter);
+    }
     setDisplayedOrders(filtered);
+  };
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      await axios.put(
+        `${BASE_URL}/admin/orders/${orderId}`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Update orders and displayedOrders immediately
+      setOrders((prev) =>
+        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: newStatus } : o))
+      );
+
+      setDisplayedOrders((prev) =>
+        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: newStatus } : o))
+      );
+    } catch (err) {
+      console.error("Failed to update order:", err);
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -53,7 +78,7 @@ export default function OrderList() {
 
     try {
       await Promise.all(
-        selectedRows.map(i => {
+        selectedRows.map((i) => {
           const id = displayedOrders[i]._id;
           return axios.delete(`${BASE_URL}/admin/orders/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -74,16 +99,17 @@ export default function OrderList() {
     doc.setFontSize(12);
     doc.text("Order List", 14, 25);
 
-    const tableColumn = ["Order ID", "User", "Status", "Total Price", "Created At"];
+    const tableColumn = ["Order ID", "User", "Product", "Total Price", "Status"];
     const tableRows = [];
 
-    displayedOrders.forEach(order => {
+    displayedOrders.forEach((order) => {
+      const products = order.orderItems?.map((item) => `${item.quantity}x ${item.name}`).join(", ") || "N/A";
       tableRows.push([
         order._id,
-        order.user?.name || order.user || "N/A",
-        order.orderStatus,
+        order.user?.name || "N/A",
+        products,
         `$${order.totalPrice?.toFixed(2) || "0.00"}`,
-        new Date(order.createdAt).toLocaleString(),
+        order.orderStatus,
       ]);
     });
 
@@ -91,29 +117,77 @@ export default function OrderList() {
     doc.save("OrderList.pdf");
   };
 
-  const statuses = [...new Set(orders.map(o => o.orderStatus))];
-
   const columns = [
     { name: "_id", label: "Order ID" },
-    { name: "user", label: "User", options: { customBodyRenderLite: dataIndex => displayedOrders[dataIndex].user?.name || "N/A" } },
-    { name: "orderStatus", label: "Status" },
-    { name: "totalPrice", label: "Total Price", options: { customBodyRenderLite: dataIndex => `$${displayedOrders[dataIndex].totalPrice?.toFixed(2) || "0.00"}` } },
-    { name: "createdAt", label: "Created At", options: { customBodyRenderLite: dataIndex => new Date(displayedOrders[dataIndex].createdAt).toLocaleString() } },
     {
-      name: "_id",
-      label: "Actions",
+      name: "user",
+      label: "User",
+      options: {
+        customBodyRenderLite: (dataIndex) => displayedOrders[dataIndex].user?.name || "N/A",
+      },
+    },
+    {
+      name: "products",
+      label: "Product",
       options: {
         filter: false,
         sort: false,
-        customBodyRenderLite: dataIndex => {
+        customBodyRenderLite: (dataIndex) => {
+          const order = displayedOrders[dataIndex];
+          const products = order.orderItems?.map((item) => `${item.quantity}x ${item.name}`).join(", ");
+          return products || "N/A";
+        },
+      },
+    },
+    {
+      name: "totalPrice",
+      label: "Total Price",
+      options: {
+        customBodyRenderLite: (dataIndex) =>
+          `$${displayedOrders[dataIndex].totalPrice?.toFixed(2) || "0.00"}`,
+      },
+    },
+    {
+      name: "orderStatus",
+      label: "Status",
+      options: {
+        filter: false,
+        sort: false,
+        customBodyRenderLite: (dataIndex) => {
           const order = displayedOrders[dataIndex];
           return (
-            <Stack direction="row" spacing={1}>
-              <Button onClick={() => navigate(`/admin/orders/view/${order._id}`)}>View</Button>
-              <Button onClick={() => navigate(`/admin/orders/edit/${order._id}`)}>Edit</Button>
-            </Stack>
+            <FormControl size="small" fullWidth>
+              <Select
+                value={order.orderStatus}
+                onChange={(e) => handleStatusChange(order._id, e.target.value)}
+              >
+                {statusOptions.map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {status}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           );
         },
+      },
+    },
+    {
+      name: "actions",
+      label: "Action",
+      options: {
+        filter: false,
+        sort: false,
+        customBodyRenderLite: (dataIndex) => (
+          <Button
+            variant="contained"
+            size="small"
+            color="primary"
+            onClick={() => navigate(`/admin/orders/view/${displayedOrders[dataIndex]._id}`)}
+          >
+            View
+          </Button>
+        ),
       },
     },
   ];
@@ -121,7 +195,8 @@ export default function OrderList() {
   const options = {
     selectableRows: "multiple",
     selectableRowsOnClick: true,
-    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) => setSelectedRows(rowsSelected),
+    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) =>
+      setSelectedRows(rowsSelected),
     download: false,
     print: false,
     viewColumns: false,
@@ -130,20 +205,30 @@ export default function OrderList() {
     rowsPerPage: 10,
     rowsPerPageOptions: [5, 10, 25, 50],
     elevation: 0,
+    responsive: "standard",
   };
 
-  if (loading) return <Loader />;
+  if (loading)
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh" }}>
+        <Loader />
+      </div>
+    );
 
   return (
     <div style={{ maxWidth: 1200, margin: "24px auto", padding: 16 }}>
       <h2>Order Management</h2>
 
       <Stack direction="row" spacing={2} mb={2} alignItems="center">
-        <FormControl size="small" sx={{ minWidth: 150 }}>
+        <FormControl size="small" sx={{ minWidth: 180 }}>
           <InputLabel>Status</InputLabel>
-          <Select value={statusFilter} label="Status" onChange={e => setStatusFilter(e.target.value)}>
+          <Select
+            value={statusFilter}
+            label="Status"
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <MenuItem value="">All</MenuItem>
-            {statuses.map(status => (
+            {statusOptions.map((status) => (
               <MenuItem key={status} value={status}>
                 {status}
               </MenuItem>
@@ -153,12 +238,15 @@ export default function OrderList() {
         <Button variant="contained" color="error" onClick={handleBulkDelete}>
           Delete Selected
         </Button>
-        <Button variant="contained" color="secondary" onClick={exportPDF}>
-          Export PDF
-        </Button>
       </Stack>
 
       <MUIDataTable data={displayedOrders} columns={columns} options={options} />
+
+      <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
+        <Button variant="contained" color="secondary" onClick={exportPDF}>
+          Export PDF
+        </Button>
+      </Box>
     </div>
   );
 }

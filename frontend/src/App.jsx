@@ -32,7 +32,7 @@ import ViewUser from "./Components/admin/usermanagement/ViewUser";
 
 // Order Management
 import OrderList from "./Components/admin/ordermanagement/OrderList";
-import UpdateOrder from "./Components/admin/ordermanagement/UpdateOrder";
+import ViewOrder from "./Components/admin/ordermanagement/ViewOrder"; // <-- Added
 
 const App = () => {
   const token = localStorage.getItem("token");
@@ -85,7 +85,7 @@ const App = () => {
 
         {/* Order Management */}
         <Route path="/admin/orders" element={<AdminRoutes><OrderList /></AdminRoutes>} />
-        <Route path="/admin/orders/update/:id" element={<AdminRoutes><UpdateOrder /></AdminRoutes>} />
+        <Route path="/admin/orders/view/:orderId" element={<AdminRoutes><ViewOrder /></AdminRoutes>} /> {/* <-- Added */}
 
         {/* Catch-all Redirect */}
         <Route path="*" element={<Navigate to={getDefaultRoute()} />} />
