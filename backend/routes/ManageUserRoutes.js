@@ -9,6 +9,7 @@ const {
   changeUserRole,
   getDeletedUsers,
   getUserById,
+  deleteUser,
 } = require('../controllers/ManageUserController');
 
 const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth');
@@ -25,6 +26,7 @@ router.patch('/users/status/:id', isAuthenticatedUser, isAdmin, toggleUserStatus
 router.delete('/users/:id', isAuthenticatedUser, isAdmin, softDeleteUser); // Soft delete
 router.patch('/users/restore/:id', isAuthenticatedUser, isAdmin, restoreUser); // Restore
 router.patch('/users/role/:id', isAuthenticatedUser, isAdmin, changeUserRole); // ✅ Change user role (admin/user)
+router.delete('/users/delete/:id', isAuthenticatedUser, isAdmin, deleteUser); // ✅ Hard delete user
 
 
 module.exports = router;

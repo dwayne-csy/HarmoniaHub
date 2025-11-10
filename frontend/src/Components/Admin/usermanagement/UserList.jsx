@@ -69,6 +69,7 @@ export default function UserList() {
     }
   };
 
+  // Soft delete (active users)
   const handleDelete = async () => {
     if (selectedRows.length === 0) return alert("No users selected.");
     if (!window.confirm(`Soft delete ${selectedRows.length} selected users?`)) return;
@@ -85,6 +86,7 @@ export default function UserList() {
     }
   };
 
+  // Restore users from Trash
   const handleRestore = async () => {
     if (selectedRows.length === 0) return alert("No users selected.");
     if (!window.confirm(`Restore ${selectedRows.length} selected users?`)) return;
@@ -98,6 +100,24 @@ export default function UserList() {
       setSelectedRows([]);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // Permanent delete for users in Trash
+  const handlePermanentDelete = async () => {
+    if (selectedRows.length === 0) return alert("No users selected.");
+    if (!window.confirm(`Permanently delete ${selectedRows.length} selected users? This cannot be undone.`)) return;
+    try {
+      await Promise.all(selectedRows.map(i => {
+        const id = originalUsers[i]._id;
+        return axios.delete(`${BASE_URL}/users/delete/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      }));
+      fetchDeletedUsers();
+      setSelectedRows([]);
+      alert('Selected users permanently deleted.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete selected users.');
     }
   };
 
@@ -255,8 +275,14 @@ export default function UserList() {
         <Button variant="contained" color={showDeleted ? "success" : "primary"} onClick={() => setShowDeleted(!showDeleted)}>
           {showDeleted ? "Show Active" : "Trash"}
         </Button>
-        {showDeleted ? <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button> :
-                       <Button variant="contained" color="error" onClick={handleDelete}>Delete Selected</Button>}
+        {showDeleted ? (
+          <>
+            <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
+            <Button variant="contained" color="error" onClick={handlePermanentDelete}>Delete Selected</Button>
+          </>
+        ) : (
+          <Button variant="contained" color="error" onClick={handleDelete}>Delete Selected</Button>
+        )}
       </div>
 
       <MUIDataTable data={filteredUsers} columns={columns} options={options} />
