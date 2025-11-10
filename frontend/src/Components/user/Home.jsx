@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Loader from "../layouts/Loader";
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import HistoryIcon from "@mui/icons-material/History";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 const Home = () => {
   const [user, setUser] = useState(null);
@@ -34,7 +37,7 @@ const Home = () => {
         setProducts(productsData);
 
         const initialIndexes = {};
-        productsData.forEach(product => {
+        productsData.forEach((product) => {
           if (product.images && product.images.length > 0) {
             initialIndexes[product._id] = 0;
           }
@@ -52,25 +55,25 @@ const Home = () => {
 
   const nextImage = (productId, totalImages, e) => {
     e.stopPropagation();
-    setCurrentImageIndexes(prev => ({
+    setCurrentImageIndexes((prev) => ({
       ...prev,
-      [productId]: (prev[productId] + 1) % totalImages
+      [productId]: (prev[productId] + 1) % totalImages,
     }));
   };
 
   const prevImage = (productId, totalImages, e) => {
     e.stopPropagation();
-    setCurrentImageIndexes(prev => ({
+    setCurrentImageIndexes((prev) => ({
       ...prev,
-      [productId]: (prev[productId] - 1 + totalImages) % totalImages
+      [productId]: (prev[productId] - 1 + totalImages) % totalImages,
     }));
   };
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndexes(prev => {
+      setCurrentImageIndexes((prev) => {
         const newIndexes = { ...prev };
-        products.forEach(product => {
+        products.forEach((product) => {
           if (product.images && product.images.length > 1) {
             newIndexes[product._id] = (prev[product._id] + 1) % product.images.length;
           }
@@ -101,9 +104,8 @@ const Home = () => {
     }
   };
 
-  const handleCheckoutSolo = (product) => {
-    // Redirect to checkout confirmation page for single product
-    navigate("/checkout-confirmation", { state: { cart: { items: [{ product, quantity: 1 }] } } });
+  const handleCheckoutSolo = (productId) => {
+    navigate(`/checkout/solo/${productId}`);
   };
 
   const handleLogout = () => {
@@ -113,30 +115,105 @@ const Home = () => {
 
   return (
     <div className="home-container">
-      <header className="home-header">
-        <div
-          className="header-actions"
-          style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}
-        >
-          {user ? (
-            <>
-              <Link to="/profile" className="btn-profile">
-                Profile
-              </Link>
-              <Link to="/cart" className="btn-cart">
-                Cart ({cartCount})
-              </Link>
-              <button className="btn-logout" onClick={handleLogout}>
-                Logout
-              </button>
-            </>
-          ) : (
-            <Link to="/login" className="btn-primary">
-              Login
-            </Link>
-          )}
-        </div>
-      </header>
+<header className="home-header">
+  <div
+        className="header-actions"
+        style={{ display: "flex", gap: "15px", justifyContent: "flex-end" }}
+      >
+        {user ? (
+          <>
+            {/* Order History - icon only */}
+            <button
+              onClick={() => navigate("/order-history")}
+              style={{
+                padding: "6px",
+                backgroundColor: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                color: "#1976d2",
+              }}
+              title="Order History"
+            >
+              <HistoryIcon fontSize="large" />
+            </button>
+
+            {/* Profile */}
+            <button
+              onClick={() => navigate("/profile")}
+              style={{
+                padding: "6px",
+                backgroundColor: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                color: "#1976d2",
+              }}
+              title="Profile"
+            >
+              <AccountCircleIcon fontSize="large" />
+            </button>
+
+            {/* Cart */}
+            <button
+              onClick={() => navigate("/cart")}
+              style={{
+                padding: "6px",
+                backgroundColor: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                color: "#1976d2",
+                position: "relative",
+              }}
+              title="Cart"
+            >
+              <ShoppingCartIcon fontSize="large" />
+              {cartCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: -5,
+                    right: -5,
+                    backgroundColor: "red",
+                    color: "white",
+                    borderRadius: "50%",
+                    padding: "2px 6px",
+                    fontSize: 12,
+                  }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: "6px",
+                backgroundColor: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                color: "#d32f2f",
+              }}
+              title="Logout"
+            >
+              <LogoutIcon fontSize="large" />
+            </button>
+          </>
+        ) : (
+          <Link to="/login" className="btn-primary">
+            Login
+          </Link>
+        )}
+      </div>
+    </header>
 
       {user && (
         <main className="products-section">
@@ -158,140 +235,139 @@ const Home = () => {
                   const hasMultipleImages = totalImages > 1;
 
                   return (
-                    <div key={product._id} className="product-card" style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      padding: 15,
-                      borderRadius: 12,
-                      boxShadow: '0px 4px 10px rgba(0,0,0,0.1)',
-                      backgroundColor: '#fff',
-                    }}>
-                      <div style={{ position: 'relative' }}>
+                    <div
+                      key={product._id}
+                      className="product-card"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        padding: 15,
+                        borderRadius: 12,
+                        boxShadow: "0px 4px 10px rgba(0,0,0,0.1)",
+                        backgroundColor: "#fff",
+                      }}
+                    >
+                      <div style={{ position: "relative" }}>
                         <img
                           src={product.images?.[currentIndex]?.url}
                           alt={product.name}
-                          className="product-image"
                           style={{
-                            width: '100%',
-                            height: '180px',
-                            objectFit: 'cover',
-                            borderRadius: 10
+                            width: "100%",
+                            height: "180px",
+                            objectFit: "cover",
+                            borderRadius: 10,
                           }}
                         />
-
                         {hasMultipleImages && (
                           <>
                             <button
-                              onClick={(e) => prevImage(product._id, totalImages, e)}
+                              onClick={(e) =>
+                                prevImage(product._id, totalImages, e)
+                              }
                               style={{
-                                position: 'absolute',
+                                position: "absolute",
                                 left: 5,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                background: 'rgba(0,0,0,0.4)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "rgba(0,0,0,0.4)",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "50%",
                                 width: 28,
                                 height: 28,
                                 fontSize: 14,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
                               }}
                             >
                               ‹
                             </button>
                             <button
-                              onClick={(e) => nextImage(product._id, totalImages, e)}
+                              onClick={(e) =>
+                                nextImage(product._id, totalImages, e)
+                              }
                               style={{
-                                position: 'absolute',
+                                position: "absolute",
                                 right: 5,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                background: 'rgba(0,0,0,0.4)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "rgba(0,0,0,0.4)",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "50%",
                                 width: 28,
                                 height: 28,
                                 fontSize: 14,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
                               }}
                             >
                               ›
                             </button>
-
-                            <div style={{
-                              position: 'absolute',
-                              bottom: 5,
-                              right: 5,
-                              background: 'rgba(0,0,0,0.6)',
-                              color: 'white',
-                              fontSize: 10,
-                              padding: '2px 6px',
-                              borderRadius: 8
-                            }}>
-                              {currentIndex + 1}/{totalImages}
-                            </div>
                           </>
                         )}
                       </div>
 
                       <div style={{ marginTop: 10 }}>
-                        <h3 style={{ fontSize: '1.1rem', marginBottom: 5 }}>{product.name}</h3>
+                        <h3 style={{ fontSize: "1.1rem", marginBottom: 5 }}>
+                          {product.name}
+                        </h3>
                         <p style={{ marginBottom: 5 }}>Price: ${product.price}</p>
-                        <p style={{ marginBottom: 10, color: '#555' }}>Stock: {product.stock}</p>
+                        <p style={{ marginBottom: 10, color: "#555" }}>
+                          Stock: {product.stock}
+                        </p>
                       </div>
 
-                      <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between' }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          justifyContent: "space-between",
+                        }}
+                      >
                         <button
                           onClick={() => handleAddToCart(product._id)}
                           style={{
                             flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                             gap: 5,
-                            padding: '8px 10px',
-                            backgroundColor: '#1976d2',
-                            color: '#fff',
-                            border: 'none',
+                            padding: "8px 10px",
+                            backgroundColor: "#1976d2",
+                            color: "#fff",
+                            border: "none",
                             borderRadius: 8,
-                            cursor: 'pointer',
+                            cursor: "pointer",
                             fontWeight: 500,
-                            transition: '0.3s'
+                            transition: "0.3s",
                           }}
-                          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#115293'}
-                          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#1976d2'}
                         >
                           <ShoppingCartIcon fontSize="small" /> Add to Cart
                         </button>
 
                         <button
-                          onClick={() => handleCheckoutSolo(product)}
+                          onClick={() => handleCheckoutSolo(product._id)}
                           style={{
                             flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                             gap: 5,
-                            padding: '8px 10px',
-                            backgroundColor: '#388e3c',
-                            color: '#fff',
-                            border: 'none',
+                            padding: "8px 10px",
+                            backgroundColor: "#388e3c",
+                            color: "#fff",
+                            border: "none",
                             borderRadius: 8,
-                            cursor: 'pointer',
+                            cursor: "pointer",
                             fontWeight: 500,
-                            transition: '0.3s'
+                            transition: "0.3s",
                           }}
-                          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#2e7d32'}
-                          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#388e3c'}
                         >
                           Checkout <ArrowForwardIcon fontSize="small" />
                         </button>

@@ -24,6 +24,11 @@ const manageUserRoutes = require('./routes/ManageUserRoutes');
 const cartRoutes = require('./routes/CartRoutes');
 const checkoutRoutes = require('./routes/CheckoutRoutes');
 const AdminOrderRoutes = require('./routes/AdminOrderRoutes');
+const orderRoutes = require("./routes/OrderRoutes");
+const reviewRoutes = require("./routes/ReviewRoutes");
+const AdminReviewRoutes = require("./routes/AdminReviewRoutes");
+
+
 
 // Use routes
 app.use('/api/v1', userRoutes);
@@ -33,8 +38,9 @@ app.use('/api/v1', manageUserRoutes);
 app.use('/api/v1', cartRoutes);
 app.use('/api/v1', checkoutRoutes);
 app.use('/api/v1', AdminOrderRoutes);
-
-
+app.use("/api/v1", orderRoutes);
+app.use("/api/v1", reviewRoutes);
+app.use("/api/v1", AdminReviewRoutes);
 
 // ========== HEALTH CHECK ENDPOINT ==========
 app.get('/api/v1/health', (req, res) => {

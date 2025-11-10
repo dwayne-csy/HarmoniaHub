@@ -8,6 +8,8 @@ import ForgotPassword from "./Components/user/ForgotPassword";
 import ResetPassword from "./Components/user/ResetPassword";
 import Home from "./Components/user/Home";
 import Cart from "./Components/user/Cart";
+import OrderHistory from "./Components/user/OrderHistory";
+import Review from "./Components/user/Review";
 import CheckoutConfirmation from "./Components/user/CheckoutConfirmation";
 import AdminDashboard from "./Components/admin/AdminDashboard";
 import AdminRoutes from "./Components/admin/AdminRoutes";
@@ -32,7 +34,10 @@ import ViewUser from "./Components/admin/usermanagement/ViewUser";
 
 // Order Management
 import OrderList from "./Components/admin/ordermanagement/OrderList";
-import ViewOrder from "./Components/admin/ordermanagement/ViewOrder"; // <-- Added
+import ViewOrder from "./Components/admin/ordermanagement/ViewOrder";
+
+// Review Management (NEW)
+import ReviewList from "./Components/admin/reviewmanagement/ReviewList";
 
 const App = () => {
   const token = localStorage.getItem("token");
@@ -62,6 +67,8 @@ const App = () => {
         <Route path="/update-profile" element={token ? <UpdateProfile /> : <Navigate to="/login" />} />
         <Route path="/cart" element={token ? <Cart /> : <Navigate to="/login" />} />
         <Route path="/checkout-confirmation" element={token ? <CheckoutConfirmation /> : <Navigate to="/login" />} />
+        <Route path="/order-history" element={token ? <OrderHistory /> : <Navigate to="/login" />} /> 
+        <Route path="/review/:productId" element={token ? <Review /> : <Navigate to="/login" />} />
 
         {/* Admin Dashboard */}
         <Route path="/admin/dashboard" element={<AdminRoutes><AdminDashboard /></AdminRoutes>} />
@@ -85,7 +92,10 @@ const App = () => {
 
         {/* Order Management */}
         <Route path="/admin/orders" element={<AdminRoutes><OrderList /></AdminRoutes>} />
-        <Route path="/admin/orders/view/:orderId" element={<AdminRoutes><ViewOrder /></AdminRoutes>} /> {/* <-- Added */}
+        <Route path="/admin/orders/view/:orderId" element={<AdminRoutes><ViewOrder /></AdminRoutes>} />
+
+        {/* Review Management (NEW) */}
+        <Route path="/admin/reviews" element={<AdminRoutes><ReviewList /></AdminRoutes>} />
 
         {/* Catch-all Redirect */}
         <Route path="*" element={<Navigate to={getDefaultRoute()} />} />
