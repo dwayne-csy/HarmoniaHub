@@ -169,7 +169,9 @@ export default function SupplierList() {
     search: true,
     rowsPerPage: 10,
     rowsPerPageOptions: [5, 10, 25, 50],
-    elevation: 0
+    elevation: 0,
+    customToolbarSelect: () => <></>,
+    selectableRowsHeader: true
   };
 
   if (loading) {

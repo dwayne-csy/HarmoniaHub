@@ -139,11 +139,9 @@ export default function ProductList() {
   const exportPDF = () => {
     const doc = new jsPDF();
 
-    // Header
     doc.setFontSize(16);
     doc.text('HarmoniaHub', 14, 15);
 
-    // Sub-title
     doc.setFontSize(12);
     doc.text('Product List', 14, 25);
 
@@ -160,12 +158,7 @@ export default function ProductList() {
       ]);
     });
 
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 30
-    });
-
+    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 30 });
     doc.save('ProductList.pdf');
   };
 
@@ -264,7 +257,9 @@ export default function ProductList() {
     search: true,
     rowsPerPage: 10,
     rowsPerPageOptions: [5, 10, 25, 50],
-    elevation: 0
+    elevation: 0,
+    customToolbarSelect: () => <></>, // ✅ removes delete icon
+    selectableRowsHeader: true        // ✅ keeps Select All checkbox
   };
 
   if (loading) {
@@ -315,7 +310,6 @@ export default function ProductList() {
         options={options}
       />
 
-      {/* PDF Export Button below the table, scrolls with content */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
         <Button variant="contained" color="secondary" onClick={exportPDF}>
           CSV
