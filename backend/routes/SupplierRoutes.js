@@ -6,7 +6,8 @@ const {
   updateSupplier,
   softDeleteSupplier,
   getDeletedSuppliers,
-  restoreSupplier
+  restoreSupplier,
+  deleteSupplier,
 } = require('../controllers/SupplierController');
 
 const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth');
@@ -24,5 +25,6 @@ router.patch('/admin/suppliers/restore/:id', isAuthenticatedUser, isAdmin, resto
 router.post('/admin/suppliers', isAuthenticatedUser, isAdmin, createSupplier);
 router.put('/admin/suppliers/:id', isAuthenticatedUser, isAdmin, updateSupplier);
 router.delete('/admin/suppliers/:id', isAuthenticatedUser, isAdmin, softDeleteSupplier);
+router.delete('/admin/suppliers/delete/:id', isAuthenticatedUser, isAdmin, deleteSupplier);
 
 module.exports = router;

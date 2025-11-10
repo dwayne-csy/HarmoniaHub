@@ -23,10 +23,10 @@ const supplierRoutes = require('./routes/SupplierRoutes');
 const manageUserRoutes = require('./routes/ManageUserRoutes');
 const cartRoutes = require('./routes/CartRoutes');
 const checkoutRoutes = require('./routes/CheckoutRoutes');
-const AdminOrderRoutes = require('./routes/AdminOrderRoutes');
+const ManageOrderRoutes = require('./routes/ManageOrderRoutes');
 const orderRoutes = require("./routes/OrderRoutes");
 const reviewRoutes = require("./routes/ReviewRoutes");
-const AdminReviewRoutes = require("./routes/AdminReviewRoutes");
+const ManageReviewRoutes = require("./routes/ManageReviewRoutes");
 
 
 
@@ -37,10 +37,10 @@ app.use('/api/v1', supplierRoutes);
 app.use('/api/v1', manageUserRoutes);
 app.use('/api/v1', cartRoutes);
 app.use('/api/v1', checkoutRoutes);
-app.use('/api/v1', AdminOrderRoutes);
+app.use('/api/v1', ManageOrderRoutes);
 app.use("/api/v1", orderRoutes);
 app.use("/api/v1", reviewRoutes);
-app.use("/api/v1", AdminReviewRoutes);
+app.use("/api/v1", ManageReviewRoutes);
 
 // ========== HEALTH CHECK ENDPOINT ==========
 app.get('/api/v1/health', (req, res) => {

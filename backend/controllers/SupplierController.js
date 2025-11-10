@@ -196,3 +196,37 @@ exports.restoreSupplier = async (req, res) => {
     });
   }
 };
+
+
+exports.deleteSupplier = async (req, res) => {
+    try {
+        const supplier = await Supplier.findById(req.params.id);
+
+        if (!supplier) {
+            return res.status(404).json({
+                success: false,
+                message: 'Supplier not found'
+            });
+        }
+
+        // Remove supplier reference from products before deletion
+        await Product.updateMany(
+            { supplier: req.params.id },
+            { $unset: { supplier: 1 } }
+        );
+
+        await supplier.deleteOne();
+
+        res.status(200).json({
+            success: true,
+            message: 'Supplier permanently deleted'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+  

@@ -62,7 +62,7 @@ export default function SupplierList() {
     setDisplayedSuppliers(filtered);
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkSoftDelete = async () => {
     if (selectedRows.length === 0) return alert('No suppliers selected.');
     if (!window.confirm(`Soft delete ${selectedRows.length} selected suppliers?`)) return;
 
@@ -96,7 +96,24 @@ export default function SupplierList() {
     }
   };
 
-  // Export PDF
+  const handlePermanentDelete = async () => {
+    if (selectedRows.length === 0) return alert('No suppliers selected.');
+    if (!window.confirm(`Permanently delete ${selectedRows.length} selected suppliers? This cannot be undone.`)) return;
+
+    try {
+      await Promise.all(selectedRows.map(i => {
+        const id = displayedSuppliers[i]._id;
+        return axios.delete(`${BASE_URL}/admin/suppliers/delete/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      }));
+      fetchDeletedSuppliers();
+      setSelectedRows([]);
+      alert('Selected suppliers permanently deleted.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete selected suppliers.');
+    }
+  };
+
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
@@ -133,27 +150,7 @@ export default function SupplierList() {
     { name: "email", label: "Email" },
     { name: "phone", label: "Phone" },
     { name: "address.city", label: "City", options: { customBodyRenderLite: (dataIndex) => displayedSuppliers[dataIndex].address?.city || '—' } },
-    { name: "isActive", label: "Status", options: { customBodyRenderLite: (dataIndex) => displayedSuppliers[dataIndex].isActive ? 'Active' : 'Deleted' } },
-    {
-      name: "_id",
-      label: "Actions",
-      options: {
-        filter: false,
-        sort: false,
-        display: !showDeleted,
-        customBodyRenderLite: (dataIndex) => {
-          const supplier = displayedSuppliers[dataIndex];
-          return showDeleted ? (
-            <Button variant="contained" color="success" onClick={handleRestore}>♻️ Restore</Button>
-          ) : (
-            <>
-              <Button onClick={() => navigate(`/admin/suppliers/view/${supplier._id}`)}>View</Button>
-              <Button onClick={() => navigate(`/admin/suppliers/edit/${supplier._id}`)}>Edit</Button>
-            </>
-          );
-        }
-      }
-    }
+    { name: "isActive", label: "Status", options: { customBodyRenderLite: (dataIndex) => displayedSuppliers[dataIndex].isActive ? 'Active' : 'Inactive' } }
   ];
 
   const options = {
@@ -203,15 +200,21 @@ export default function SupplierList() {
         </FormControl>
       </Stack>
 
+      {/* Toolbar buttons */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {!showDeleted && <Button variant="contained" onClick={() => navigate('/admin/suppliers/new')}>➕ Create Supplier</Button>}
+
         <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
           {showDeleted ? 'Show Active' : 'Trash'}
         </Button>
+
         {showDeleted ? (
-          <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
+          <>
+            <Button variant="contained" color="success" onClick={handleRestore}>♻️ Restore Selected</Button>
+            <Button variant="contained" color="error" onClick={handlePermanentDelete}>🗑️ Delete Selected</Button>
+          </>
         ) : (
-          <Button variant="contained" color="error" onClick={handleBulkDelete}>Delete Selected</Button>
+          <Button variant="contained" color="error" onClick={handleBulkSoftDelete}>Delete Selected</Button>
         )}
       </div>
 
@@ -221,7 +224,6 @@ export default function SupplierList() {
         options={options}
       />
 
-      {/* PDF Export Button below table */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
         <Button variant="contained" color="secondary" onClick={exportPDF}>
           CSV

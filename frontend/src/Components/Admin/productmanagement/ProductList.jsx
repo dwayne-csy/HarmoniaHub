@@ -81,7 +81,7 @@ export default function ProductList() {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/suppliers`, {
+      const res = await axios.get(`${BASE_URL}/suppliers/dropdown`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setSuppliers(res.data.suppliers?.map(s => s.name) || []);
@@ -129,6 +129,33 @@ export default function ProductList() {
         axios.patch(`${BASE_URL}/admin/products/restore/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } })
       ));
       fetchActiveProducts();
+      fetchDeletedProducts();
+      setSelectedIds([]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleHardDelete = async (id) => {
+    if (!window.confirm(`Permanently delete this product? This cannot be undone.`)) return;
+    try {
+      await axios.delete(`${BASE_URL}/admin/products/delete/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchDeletedProducts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleBulkHardDelete = async () => {
+    if (selectedIds.length === 0) return alert('No products selected.');
+    if (!window.confirm(`Permanently delete ${selectedIds.length} selected products? This cannot be undone.`)) return;
+
+    try {
+      await Promise.all(selectedIds.map(id =>
+        axios.delete(`${BASE_URL}/admin/products/delete/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      ));
       fetchDeletedProducts();
       setSelectedIds([]);
     } catch (err) {
@@ -228,15 +255,18 @@ export default function ProductList() {
       options: {
         filter: false,
         sort: false,
-        display: showDeleted ? 'excluded' : 'true',
         customBodyRenderLite: (dataIndex) => {
           const product = displayedProducts[dataIndex];
-          return (
-            <>
-              <Button onClick={() => navigate(`/admin/products/view/${product._id}`)}>View</Button>
-              <Button onClick={() => navigate(`/admin/products/edit/${product._id}`)}>Edit</Button>
-            </>
-          );
+          if (showDeleted) {
+            return null; // ✅ No actions in Trash
+          } else {
+            return (
+              <>
+                <Button onClick={() => navigate(`/admin/products/view/${product._id}`)}>View</Button>
+                <Button onClick={() => navigate(`/admin/products/edit/${product._id}`)}>Edit</Button>
+              </>
+            );
+          }
         }
       }
     }
@@ -258,8 +288,8 @@ export default function ProductList() {
     rowsPerPage: 10,
     rowsPerPageOptions: [5, 10, 25, 50],
     elevation: 0,
-    customToolbarSelect: () => <></>, // ✅ removes delete icon
-    selectableRowsHeader: true        // ✅ keeps Select All checkbox
+    customToolbarSelect: () => <></>,
+    selectableRowsHeader: true
   };
 
   if (loading) {
@@ -297,8 +327,12 @@ export default function ProductList() {
         <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
           {showDeleted ? 'Show Active' : 'Trash'}
         </Button>
+
         {showDeleted ? (
-          <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
+          <>
+            <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
+            <Button variant="contained" color="error" onClick={handleBulkHardDelete}>Delete Selected</Button>
+          </>
         ) : (
           <Button variant="contained" color="error" onClick={handleBulkDelete}>Delete Selected</Button>
         )}

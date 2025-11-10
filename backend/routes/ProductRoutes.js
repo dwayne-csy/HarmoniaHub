@@ -5,6 +5,7 @@ const {
   getAllProducts,
   getProduct,
   updateProduct,
+  deleteProduct,
   softDeleteProduct,
   getActiveSuppliers,
   getDeletedProducts,
@@ -29,5 +30,6 @@ router.get('/admin/products/:id', isAuthenticatedUser, isAdmin, getProduct);
 router.post('/admin/products', isAuthenticatedUser, isAdmin, upload.array('images', 5), createProduct);
 router.put('/admin/products/:id', isAuthenticatedUser, isAdmin, upload.array('images', 5), updateProduct);
 router.delete('/admin/products/:id', isAuthenticatedUser, isAdmin, softDeleteProduct);
+router.delete('/admin/products/delete/:id', isAuthenticatedUser, isAdmin, deleteProduct);
 
 module.exports = router;

@@ -6,11 +6,11 @@ const {
   getOrderById,
   updateOrderStatus,
   deleteOrder,
-} = require("../controllers/AdminOrderController");
+} = require("../controllers/ManageOrderController");
 const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth');
 
 
-// Get all orders
+
 router.get("/admin/orders",isAuthenticatedUser,isAdmin, getAllOrders);
 
 // Get single order by ID
