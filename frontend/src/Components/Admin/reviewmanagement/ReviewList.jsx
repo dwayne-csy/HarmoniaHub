@@ -246,7 +246,7 @@ export default function ReviewList() {
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
         <Button variant="contained" color="secondary" onClick={exportPDF}>
-          Export PDF
+          CSV
         </Button>
       </Box>
     </div>

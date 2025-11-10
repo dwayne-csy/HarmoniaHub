@@ -16,7 +16,6 @@ export default function OrderList() {
   const [orders, setOrders] = useState([]);
   const [displayedOrders, setDisplayedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRows, setSelectedRows] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -59,7 +58,6 @@ export default function OrderList() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Update orders and displayedOrders immediately
       setOrders((prev) =>
         prev.map((o) => (o._id === orderId ? { ...o, orderStatus: newStatus } : o))
       );
@@ -69,26 +67,6 @@ export default function OrderList() {
       );
     } catch (err) {
       console.error("Failed to update order:", err);
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedRows.length === 0) return alert("No orders selected.");
-    if (!window.confirm(`Delete ${selectedRows.length} selected orders?`)) return;
-
-    try {
-      await Promise.all(
-        selectedRows.map((i) => {
-          const id = displayedOrders[i]._id;
-          return axios.delete(`${BASE_URL}/admin/orders/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        })
-      );
-      fetchOrders();
-      setSelectedRows([]);
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -193,10 +171,7 @@ export default function OrderList() {
   ];
 
   const options = {
-    selectableRows: "multiple",
-    selectableRowsOnClick: true,
-    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelected) =>
-      setSelectedRows(rowsSelected),
+    selectableRows: "none", // ✅ remove checkboxes
     download: false,
     print: false,
     viewColumns: false,
@@ -235,16 +210,13 @@ export default function OrderList() {
             ))}
           </Select>
         </FormControl>
-        <Button variant="contained" color="error" onClick={handleBulkDelete}>
-          Delete Selected
-        </Button>
       </Stack>
 
       <MUIDataTable data={displayedOrders} columns={columns} options={options} />
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
         <Button variant="contained" color="secondary" onClick={exportPDF}>
-          Export PDF
+          CSV
         </Button>
       </Box>
     </div>

@@ -12,6 +12,7 @@ const AdminDashboard = () => {
     suppliers: 0,
     users: 0,
     orders: 0, // added orders
+    reviews: 0, // added reviews
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,23 +28,27 @@ const AdminDashboard = () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const [productsRes, suppliersRes, usersRes, ordersRes] = await Promise.all([
-        axios.get(`${API_BASE}/products`, config),
-        axios.get(`${API_BASE}/suppliers`, config),
-        axios.get(`${API_BASE}/users`, config),
-        axios.get(`${API_BASE}/admin/orders`, config), // fetch orders for admin
-      ]);
+      const [productsRes, suppliersRes, usersRes, ordersRes, reviewsRes] =
+        await Promise.all([
+          axios.get(`${API_BASE}/products`, config),
+          axios.get(`${API_BASE}/suppliers`, config),
+          axios.get(`${API_BASE}/users`, config),
+          axios.get(`${API_BASE}/admin/orders`, config),
+          axios.get(`${API_BASE}/admin/reviews`, config), // fetch reviews
+        ]);
 
       const products = productsRes.data.products || productsRes.data || [];
       const suppliers = suppliersRes.data.suppliers || suppliersRes.data || [];
       const users = usersRes.data.users || [];
       const orders = ordersRes.data.orders || [];
+      const reviews = reviewsRes.data.reviews || [];
 
       setStats({
         products: products.length,
         suppliers: suppliers.length,
         users: users.length,
-        orders: orders.length, // set orders count
+        orders: orders.length,
+        reviews: reviews.length, // set reviews count
       });
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -76,7 +81,7 @@ const AdminDashboard = () => {
       {error && <div className="alert alert-warning">{error}</div>}
 
       <div className="user-info">
-        <h3>Welcome, {user?.name} 👋</h3>
+        <h3>Welcome, {user?.name}</h3>
         <p>
           <strong>Email:</strong> {user?.email}
         </p>
@@ -118,6 +123,15 @@ const AdminDashboard = () => {
           <p className="stat-number">{stats.orders}</p>
           <Link to="/admin/orders" className="stat-link">
             Manage Orders
+          </Link>
+        </div>
+
+        {/* Reviews */}
+        <div className="stat-card">
+          <h3>Total Reviews</h3>
+          <p className="stat-number">{stats.reviews}</p>
+          <Link to="/admin/reviews" className="stat-link">
+            Manage Reviews
           </Link>
         </div>
       </div>
