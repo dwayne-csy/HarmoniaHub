@@ -1,5 +1,8 @@
-// backend/controllers/AdminOrderController.js
+// backend/controllers/ManageOrderController.js
 const Order = require("../models/OrderModels");
+const sendEmail = require("../utils/Mailer");
+const { generateOrderEmailTemplate } = require("../utils/emailTemplates");
+const { generateReceiptPDF } = require("../utils/pdfGenerator");
 
 // 🟢 Get all orders (Admin)
 exports.getAllOrders = async (req, res) => {
@@ -52,17 +55,70 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    const order = await Order.findById(id);
+    // Populate user to get email and order items
+    const order = await Order.findById(id)
+      .populate("user", "name email")
+      .populate("orderItems.product", "name");
+
     if (!order)
       return res.status(404).json({ success: false, message: "Order not found." });
 
+    const oldStatus = order.orderStatus;
     order.orderStatus = status;
+    
     if (status === "Delivered") {
       order.deliveredAt = Date.now();
     }
 
     await order.save();
-    res.status(200).json({ success: true, message: "Order status updated.", order });
+
+    // Send email notification for status change
+    try {
+      const emailTemplate = generateOrderEmailTemplate(order, order.user, status);
+      const emailOptions = {
+        email: order.user.email,
+        subject: `Order ${status} - #${order._id}`,
+        message: emailTemplate,
+      };
+
+      // Only attach PDF for Delivered status
+      if (status === "Delivered") {
+        try {
+          console.log(`📄 Generating PDF receipt for order #${order._id}`);
+          const pdfBuffer = await generateReceiptPDF(order, order.user);
+          
+          emailOptions.attachments = [
+            {
+              filename: `HarmoniaHub_Receipt_${order._id}.pdf`,
+              content: pdfBuffer,
+              contentType: 'application/pdf'
+            }
+          ];
+          console.log(`✅ PDF receipt generated and attached for order #${order._id}`);
+        } catch (pdfError) {
+          console.error('❌ Failed to generate PDF:', pdfError);
+          // Continue without PDF attachment but log the error
+        }
+      }
+
+      console.log(`📧 Sending ${status} email to: ${order.user.email}`);
+      
+      // Add delay to avoid Mailtrap rate limiting (2 seconds delay)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      await sendEmail(emailOptions);
+      console.log(`✅ Status update email sent for order #${order._id} to ${order.user.email}`);
+
+    } catch (emailError) {
+      console.error("❌ Failed to send email:", emailError);
+      // Don't fail the request if email fails
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Order status updated and notification sent.", 
+      order 
+    });
   } catch (error) {
     console.error("Error updating order:", error);
     res.status(500).json({ success: false, message: "Failed to update order." });

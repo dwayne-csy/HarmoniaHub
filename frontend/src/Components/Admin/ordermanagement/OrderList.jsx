@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import MUIDataTable from "mui-datatables";
-import { Button, Stack, FormControl, InputLabel, Select, MenuItem, Box } from "@mui/material";
+import { Button, Stack, FormControl, InputLabel, Select, MenuItem, Box, Snackbar, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import Loader from "../../layouts/Loader";
 import jsPDF from "jspdf";
@@ -17,6 +17,7 @@ export default function OrderList() {
   const [displayedOrders, setDisplayedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
@@ -37,6 +38,7 @@ export default function OrderList() {
       setOrders(res.data.orders || []);
     } catch (err) {
       console.error(err);
+      showSnackbar("Failed to fetch orders", "error");
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export default function OrderList() {
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
-      await axios.put(
+      const response = await axios.put(
         `${BASE_URL}/admin/orders/${orderId}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -65,9 +67,21 @@ export default function OrderList() {
       setDisplayedOrders((prev) =>
         prev.map((o) => (o._id === orderId ? { ...o, orderStatus: newStatus } : o))
       );
+
+      showSnackbar(`Order status updated to ${newStatus}`, "success");
+      
     } catch (err) {
       console.error("Failed to update order:", err);
+      showSnackbar("Failed to update order status", "error");
     }
+  };
+
+  const showSnackbar = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   const exportPDF = () => {
@@ -171,7 +185,7 @@ export default function OrderList() {
   ];
 
   const options = {
-    selectableRows: "none", // ✅ remove checkboxes
+    selectableRows: "none",
     download: false,
     print: false,
     viewColumns: false,
@@ -216,9 +230,20 @@ export default function OrderList() {
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
         <Button variant="contained" color="secondary" onClick={exportPDF}>
-          CSV
+          Export PDF
         </Button>
       </Box>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }
