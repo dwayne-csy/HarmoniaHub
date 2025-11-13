@@ -1,295 +1,424 @@
-// HarmoniaHub/frontend/src/Components/admin/productmanagement/UpdateProduct.jsx
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate, useParams } from "react-router-dom";
-import {
-  TextField,
-  Button,
-  MenuItem,
-  Typography,
-  Box,
-  Select,
-  InputLabel,
-  FormControl,
-  CircularProgress,
-  Grid,
-  IconButton,
-  Card,
-  CardMedia,
-  Stack
-} from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { useNavigate } from "react-router-dom";
 
-const BASE_URL = "http://localhost:4001/api/v1";
-
-const categories = [
-  "Idiophones",
-  "Membranophones",
-  "Chordophones",
-  "Aerophones",
-  "Electrophones",
-  "Keyboard Instruments",
-];
-
-export default function UpdateProduct() {
-  const { id } = useParams();
+const UpdateProfile = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  const [form, setForm] = useState({
+  const [user, setUser] = useState({
     name: "",
-    price: "",
-    description: "",
-    category: categories[0],
-    supplier: "",
-    stock: 0,
+    email: "",
+    contact: "",
+    city: "",
+    barangay: "",
+    street: "",
+    zipcode: "",
   });
-  const [suppliers, setSuppliers] = useState([]);
-  const [existingImages, setExistingImages] = useState([]);
-  const [newFiles, setNewFiles] = useState([]);
-  const [newPreviews, setNewPreviews] = useState([]);
+
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Validation errors state
+  const [errors, setErrors] = useState({
+    contact: "",
+    city: "",
+    barangay: "",
+    street: "",
+    zipcode: "",
+    avatar: ""
+  });
+
+  // Password change toggle and data
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // Fetch current user profile
   useEffect(() => {
-    if (id) {
-      fetchProduct();
-      fetchSuppliers();
-    }
-    // eslint-disable-next-line
-  }, [id]);
+    const fetchProfile = async () => {
+      try {
+        const { data } = await axios.get("http://localhost:4001/api/v1/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  const fetchProduct = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/products/${id}`);
-      const product = res.data.product;
-      setForm({
-        name: product.name || "",
-        price: product.price || "",
-        description: product.description || "",
-        category: product.category || categories[0],
-        supplier: product.supplier?._id || "",
-        stock: product.stock || 0,
-      });
-      setExistingImages(product.images || []);
-    } catch (err) {
-      toast.error("Failed to load product", { position: "top-center" });
-    }
-  };
+        setUser({
+          name: data.user.name,
+          email: data.user.email,
+          contact: data.user.contact || "",
+          city: data.user.address?.city || "",
+          barangay: data.user.address?.barangay || "",
+          street: data.user.address?.street || "",
+          zipcode: data.user.address?.zipcode || "",
+        });
 
-  const fetchSuppliers = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/suppliers/dropdown`);
-      setSuppliers(res.data.suppliers || []);
-    } catch (err) {
-      toast.error("Failed to fetch suppliers", { position: "top-center" });
-    }
-  };
-
-  const removeExistingImage = (index) => {
-    setExistingImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleNewFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    const previews = [];
-    const validFiles = [];
-
-    files.forEach((file) => {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please select only image files", { position: "top-center" });
-        return;
+        setAvatarPreview(data.user.avatar?.url || "");
+      } catch (error) {
+        setMessage("Failed to load profile");
+        console.error(error);
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Each image must be less than 5MB", { position: "top-center" });
-        return;
-      }
-      validFiles.push(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        previews.push(reader.result);
-        if (previews.length === validFiles.length) {
-          setNewPreviews((prev) => [...prev, ...previews]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    };
+    fetchProfile();
+  }, [token]);
 
-    setNewFiles((prev) => [...prev, ...validFiles]);
+  // Validation functions
+  const validateContact = (contact) => {
+    if (!contact.trim()) return "Contact number is required";
+    if (!/^\d+$/.test(contact)) return "Contact must contain only numbers";
+    if (contact.length < 11 || contact.length > 12) return "Contact must be 11 to 12 digits";
+    return "";
   };
 
-  const removeNewFile = (index) => {
-    setNewFiles((prev) => prev.filter((_, i) => i !== index));
-    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
+  const validateCity = (city) => {
+    if (!city.trim()) return "City is required";
+    if (!/^[A-Z]/.test(city)) return "First letter must be capitalized";
+    return "";
   };
 
+  const validateBarangay = (barangay) => {
+    if (!barangay.trim()) return "Barangay is required";
+    if (!/^[A-Z]/.test(barangay)) return "First letter must be capitalized";
+    return "";
+  };
+
+  const validateStreet = (street) => {
+    if (!street.trim()) return "Street is required";
+    if (!/^[A-Z]/.test(street)) return "First letter must be capitalized";
+    return "";
+  };
+
+  const validateZipcode = (zipcode) => {
+    if (!zipcode.trim()) return "Zipcode is required";
+    if (!/^\d+$/.test(zipcode)) return "Zipcode must contain only numbers";
+    if (zipcode.length !== 4) return "Zipcode must be exactly 4 digits";
+    return "";
+  };
+
+  const validateAvatar = (avatarFile, currentAvatar) => {
+    if (!avatarFile && !currentAvatar) return "Profile image is required";
+    return "";
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setUser({ ...user, [name]: value });
+    
+    // Validate field in real-time
+    let error = "";
+    switch (name) {
+      case 'contact':
+        error = validateContact(value);
+        break;
+      case 'city':
+        error = validateCity(value);
+        break;
+      case 'barangay':
+        error = validateBarangay(value);
+        break;
+      case 'street':
+        error = validateStreet(value);
+        break;
+      case 'zipcode':
+        error = validateZipcode(value);
+        break;
+      default:
+        break;
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  const handlePasswordChange = (e) =>
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    
+    // Clear previous file and validation
+    setAvatarFile(null);
+    setErrors(prev => ({ ...prev, avatar: "" }));
+
+    if (!file) {
+      const avatarError = validateAvatar(null, avatarPreview);
+      setErrors(prev => ({ ...prev, avatar: avatarError }));
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please select an image file");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage("Image size should be less than 2MB");
+      return;
+    }
+
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.readyState === 2) setAvatarPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Clear avatar error when file is selected
+    setErrors(prev => ({ ...prev, avatar: "" }));
+  };
+
+  const validateAllFields = () => {
+    const newErrors = {
+      contact: validateContact(user.contact),
+      city: validateCity(user.city),
+      barangay: validateBarangay(user.barangay),
+      street: validateStreet(user.street),
+      zipcode: validateZipcode(user.zipcode),
+      avatar: validateAvatar(avatarFile, avatarPreview)
+    };
+
+    setErrors(newErrors);
+    return Object.values(newErrors).every(error => error === "");
+  };
+
+  // Submit profile update
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setMessage("");
 
-    if (!form.name || !form.price || !form.description) {
-      toast.error("Please fill all required fields", { position: "top-center" });
+    if (!validateAllFields()) {
+      setMessage("Please fix all validation errors before submitting.");
       setLoading(false);
       return;
     }
 
     try {
       const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("price", parseFloat(form.price));
-      formData.append("description", form.description);
-      formData.append("category", form.category);
-      if (form.supplier) formData.append("supplier", form.supplier);
-      formData.append("stock", parseInt(form.stock, 10));
-      formData.append("existingImages", JSON.stringify(existingImages));
-      newFiles.forEach((file) => formData.append("images", file));
+      Object.entries(user).forEach(([key, value]) => formData.append(key, value));
+      if (avatarFile) formData.append("avatar", avatarFile);
 
-      await axios.put(`${BASE_URL}/admin/products/${id}`, formData, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const { data } = await axios.put(
+        "http://localhost:4001/api/v1/me/update",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
+      setMessage("Profile updated successfully!");
+      setTimeout(() => navigate("/profile"), 1200);
+    } catch (error) {
+      console.error("Update error:", error);
+      setMessage(error.response?.data?.message || "Update failed");
+    } finally {
       setLoading(false);
-      toast.success("Product updated successfully", { position: "top-center" });
-      setTimeout(() => navigate("/admin/products"), 1000);
-    } catch (err) {
-      setLoading(false);
-      toast.error(err?.response?.data?.message || err.message, { position: "top-center" });
     }
   };
 
-  if (!form.name && !loading) return <div style={{ maxWidth: 700, margin: "24px auto" }}>Loading...</div>;
+  // Change password handler
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setMessage("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await axios.put(
+        "http://localhost:4001/api/v1/password/update",
+        passwordData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setMessage("Password changed successfully!");
+      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      setShowPasswordForm(false);
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Password update failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const hasErrors = Object.values(errors).some(error => error !== "");
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
-      <Typography variant="h5" mb={2}>
-        Update Product
-      </Typography>
+    <div className="form-container">
+      <h2>Update Profile</h2>
+
+      {avatarPreview && (
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <img
+            src={avatarPreview}
+            alt="Avatar Preview"
+            style={{
+              width: "150px",
+              height: "150px",
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "2px solid #ddd",
+            }}
+          />
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
-        <Stack spacing={2}>
-          <TextField
-            label="Name*"
-            fullWidth
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-          <TextField
-            label="Price*"
-            type="number"
-            fullWidth
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-          />
-          <TextField
-            label="Description*"
-            multiline
-            rows={4}
-            fullWidth
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-          <FormControl fullWidth>
-            <InputLabel>Category*</InputLabel>
-            <Select
-              value={form.category}
-              label="Category*"
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            >
-              {categories.map((c) => (
-                <MenuItem key={c} value={c}>{c}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel>Supplier</InputLabel>
-            <Select
-              value={form.supplier}
-              label="Supplier"
-              onChange={(e) => setForm({ ...form, supplier: e.target.value })}
-            >
-              <MenuItem value="">-- None --</MenuItem>
-              {suppliers.map((s) => (
-                <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Stock*"
-            type="number"
-            fullWidth
-            value={form.stock}
-            onChange={(e) => setForm({ ...form, stock: e.target.value })}
-          />
+        <input
+          type="text"
+          name="name"
+          placeholder="Name"
+          value={user.name}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="email"
+          name="email"
+          value={user.email}
+          readOnly
+          style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
+        />
+        
+        <input
+          type="text"
+          name="contact"
+          placeholder="Contact Number (11-12 digits)"
+          value={user.contact}
+          onChange={handleChange}
+          maxLength="12"
+        />
+        {errors.contact && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.contact}</div>}
+        
+        <input
+          type="text"
+          name="city"
+          placeholder="City"
+          value={user.city}
+          onChange={handleChange}
+        />
+        {errors.city && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.city}</div>}
+        
+        <input
+          type="text"
+          name="barangay"
+          placeholder="Barangay"
+          value={user.barangay}
+          onChange={handleChange}
+        />
+        {errors.barangay && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.barangay}</div>}
+        
+        <input
+          type="text"
+          name="street"
+          placeholder="Street"
+          value={user.street}
+          onChange={handleChange}
+        />
+        {errors.street && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.street}</div>}
+        
+        <input
+          type="text"
+          name="zipcode"
+          placeholder="Zipcode (4 digits)"
+          value={user.zipcode}
+          onChange={handleChange}
+          maxLength="4"
+        />
+        {errors.zipcode && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.zipcode}</div>}
 
-          {/* Existing images */}
-          <Typography>Existing Images:</Typography>
-          <Grid container spacing={2}>
-            {existingImages.length === 0 && <Typography color="text.secondary">No existing images</Typography>}
-            {existingImages.map((img, idx) => (
-              <Grid item key={idx}>
-                <Card sx={{ position: "relative", width: 100, height: 100 }}>
-                  <CardMedia
-                    component="img"
-                    image={img.url}
-                    alt={`img-${idx}`}
-                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                  <IconButton
-                    size="small"
-                    sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
-                    onClick={() => removeExistingImage(idx)}
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+        <div style={{ margin: "10px 0" }}>
+          <label htmlFor="avatar-upload" style={{ display: "block", marginBottom: "5px" }}>
+            Profile Picture: *
+          </label>
+          <input
+            id="avatar-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            style={{ width: "100%" }}
+          />
+          {errors.avatar && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.avatar}</div>}
+          <small style={{ color: "#666" }}>Supported: JPG, PNG, GIF (Max 2MB)</small>
+        </div>
 
-          {/* New files */}
-          <Button variant="contained" component="label">
-            Choose New Images* (Max 5, 5MB each)
-            <input type="file" hidden multiple accept="image/*" onChange={handleNewFileChange} />
-          </Button>
-          {newPreviews.length > 0 && (
-            <Grid container spacing={2}>
-              {newPreviews.map((p, i) => (
-                <Grid item key={i}>
-                  <Card sx={{ position: "relative", width: 100, height: 100 }}>
-                    <CardMedia
-                      component="img"
-                      image={p}
-                      alt={`new-${i}`}
-                      sx={{ width: "100%", height: "100%", objectFit: "cover", border: "2px solid #007bff" }}
-                    />
-                    <IconButton
-                      size="small"
-                      sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
-                      onClick={() => removeNewFile(i)}
-                    >
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          )}
-
-          <Stack direction="row" spacing={2} mt={2}>
-            <Button type="submit" variant="contained" disabled={loading}>
-              {loading ? <CircularProgress size={18} /> : "Update Product"}
-            </Button>
-            <Button variant="outlined" onClick={() => navigate("/admin/products")}>
-              Cancel
-            </Button>
-          </Stack>
-        </Stack>
+        <button type="submit" disabled={loading || hasErrors}>
+          {loading ? "Updating..." : "Update Profile"}
+        </button>
       </form>
 
-      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
-    </Box>
+      <hr style={{ margin: "30px 0" }} />
+
+      <div style={{ textAlign: "center" }}>
+        {!showPasswordForm ? (
+          <button onClick={() => setShowPasswordForm(true)} className="btn-secondary">
+            Change Password
+          </button>
+        ) : (
+          <>
+            <h3>Change Password</h3>
+            <form onSubmit={handlePasswordSubmit}>
+              <input
+                type="password"
+                name="oldPassword"
+                placeholder="Current Password"
+                value={passwordData.oldPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+              <input
+                type="password"
+                name="newPassword"
+                placeholder="New Password"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+              <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm New Password"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+              <button type="submit" disabled={loading}>
+                {loading ? "Changing..." : "Save Password"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPasswordForm(false)}
+                style={{ marginLeft: "10px" }}
+              >
+                Cancel
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+
+      {message && (
+        <p
+          style={{
+            color: message.includes("successfully") ? "green" : "red",
+            textAlign: "center",
+            marginTop: "20px",
+          }}
+        >
+          {message}
+        </p>
+      )}
+    </div>
   );
-}
+};
+
+export default UpdateProfile;

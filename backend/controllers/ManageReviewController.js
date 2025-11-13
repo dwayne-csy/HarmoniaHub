@@ -35,51 +35,6 @@ exports.getAllReviews = async (req, res) => {
   }
 };
 
-// ✅ Get single review details
-exports.getReviewDetails = async (req, res) => {
-  try {
-    const { reviewId } = req.params;
-
-    const review = await Review.findById(reviewId)
-      .populate('user', 'name email')
-      .populate('product', 'name');
-
-    if (!review) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Review not found" 
-      });
-    }
-
-    const formattedReview = {
-      _id: review._id,
-      productId: review.product?._id,
-      productName: review.product?.name || 'Deleted Product',
-      userId: review.user?._id,
-      user: review.user?.name || 'Anonymous',
-      userEmail: review.user?.email || '',
-      rating: review.rating,
-      comment: review.comment,
-      createdAt: review.createdAt,
-      updatedAt: review.updatedAt,
-      isActive: review.isActive,
-      isDeleted: !review.isActive
-    };
-
-    res.status(200).json({ 
-      success: true, 
-      review: formattedReview 
-    });
-  } catch (error) {
-    console.error("Error fetching review details:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to fetch review details",
-      error: error.message 
-    });
-  }
-};
-
 // ✅ Soft delete a review by review ID
 exports.softDeleteReview = async (req, res) => {
   try {
@@ -198,5 +153,50 @@ const updateProductRatings = async (productId) => {
     await product.save();
   } catch (error) {
     console.error("Error updating product ratings:", error);
+  }
+};
+
+// ✅ Get single review details
+exports.getReviewDetails = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+
+    const review = await Review.findById(reviewId)
+      .populate('user', 'name email')
+      .populate('product', 'name');
+
+    if (!review) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Review not found" 
+      });
+    }
+
+    const formattedReview = {
+      _id: review._id,
+      productId: review.product?._id,
+      productName: review.product?.name || 'Deleted Product',
+      userId: review.user?._id,
+      user: review.user?.name || 'Anonymous',
+      userEmail: review.user?.email || '',
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      isActive: review.isActive,
+      isDeleted: !review.isActive
+    };
+
+    res.status(200).json({ 
+      success: true, 
+      review: formattedReview 
+    });
+  } catch (error) {
+    console.error("Error fetching review details:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch review details",
+      error: error.message 
+    });
   }
 };

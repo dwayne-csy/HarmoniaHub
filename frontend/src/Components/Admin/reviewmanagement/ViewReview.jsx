@@ -75,7 +75,9 @@ export default function ViewReview() {
       
       <p><strong>Comment:</strong> {review.comment || 'No comment provided.'}</p>
       <p><strong>Date Created:</strong> {new Date(review.createdAt).toLocaleDateString()}</p>
-
+      <p><strong>Status:</strong> <span style={{ color: review.isActive ? 'green' : 'red', fontWeight: 'bold' }}>
+        {review.isActive ? 'Active' : 'Deleted'}
+      </span></p>
       
       {review.updatedAt && review.updatedAt !== review.createdAt && (
         <p><strong>Last Updated:</strong> {new Date(review.updatedAt).toLocaleDateString()}</p>

@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Card,
+  CardMedia,
+  Divider,
+  FormControl,
+  FormHelperText,
+  CircularProgress,
+  Stack,
+  Paper
+} from "@mui/material";
+import { PhotoCamera, LockReset } from "@mui/icons-material";
+import { toast, ToastContainer } from "react-toastify";
+import Loader from "../layouts/Loader";
 
 const UpdateProfile = () => {
   const navigate = useNavigate();
@@ -18,8 +35,18 @@ const UpdateProfile = () => {
 
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
+
+  // Validation errors state
+  const [errors, setErrors] = useState({
+    contact: "",
+    city: "",
+    barangay: "",
+    street: "",
+    zipcode: "",
+    avatar: ""
+  });
 
   // Password change toggle and data
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -33,6 +60,7 @@ const UpdateProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        setShowLoader(true);
         const { data } = await axios.get("http://localhost:4001/api/v1/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -49,30 +77,113 @@ const UpdateProfile = () => {
 
         setAvatarPreview(data.user.avatar?.url || "");
       } catch (error) {
-        setMessage("Failed to load profile");
+        toast.error("Failed to load profile", {
+          position: "top-center",
+          theme: "colored"
+        });
         console.error(error);
+      } finally {
+        setShowLoader(false);
       }
     };
     fetchProfile();
   }, [token]);
 
-  const handleChange = (e) =>
-    setUser({ ...user, [e.target.name]: e.target.value });
+  // Validation functions
+  const validateContact = (contact) => {
+    if (!contact.trim()) return "Contact number is required";
+    if (!/^\d+$/.test(contact)) return "Contact must contain only numbers";
+    if (contact.length < 11 || contact.length > 12) return "Contact must be 11 to 12 digits";
+    return "";
+  };
+
+  const validateCity = (city) => {
+    if (!city.trim()) return "City is required";
+    if (!/^[A-Z]/.test(city)) return "First letter must be capitalized";
+    return "";
+  };
+
+  const validateBarangay = (barangay) => {
+    if (!barangay.trim()) return "Barangay is required";
+    if (!/^[A-Z]/.test(barangay)) return "First letter must be capitalized";
+    return "";
+  };
+
+  const validateStreet = (street) => {
+    if (!street.trim()) return "Street is required";
+    if (!/^[A-Z]/.test(street)) return "First letter must be capitalized";
+    return "";
+  };
+
+  const validateZipcode = (zipcode) => {
+    if (!zipcode.trim()) return "Zipcode is required";
+    if (!/^\d+$/.test(zipcode)) return "Zipcode must contain only numbers";
+    if (zipcode.length !== 4) return "Zipcode must be exactly 4 digits";
+    return "";
+  };
+
+  const validateAvatar = (avatarFile, currentAvatar) => {
+    if (!avatarFile && !currentAvatar) return "Profile image is required";
+    return "";
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setUser({ ...user, [name]: value });
+    
+    // Validate field in real-time
+    let error = "";
+    switch (name) {
+      case 'contact':
+        error = validateContact(value);
+        break;
+      case 'city':
+        error = validateCity(value);
+        break;
+      case 'barangay':
+        error = validateBarangay(value);
+        break;
+      case 'street':
+        error = validateStreet(value);
+        break;
+      case 'zipcode':
+        error = validateZipcode(value);
+        break;
+      default:
+        break;
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
 
   const handlePasswordChange = (e) =>
     setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (!file) return setAvatarFile(null);
+    
+    // Clear previous file and validation
+    setAvatarFile(null);
+    setErrors(prev => ({ ...prev, avatar: "" }));
+
+    if (!file) {
+      const avatarError = validateAvatar(null, avatarPreview);
+      setErrors(prev => ({ ...prev, avatar: avatarError }));
+      return;
+    }
 
     if (!file.type.startsWith("image/")) {
-      setMessage("Please select an image file");
+      toast.error("Please select an image file", {
+        position: "top-center",
+        theme: "colored"
+      });
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      setMessage("Image size should be less than 2MB");
+      toast.error("Image size should be less than 2MB", {
+        position: "top-center",
+        theme: "colored"
+      });
       return;
     }
 
@@ -82,20 +193,47 @@ const UpdateProfile = () => {
       if (reader.readyState === 2) setAvatarPreview(reader.result);
     };
     reader.readAsDataURL(file);
+
+    // Clear avatar error when file is selected
+    setErrors(prev => ({ ...prev, avatar: "" }));
+  };
+
+  const validateAllFields = () => {
+    const newErrors = {
+      contact: validateContact(user.contact),
+      city: validateCity(user.city),
+      barangay: validateBarangay(user.barangay),
+      street: validateStreet(user.street),
+      zipcode: validateZipcode(user.zipcode),
+      avatar: validateAvatar(avatarFile, avatarPreview)
+    };
+
+    setErrors(newErrors);
+    return Object.values(newErrors).every(error => error === "");
   };
 
   // Submit profile update
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
+    setShowLoader(true);
+
+    if (!validateAllFields()) {
+      toast.error("Please fix all validation errors before submitting.", {
+        position: "top-center",
+        theme: "colored"
+      });
+      setLoading(false);
+      setShowLoader(false);
+      return;
+    }
 
     try {
       const formData = new FormData();
       Object.entries(user).forEach(([key, value]) => formData.append(key, value));
       if (avatarFile) formData.append("avatar", avatarFile);
 
-      const { data } = await axios.put(
+      await axios.put(
         "http://localhost:4001/api/v1/me/update",
         formData,
         {
@@ -106,13 +244,22 @@ const UpdateProfile = () => {
         }
       );
 
-      setMessage("Profile updated successfully!");
-      setTimeout(() => navigate("/profile"), 1200);
+      toast.success("Profile updated successfully!", {
+        position: "top-center",
+        theme: "colored"
+      });
+      
+      setTimeout(() => navigate("/profile"), 1500);
+      
     } catch (error) {
       console.error("Update error:", error);
-      setMessage(error.response?.data?.message || "Update failed");
+      toast.error(error.response?.data?.message || "Update failed", {
+        position: "top-center",
+        theme: "colored"
+      });
     } finally {
       setLoading(false);
+      setShowLoader(false);
     }
   };
 
@@ -120,11 +267,15 @@ const UpdateProfile = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
+    setShowLoader(true);
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage("Passwords do not match");
+      toast.error("Passwords do not match", {
+        position: "top-center",
+        theme: "colored"
+      });
       setLoading(false);
+      setShowLoader(false);
       return;
     }
 
@@ -135,169 +286,249 @@ const UpdateProfile = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setMessage("Password changed successfully!");
+      toast.success("Password changed successfully!", {
+        position: "top-center",
+        theme: "colored"
+      });
+      
       setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
       setShowPasswordForm(false);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Password update failed");
+      toast.error(error.response?.data?.message || "Password update failed", {
+        position: "top-center",
+        theme: "colored"
+      });
     } finally {
       setLoading(false);
+      setShowLoader(false);
     }
   };
 
+  const hasErrors = Object.values(errors).some(error => error !== "");
+
+  // Show full page loader when loading profile or submitting
+  if (showLoader) {
+    return <Loader />;
+  }
+
   return (
-    <div className="form-container">
-      <h2>Update Profile</h2>
+    <Box sx={{ maxWidth: 600, mx: "auto", p: 3 }}>
+      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center" color="primary">
+          Update Profile
+        </Typography>
 
-      {avatarPreview && (
-        <div style={{ textAlign: "center", marginBottom: "20px" }}>
-          <img
-            src={avatarPreview}
-            alt="Avatar Preview"
-            style={{
-              width: "150px",
-              height: "150px",
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: "2px solid #ddd",
-            }}
-          />
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          value={user.name}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="email"
-          name="email"
-          value={user.email}
-          readOnly
-          style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
-        />
-        <input
-          type="text"
-          name="contact"
-          placeholder="Contact Number"
-          value={user.contact}
-          onChange={handleChange}
-        />
-        <input
-          type="text"
-          name="city"
-          placeholder="City"
-          value={user.city}
-          onChange={handleChange}
-        />
-        <input
-          type="text"
-          name="barangay"
-          placeholder="Barangay"
-          value={user.barangay}
-          onChange={handleChange}
-        />
-        <input
-          type="text"
-          name="street"
-          placeholder="Street"
-          value={user.street}
-          onChange={handleChange}
-        />
-        <input
-          type="text"
-          name="zipcode"
-          placeholder="Zipcode"
-          value={user.zipcode}
-          onChange={handleChange}
-        />
-
-        <div style={{ margin: "10px 0" }}>
-          <label htmlFor="avatar-upload" style={{ display: "block", marginBottom: "5px" }}>
-            Profile Picture:
-          </label>
-          <input
-            id="avatar-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{ width: "100%" }}
-          />
-          <small style={{ color: "#666" }}>Supported: JPG, PNG, GIF (Max 2MB)</small>
-        </div>
-
-        <button type="submit" disabled={loading}>
-          {loading ? "Updating..." : "Update Profile"}
-        </button>
-      </form>
-
-      <hr style={{ margin: "30px 0" }} />
-
-      <div style={{ textAlign: "center" }}>
-        {!showPasswordForm ? (
-          <button onClick={() => setShowPasswordForm(true)} className="btn-secondary">
-            Change Password
-          </button>
-        ) : (
-          <>
-            <h3>Change Password</h3>
-            <form onSubmit={handlePasswordSubmit}>
-              <input
-                type="password"
-                name="oldPassword"
-                placeholder="Current Password"
-                value={passwordData.oldPassword}
-                onChange={handlePasswordChange}
-                required
+        {/* Avatar Preview */}
+        {avatarPreview && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <Card sx={{ width: 150, height: 150, borderRadius: '50%', overflow: 'hidden' }}>
+              <CardMedia
+                component="img"
+                image={avatarPreview}
+                alt="Avatar Preview"
+                sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
-              <input
-                type="password"
-                name="newPassword"
-                placeholder="New Password"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-              <input
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirm New Password"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-              <button type="submit" disabled={loading}>
-                {loading ? "Changing..." : "Save Password"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPasswordForm(false)}
-                style={{ marginLeft: "10px" }}
-              >
-                Cancel
-              </button>
-            </form>
-          </>
+            </Card>
+          </Box>
         )}
-      </div>
 
-      {message && (
-        <p
-          style={{
-            color: message.includes("successfully") ? "green" : "red",
-            textAlign: "center",
-            marginTop: "20px",
-          }}
-        >
-          {message}
-        </p>
-      )}
-    </div>
+        <form onSubmit={handleSubmit}>
+          <Stack spacing={3}>
+            <TextField
+              label="Full Name"
+              name="name"
+              value={user.name}
+              onChange={handleChange}
+              required
+              fullWidth
+            />
+            
+            <TextField
+              label="Email"
+              name="email"
+              value={user.email}
+              InputProps={{
+                readOnly: true,
+              }}
+              fullWidth
+              variant="filled"
+            />
+            
+            <TextField
+              label="Contact Number *"
+              name="contact"
+              placeholder="11-12 digits"
+              value={user.contact}
+              onChange={handleChange}
+              error={!!errors.contact}
+              helperText={errors.contact}
+              inputProps={{ maxLength: 12 }}
+              fullWidth
+            />
+            
+            <TextField
+              label="City *"
+              name="city"
+              value={user.city}
+              onChange={handleChange}
+              error={!!errors.city}
+              helperText={errors.city}
+              fullWidth
+            />
+            
+            <TextField
+              label="Barangay *"
+              name="barangay"
+              value={user.barangay}
+              onChange={handleChange}
+              error={!!errors.barangay}
+              helperText={errors.barangay}
+              fullWidth
+            />
+            
+            <TextField
+              label="Street *"
+              name="street"
+              value={user.street}
+              onChange={handleChange}
+              error={!!errors.street}
+              helperText={errors.street}
+              fullWidth
+            />
+            
+            <TextField
+              label="Zipcode *"
+              name="zipcode"
+              placeholder="4 digits"
+              value={user.zipcode}
+              onChange={handleChange}
+              error={!!errors.zipcode}
+              helperText={errors.zipcode}
+              inputProps={{ maxLength: 4 }}
+              fullWidth
+            />
+
+            <FormControl error={!!errors.avatar}>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<PhotoCamera />}
+                fullWidth
+                sx={{ py: 1.5 }}
+              >
+                Upload Profile Picture *
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </Button>
+              {errors.avatar && (
+                <FormHelperText error>{errors.avatar}</FormHelperText>
+              )}
+              <FormHelperText>
+                Supported formats: JPG, PNG, GIF (Max 2MB)
+              </FormHelperText>
+            </FormControl>
+
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={loading || hasErrors}
+              startIcon={loading && <CircularProgress size={20} />}
+              fullWidth
+              sx={{ py: 1.5 }}
+            >
+              {loading ? "Updating Profile..." : "Update Profile"}
+            </Button>
+          </Stack>
+        </form>
+
+        <Divider sx={{ my: 4 }} />
+
+        {/* Password Change Section */}
+        <Box sx={{ textAlign: 'center' }}>
+          {!showPasswordForm ? (
+            <Button
+              onClick={() => setShowPasswordForm(true)}
+              variant="outlined"
+              startIcon={<LockReset />}
+              size="large"
+            >
+              Change Password
+            </Button>
+          ) : (
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Change Password
+              </Typography>
+              <form onSubmit={handlePasswordSubmit}>
+                <Stack spacing={2}>
+                  <TextField
+                    type="password"
+                    name="oldPassword"
+                    label="Current Password"
+                    value={passwordData.oldPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    fullWidth
+                  />
+                  <TextField
+                    type="password"
+                    name="newPassword"
+                    label="New Password"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    fullWidth
+                  />
+                  <TextField
+                    type="password"
+                    name="confirmPassword"
+                    label="Confirm New Password"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    fullWidth
+                  />
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={loading}
+                      startIcon={loading && <CircularProgress size={20} />}
+                      fullWidth
+                    >
+                      {loading ? "Changing..." : "Save Password"}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setShowPasswordForm(false)}
+                      variant="outlined"
+                      fullWidth
+                    >
+                      Cancel
+                    </Button>
+                  </Stack>
+                </Stack>
+              </form>
+            </Paper>
+          )}
+        </Box>
+      </Paper>
+
+      {/* Toast Container */}
+      <ToastContainer 
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        closeOnClick
+        pauseOnHover
+        theme="colored"
+      />
+    </Box>
   );
 };
 
