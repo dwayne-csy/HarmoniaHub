@@ -15,44 +15,99 @@ const Home = () => {
   const [cartCount, setCartCount] = useState(0);
   const [currentImageIndexes, setCurrentImageIndexes] = useState({});
   const [processingCheckout, setProcessingCheckout] = useState(null);
-  const token = localStorage.getItem("token");
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [backendConnected, setBackendConnected] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (token) {
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
+      
+      console.log("🔍 Home.jsx - Token from localStorage:", token ? "✅ Present" : "❌ Missing");
+      console.log("🔍 Home.jsx - User from localStorage:", storedUser ? JSON.parse(storedUser) : "❌ Missing");
+
+      // Set user from localStorage immediately for UI
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        console.log("✅ Using stored user from localStorage:", parsedUser);
+      }
+
+      // Validate token with backend if exists
+      if (token) {
+        try {
+          console.log("🔄 Validating token with backend...");
           const { data } = await axios.get("http://localhost:4001/api/v1/me", {
             headers: { Authorization: `Bearer ${token}` },
+            timeout: 5000
           });
+          
+          // Update user with fresh data from backend
           setUser(data.user);
+          setBackendConnected(true);
+          console.log("✅ Backend token validation successful:", data.user);
 
-          const cartRes = await axios.get("http://localhost:4001/api/v1/cart", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setCartCount(cartRes.data.cart?.items?.length || 0);
-        }
-
-        const productsRes = await axios.get("http://localhost:4001/api/v1/products");
-        const productsData = productsRes.data.products || productsRes.data || [];
-        setProducts(productsData);
-
-        const initialIndexes = {};
-        productsData.forEach((product) => {
-          if (product.images && product.images.length > 0) {
-            initialIndexes[product._id] = 0;
+          // Fetch cart data
+          try {
+            const cartRes = await axios.get("http://localhost:4001/api/v1/cart", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            setCartCount(cartRes.data.cart?.items?.length || 0);
+          } catch (cartError) {
+            console.warn("⚠️ Could not fetch cart:", cartError.response?.data);
           }
-        });
-        setCurrentImageIndexes(initialIndexes);
-      } catch (error) {
-        console.error("Failed to fetch data", error);
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
 
-    fetchData();
-  }, [token]);
+        } catch (userError) {
+          console.error("❌ Backend token validation failed:", userError.response?.status);
+          
+          if (userError.response?.status === 401) {
+            // Token is invalid - clear and redirect to login
+            console.log("🔄 Token invalid, clearing storage...");
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setUser(null);
+            navigate("/login");
+            return;
+          }
+          
+          setBackendConnected(false);
+          // Keep using stored user data for UI, but show limited functionality
+          console.log("🔄 Backend connection issue, using cached user data");
+        }
+      } else {
+        // No token - user must login
+        console.log("ℹ️ No token found - redirecting to login");
+        navigate("/login");
+        return;
+      }
+
+      // Fetch products (public route)
+      console.log("🛍️ Fetching products...");
+      const productsRes = await axios.get("http://localhost:4001/api/v1/products");
+      const productsData = productsRes.data.products || productsRes.data || [];
+      setProducts(productsData);
+      console.log("✅ Products loaded:", productsData.length);
+
+      const initialIndexes = {};
+      productsData.forEach((product) => {
+        if (product.images && product.images.length > 0) {
+          initialIndexes[product._id] = 0;
+        }
+      });
+      setCurrentImageIndexes(initialIndexes);
+
+    } catch (error) {
+      console.error("❌ General data fetch error:", error);
+    } finally {
+      setLoadingProducts(false);
+      setLoadingUser(false);
+    }
+  };
+
+  fetchData();
+}, [navigate]);
 
   const nextImage = (productId, totalImages, e) => {
     e.stopPropagation();
@@ -87,10 +142,17 @@ const Home = () => {
   }, [products]);
 
   const handleAddToCart = async (productId) => {
+    const token = localStorage.getItem("token");
     if (!token) {
       alert("Please log in to add products to your cart.");
       return;
     }
+    
+    if (!backendConnected) {
+      alert("⚠️ Backend connection issue. Some features may not work properly.");
+      return;
+    }
+
     try {
       const res = await axios.post(
         "http://localhost:4001/api/v1/cart/add",
@@ -101,20 +163,34 @@ const Home = () => {
       alert("Product added to cart!");
     } catch (error) {
       console.error("Failed to add product to cart", error);
-      alert(error.response?.data?.message || "Failed to add product to cart.");
+      
+      if (error.response?.status === 401) {
+        alert("Your session has expired. Please login again.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+        navigate("/login");
+      } else {
+        alert(error.response?.data?.message || "Failed to add product to cart.");
+      }
     }
   };
 
   const handleSoloCheckout = async (productId) => {
+    const token = localStorage.getItem("token");
     if (!token) {
       alert("Please log in to checkout.");
+      return;
+    }
+
+    if (!backendConnected) {
+      alert("⚠️ Backend connection issue. Checkout is currently unavailable.");
       return;
     }
 
     setProcessingCheckout(productId);
 
     try {
-      // Fetch product details for the confirmation page
       const productRes = await axios.get(`http://localhost:4001/api/v1/products/${productId}`);
       const product = productRes.data.product || productRes.data;
       
@@ -128,7 +204,6 @@ const Home = () => {
         return;
       }
 
-      // Create a mock cart object for the solo product
       const soloCart = {
         items: [
           {
@@ -139,18 +214,26 @@ const Home = () => {
         ]
       };
 
-      // Navigate to checkout confirmation with the solo product
       navigate("/checkout-confirmation", { 
         state: { 
           cart: soloCart,
-          checkoutType: "solo", // Add this to identify solo checkout
+          checkoutType: "solo",
           productId: productId 
         } 
       });
 
     } catch (error) {
       console.error("Failed to process checkout:", error);
-      alert("Failed to process checkout. Please try again.");
+      
+      if (error.response?.status === 401) {
+        alert("Your session has expired. Please login again.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+        navigate("/login");
+      } else {
+        alert("Failed to process checkout. Please try again.");
+      }
     } finally {
       setProcessingCheckout(null);
     }
@@ -158,7 +241,20 @@ const Home = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setBackendConnected(true);
+    console.log("🚪 User logged out");
     navigate("/login");
+  };
+
+  const handleRetryBackend = () => {
+    setLoadingUser(true);
+    setBackendConnected(true);
+    // This will trigger the useEffect to retry
+    setTimeout(() => {
+      setLoadingUser(false);
+    }, 1000);
   };
 
   return (
@@ -166,61 +262,73 @@ const Home = () => {
       <header className="home-header">
         <div
           className="header-actions"
-          style={{ display: "flex", gap: "15px", justifyContent: "flex-end" }}
+          style={{ display: "flex", gap: "15px", justifyContent: "flex-end", alignItems: "center" }}
         >
-          {user ? (
+          {loadingUser ? (
+            <div style={{ padding: '10px' }}>Loading user...</div>
+          ) : user ? (
             <>
-              {/* Order History - icon only */}
+              {/* Welcome message with backend status */}
+              <div style={{ display: 'flex', alignItems: 'center', marginRight: '10px', flexDirection: 'column' }}>
+                <div>Welcome, {user.name}!</div>
+                {!backendConnected && (
+                  <div style={{ fontSize: '12px', color: 'orange', marginTop: '2px' }}>
+                    ⚠️ Limited functionality
+                  </div>
+                )}
+              </div>
+
+              {/* Order History */}
               <button
-                onClick={() => navigate("/order-history")}
+                onClick={() => backendConnected ? navigate("/order-history") : alert("Backend connection required")}
                 style={{
                   padding: "6px",
                   backgroundColor: "transparent",
                   border: "none",
-                  cursor: "pointer",
+                  cursor: backendConnected ? "pointer" : "not-allowed",
                   display: "flex",
                   alignItems: "center",
-                  color: "#1976d2",
+                  color: backendConnected ? "#1976d2" : "#ccc",
                 }}
-                title="Order History"
+                title={backendConnected ? "Order History" : "Backend connection required"}
               >
                 <HistoryIcon fontSize="large" />
               </button>
 
               {/* Profile */}
               <button
-                onClick={() => navigate("/profile")}
+                onClick={() => backendConnected ? navigate("/profile") : alert("Backend connection required")}
                 style={{
                   padding: "6px",
                   backgroundColor: "transparent",
                   border: "none",
-                  cursor: "pointer",
+                  cursor: backendConnected ? "pointer" : "not-allowed",
                   display: "flex",
                   alignItems: "center",
-                  color: "#1976d2",
+                  color: backendConnected ? "#1976d2" : "#ccc",
                 }}
-                title="Profile"
+                title={backendConnected ? "Profile" : "Backend connection required"}
               >
                 <AccountCircleIcon fontSize="large" />
               </button>
 
               {/* Cart */}
               <button
-                onClick={() => navigate("/cart")}
+                onClick={() => backendConnected ? navigate("/cart") : alert("Backend connection required")}
                 style={{
                   padding: "6px",
                   backgroundColor: "transparent",
                   border: "none",
-                  cursor: "pointer",
+                  cursor: backendConnected ? "pointer" : "not-allowed",
                   display: "flex",
                   alignItems: "center",
-                  color: "#1976d2",
+                  color: backendConnected ? "#1976d2" : "#ccc",
                   position: "relative",
                 }}
-                title="Cart"
+                title={backendConnected ? "Cart" : "Backend connection required"}
               >
                 <ShoppingCartIcon fontSize="large" />
-                {cartCount > 0 && (
+                {cartCount > 0 && backendConnected && (
                   <span
                     style={{
                       position: "absolute",
@@ -254,6 +362,25 @@ const Home = () => {
               >
                 <LogoutIcon fontSize="large" />
               </button>
+
+              {/* Retry backend connection */}
+              {!backendConnected && (
+                <button
+                  onClick={handleRetryBackend}
+                  style={{
+                    padding: "6px 12px",
+                    backgroundColor: "#ff9800",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                  }}
+                  title="Retry backend connection"
+                >
+                  Retry
+                </button>
+              )}
             </>
           ) : (
             <Link to="/login" className="btn-primary">
@@ -263,8 +390,41 @@ const Home = () => {
         </div>
       </header>
 
-      {user && (
+      {loadingUser ? (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <Loader />
+          <p>Loading user data...</p>
+        </div>
+      ) : user ? (
         <main className="products-section">
+          {/* Backend status banner */}
+          {!backendConnected && (
+            <div style={{
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: '4px',
+              padding: '10px',
+              marginBottom: '20px',
+              textAlign: 'center'
+            }}>
+              <strong>⚠️ Limited Functionality:</strong> Backend connection issue. You can browse products but some features may not work.
+              <button 
+                onClick={handleRetryBackend}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 8px',
+                  backgroundColor: '#ff9800',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Retry Connection
+              </button>
+            </div>
+          )}
+          
           <h2>Available Products</h2>
 
           {loadingProducts ? (
@@ -294,6 +454,7 @@ const Home = () => {
                         borderRadius: 12,
                         boxShadow: "0px 4px 10px rgba(0,0,0,0.1)",
                         backgroundColor: "#fff",
+                        opacity: backendConnected ? 1 : 0.9,
                       }}
                     >
                       <div style={{ position: "relative" }}>
@@ -380,6 +541,7 @@ const Home = () => {
                       >
                         <button
                           onClick={() => handleAddToCart(product._id)}
+                          disabled={!backendConnected}
                           style={{
                             flex: 1,
                             display: "flex",
@@ -387,11 +549,11 @@ const Home = () => {
                             justifyContent: "center",
                             gap: 5,
                             padding: "8px 10px",
-                            backgroundColor: "#1976d2",
+                            backgroundColor: backendConnected ? "#1976d2" : "#ccc",
                             color: "#fff",
                             border: "none",
                             borderRadius: 8,
-                            cursor: "pointer",
+                            cursor: backendConnected ? "pointer" : "not-allowed",
                             fontWeight: 500,
                             transition: "0.3s",
                           }}
@@ -401,7 +563,7 @@ const Home = () => {
 
                         <button
                           onClick={() => handleSoloCheckout(product._id)}
-                          disabled={processingCheckout === product._id}
+                          disabled={processingCheckout === product._id || !backendConnected}
                           style={{
                             flex: 1,
                             display: "flex",
@@ -409,14 +571,14 @@ const Home = () => {
                             justifyContent: "center",
                             gap: 5,
                             padding: "8px 10px",
-                            backgroundColor: processingCheckout === product._id ? "#6b8e23" : "#388e3c",
+                            backgroundColor: processingCheckout === product._id ? "#6b8e23" : (backendConnected ? "#388e3c" : "#ccc"),
                             color: "#fff",
                             border: "none",
                             borderRadius: 8,
-                            cursor: processingCheckout === product._id ? "not-allowed" : "pointer",
+                            cursor: (processingCheckout === product._id || !backendConnected) ? "not-allowed" : "pointer",
                             fontWeight: 500,
                             transition: "0.3s",
-                            opacity: processingCheckout === product._id ? 0.7 : 1,
+                            opacity: (processingCheckout === product._id || !backendConnected) ? 0.7 : 1,
                           }}
                         >
                           {processingCheckout === product._id ? (
@@ -434,6 +596,14 @@ const Home = () => {
             </div>
           )}
         </main>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <h2>Welcome to HarmoniaHub</h2>
+          <p>Please login to view products and make purchases</p>
+          <Link to="/login" className="btn-primary" style={{ marginTop: '20px', display: 'inline-block', padding: '10px 20px' }}>
+            Login Now
+          </Link>
+        </div>
       )}
     </div>
   );
