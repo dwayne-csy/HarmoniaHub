@@ -9,6 +9,7 @@ import {
   Stack,
   CircularProgress,
   Button,
+  Chip,
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import StarIcon from "@mui/icons-material/Star";
@@ -39,34 +40,26 @@ const OrderHistory = () => {
         const ordersData = data.orders || [];
         setOrders(ordersData);
 
-        // Collect all unique product IDs
-        const allProductIds = [
-          ...new Set(ordersData.flatMap((order) => order.orderItems.map((item) => item.product))),
-        ];
-
         const reviewMap = {};
 
-        // Fetch each product and find user's review
-        for (const productId of allProductIds) {
-          try {
-            const { data: productData } = await axios.get(
-              `${BASE_URL}/products/${productId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            const product = productData.product;
-            if (!product || !product.reviews) continue;
-
-            // Normalize IDs to string for comparison
-            const myReview = product.reviews.find((rev) => {
-              const reviewUserId =
-                typeof rev.user === "object" ? rev.user._id : rev.user;
-              return reviewUserId === user._id;
-            });
-
-            reviewMap[productId] = myReview || null;
-          } catch (err) {
-            console.warn(`Failed to fetch product ${productId} reviews`, err);
+        // Fetch user's reviews for all products in orders
+        for (const order of ordersData) {
+          for (const item of order.orderItems) {
+            // Get the product ID - handle both string and populated object
+            const productId = typeof item.product === 'object' 
+              ? item.product._id 
+              : item.product;
+            
+            try {
+              const { data: reviewData } = await axios.get(
+                `${BASE_URL}/review/user/${productId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              reviewMap[productId] = reviewData.review;
+            } catch (err) {
+              console.warn(`Failed to fetch review for product ${productId}`, err);
+              reviewMap[productId] = null;
+            }
           }
         }
 
@@ -81,12 +74,65 @@ const OrderHistory = () => {
     fetchOrdersAndReviews();
   }, [token, navigate, user._id]);
 
-  const handleReview = (productId) => {
-    const myReview = productReviews[productId];
-    if (myReview) {
-      navigate(`/review/edit/${productId}`);
+  const handleReview = (productId, orderId, existingReview = null) => {
+    if (existingReview) {
+      // Edit existing review - pass the existing review data
+      navigate(`/review/edit/${productId}`, { 
+        state: { 
+          orderId, 
+          existingReview 
+        } 
+      });
     } else {
-      navigate(`/review/${productId}`);
+      // Write new review
+      navigate(`/review/${productId}`, { 
+        state: { orderId } 
+      });
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Delivered":
+        return "success";
+      case "Processing":
+        return "warning";
+      case "Out for Delivery":
+        return "info";
+      case "Accepted":
+        return "primary";
+      case "Cancelled":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "Out for Delivery":
+        return "Out for Delivery";
+      default:
+        return status;
+    }
+  };
+
+  // Helper function to get product details safely
+  const getProductDetails = (item) => {
+    if (typeof item.product === 'object') {
+      // Product is populated
+      return {
+        id: item.product._id,
+        name: item.product.name,
+        image: item.image // Use the image from order item
+      };
+    } else {
+      // Product is just an ID
+      return {
+        id: item.product,
+        name: item.name,
+        image: item.image
+      };
     }
   };
 
@@ -110,90 +156,168 @@ const OrderHistory = () => {
         <HistoryIcon /> Your Order History
       </Typography>
 
-      <Stack spacing={2}>
+      <Stack spacing={3}>
         {orders.map((order) => (
-          <Card key={order._id} sx={{ p: 2 }}>
+          <Card key={order._id} sx={{ p: 2, border: "1px solid #e0e0e0" }}>
             <CardContent>
-              <Typography variant="h6">Order ID: {order._id}</Typography>
-              <Typography>Order Status: {order.orderStatus}</Typography>
-              <Typography>Total Price: ${order.totalPrice.toFixed(2)}</Typography>
-              <Typography>
-                Placed on:{" "}
-                {new Date(order.createdAt).toLocaleDateString()}{" "}
-                {new Date(order.createdAt).toLocaleTimeString()}
-              </Typography>
+              {/* Order Header */}
+              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Order #: {order._id.slice(-8).toUpperCase()}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Placed on: {new Date(order.createdAt).toLocaleDateString()} at{" "}
+                    {new Date(order.createdAt).toLocaleTimeString()}
+                  </Typography>
+                  {order.deliveredAt && (
+                    <Typography variant="body2" color="text.secondary">
+                      Delivered on: {new Date(order.deliveredAt).toLocaleDateString()}
+                    </Typography>
+                  )}
+                </Box>
+                <Box textAlign="right">
+                  <Chip 
+                    label={getStatusText(order.orderStatus)} 
+                    color={getStatusColor(order.orderStatus)}
+                    variant="outlined"
+                    sx={{ mb: 1 }}
+                  />
+                  <Typography variant="h6" color="primary">
+                    Total: ${order.totalPrice?.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Box>
 
-              <Box mt={2}>
-                <Typography variant="subtitle1">Items:</Typography>
+              {/* Shipping Info */}
+              <Box mb={2} p={1.5} bgcolor="grey.50" borderRadius={1}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Shipping Address:
+                </Typography>
+                <Typography variant="body2">
+                  {order.shippingInfo.address}, {order.shippingInfo.city}, {order.shippingInfo.postalCode}, {order.shippingInfo.country}
+                </Typography>
+                <Typography variant="body2">
+                  Phone: {order.shippingInfo.phoneNo}
+                </Typography>
+              </Box>
+
+              {/* Order Items */}
+              <Box>
+                <Typography variant="subtitle1" gutterBottom>
+                  Order Items:
+                </Typography>
                 <Stack spacing={2} mt={1}>
-                  {order.orderItems.map((item) => {
-                    const myReview = productReviews[item.product];
+                  {order.orderItems?.map((item, index) => {
+                    const productDetails = getProductDetails(item);
+                    const myReview = productReviews[productDetails.id];
+                    const isDelivered = order.orderStatus === "Delivered";
+                    
                     return (
                       <Box
-                        key={item.product}
+                        key={item._id || `${productDetails.id}-${index}`}
                         p={2}
-                        border="1px solid #ddd"
+                        border="1px solid #e0e0e0"
                         borderRadius={2}
+                        sx={{ backgroundColor: "background.paper" }}
                       >
-                        <Box
-                          display="flex"
-                          justifyContent="space-between"
-                          alignItems="center"
-                        >
-                          <Typography>
-                            {item.name} (x{item.quantity})
-                          </Typography>
-                          <Typography>
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </Typography>
-                        </Box>
-
-                        {/* Review Section */}
-                        <Box mt={1}>
-                          {myReview ? (
-                            <>
-                              <Typography variant="subtitle2" mt={1}>
-                                Your Review:
-                              </Typography>
-                              <Box display="flex" alignItems="center" gap={1}>
-                                {[...Array(myReview.rating)].map((_, i) => (
-                                  <StarIcon key={i} color="warning" />
-                                ))}
+                        <Box display="flex" gap={2} alignItems="flex-start">
+                          {/* Product Image */}
+                          <Box 
+                            component="img"
+                            src={productDetails.image}
+                            alt={productDetails.name}
+                            sx={{ 
+                              width: 80, 
+                              height: 80, 
+                              objectFit: 'cover',
+                              borderRadius: 1
+                            }}
+                          />
+                          
+                          {/* Product Details */}
+                          <Box flex={1}>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              {productDetails.name}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Quantity: {item.quantity} × ${item.price?.toFixed(2)}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Subtotal: ${(item.quantity * item.price)?.toFixed(2)}
+                            </Typography>
+                            
+                            {/* Review Section */}
+                            {isDelivered && (
+                              <Box mt={1}>
+                                {myReview ? (
+                                  <Box>
+                                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                                      <Typography variant="body2">Your Rating:</Typography>
+                                      {[...Array(5)].map((_, i) => (
+                                        <StarIcon 
+                                          key={i} 
+                                          color={i < myReview.rating ? "warning" : "disabled"} 
+                                          fontSize="small" 
+                                        />
+                                      ))}
+                                    </Box>
+                                    <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+                                      "{myReview.comment}"
+                                    </Typography>
+                                    <Button
+                                      variant="outlined"
+                                      color="success"
+                                      size="small"
+                                      sx={{ mt: 1 }}
+                                      onClick={() => handleReview(productDetails.id, order._id, myReview)}
+                                    >
+                                      Update Review
+                                    </Button>
+                                  </Box>
+                                ) : (
+                                  <Button
+                                    variant="contained"
+                                    color="secondary"
+                                    size="small"
+                                    sx={{ mt: 1 }}
+                                    onClick={() => handleReview(productDetails.id, order._id)}
+                                  >
+                                    Write Review
+                                  </Button>
+                                )}
                               </Box>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontStyle: "italic", mt: 0.5 }}
-                              >
-                                “{myReview.comment}”
+                            )}
+                            
+                            {!isDelivered && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                Review available after delivery
                               </Typography>
-
-                              <Button
-                                variant="outlined"
-                                color="success"
-                                size="small"
-                                sx={{ mt: 1 }}
-                                onClick={() => handleReview(item.product)}
-                              >
-                                Edit Review
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              variant="outlined"
-                              color="secondary"
-                              size="small"
-                              sx={{ mt: 1 }}
-                              onClick={() => handleReview(item.product)}
-                            >
-                              Review Product
-                            </Button>
-                          )}
+                            )}
+                          </Box>
                         </Box>
                       </Box>
                     );
                   })}
                 </Stack>
               </Box>
+
+              {/* Payment Info */}
+              {order.paymentInfo && (
+                <Box mt={2} p={1.5} bgcolor="grey.50" borderRadius={1}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Payment Information:
+                  </Typography>
+                  <Typography variant="body2">
+                    Status: {order.paymentInfo.status || "N/A"}
+                  </Typography>
+                  {order.paidAt && (
+                    <Typography variant="body2">
+                      Paid on: {new Date(order.paidAt).toLocaleDateString()}
+                    </Typography>
+                  )}
+                </Box>
+              )}
             </CardContent>
           </Card>
         ))}

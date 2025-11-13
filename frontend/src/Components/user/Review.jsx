@@ -1,53 +1,39 @@
+// HarmoniaHub/frontend/src/Components/user/Review.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Box, Typography, TextField, Button, Rating, CircularProgress } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const Review = () => {
-  const { productId } = useParams(); // Pass productId in route like /review/:productId
+  const { productId } = useParams();
+  const location = useLocation();
+  const { orderId, existingReview } = location.state || {};
+  
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
-  // Fetch existing review if any
+  // Set existing review data if editing
   useEffect(() => {
-    const fetchReview = async () => {
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
-      try {
-        const { data } = await axios.get(`http://localhost:4001/api/v1/reviews?productId=${productId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const existingReview = data.reviews.find(
-          (rev) => rev.user._id === JSON.parse(atob(token.split(".")[1])).id
-        );
-
-        if (existingReview) {
-          setRating(existingReview.rating);
-          setComment(existingReview.comment);
-          setIsEdit(true);
-        }
-      } catch (error) {
-        console.error("Failed to fetch review:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReview();
-  }, [productId, token, navigate]);
+    if (existingReview) {
+      setRating(existingReview.rating);
+      setComment(existingReview.comment);
+      setIsEdit(true);
+    }
+  }, [existingReview]);
 
   const handleSubmit = async () => {
     if (!rating || !comment) {
       alert("Please provide both rating and comment.");
+      return;
+    }
+
+    if (!orderId) {
+      alert("Order information is missing.");
       return;
     }
 
@@ -61,12 +47,12 @@ const Review = () => {
 
       await axios[method](
         url,
-        { productId, rating, comment },
+        { productId, rating, comment, orderId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       alert(isEdit ? "Review updated successfully!" : "Review submitted successfully!");
-      navigate("/home"); // Redirect back to home or product page
+      navigate("/order-history");
     } catch (error) {
       console.error("Failed to submit review:", error);
       alert(error.response?.data?.message || "Failed to submit review.");
@@ -75,18 +61,21 @@ const Review = () => {
     }
   };
 
-  if (loading)
-    return (
-      <Box display="flex" justifyContent="center" mt={5}>
-        <CircularProgress />
-      </Box>
-    );
-
   return (
     <Box p={3} maxWidth={600} mx="auto">
       <Typography variant="h4" mb={3}>
         {isEdit ? "Edit Your Review" : "Write a Review"}
       </Typography>
+
+      <Typography variant="body1" mb={2}>
+        Product ID: {productId}
+      </Typography>
+      
+      {orderId && (
+        <Typography variant="body2" mb={2} color="text.secondary">
+          Order ID: {orderId}
+        </Typography>
+      )}
 
       <Box display="flex" alignItems="center" mb={2}>
         <Typography variant="subtitle1" mr={2}>
@@ -96,27 +85,39 @@ const Review = () => {
           value={rating}
           onChange={(e, newValue) => setRating(newValue)}
           precision={1}
+          size="large"
         />
       </Box>
 
       <TextField
-        label="Comment"
+        label="Your Comment"
         multiline
         rows={4}
         fullWidth
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         margin="normal"
+        placeholder="Share your experience with this product..."
       />
 
-      <Box mt={2}>
+      <Box mt={3} display="flex" gap={2}>
         <Button
           variant="contained"
           color="primary"
           onClick={handleSubmit}
           disabled={submitting}
+          size="large"
         >
           {submitting ? "Submitting..." : isEdit ? "Update Review" : "Submit Review"}
+        </Button>
+        
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={() => navigate("/order-history")}
+          disabled={submitting}
+        >
+          Cancel
         </Button>
       </Box>
     </Box>

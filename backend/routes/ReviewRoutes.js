@@ -3,6 +3,7 @@ const {
   createReview,
   updateReview,
   getProductReviews,
+  getUserProductReview,
 } = require("../controllers/ReviewController");
 const { isAuthenticatedUser } = require("../middlewares/auth");
 
@@ -15,6 +16,9 @@ router.post("/review/create", isAuthenticatedUser, createReview);
 router.put("/review/update", isAuthenticatedUser, updateReview);
 
 // Get all reviews for a product
-router.get("/reviews/:productId", getProductReviews);
+router.get("/reviews", getProductReviews);
+
+// Get user's review for a specific product
+router.get("/review/user/:productId", isAuthenticatedUser, getUserProductReview);
 
 module.exports = router;

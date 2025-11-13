@@ -1,45 +1,57 @@
+const Review = require("../models/ReviewModels");
 const Product = require("../models/ProductModels");
 
 // ✅ Get all active reviews from all products
 exports.getAllReviews = async (req, res) => {
   try {
-    const products = await Product.find();
+    const reviews = await Review.find({ isActive: true })
+      .populate('user', 'name email')
+      .populate('product', 'name')
+      .sort({ createdAt: -1 });
 
-    const allReviews = products.flatMap((product) =>
-      product.reviews
-        .filter((review) => review.isActive !== false) // only active reviews
-        .map((review) => ({
-          _id: review._id,
-          productId: product._id,
-          productName: product.name,
-          user: review.name || "Deleted User",
-          rating: review.rating,
-          comment: review.comment,
-          createdAt: review.createdAt,
-        }))
-    );
+    const formattedReviews = reviews.map(review => ({
+      _id: review._id,
+      productId: review.product?._id,
+      productName: review.product?.name || 'Deleted Product',
+      user: review.user?.name || 'Deleted User',
+      userEmail: review.user?.email || '',
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+    }));
 
-    res.status(200).json({ success: true, reviews: allReviews });
+    res.status(200).json({ 
+      success: true, 
+      count: reviews.length,
+      reviews: formattedReviews 
+    });
   } catch (error) {
     console.error("Error fetching reviews:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch reviews" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch reviews",
+      error: error.message 
+    });
   }
 };
 
-// ✅ Soft delete a review by review ID and product ID
+// ✅ Soft delete a review by review ID
 exports.softDeleteReview = async (req, res) => {
   try {
-    const { productId, reviewId } = req.params;
+    const { reviewId } = req.params;
 
-    const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    const review = await Review.findByIdAndUpdate(
+      reviewId,
+      { isActive: false },
+      { new: true }
+    );
 
-    const review = product.reviews.id(reviewId);
-    if (!review) return res.status(404).json({ success: false, message: "Review not found" });
+    if (!review) {
+      return res.status(404).json({ success: false, message: "Review not found" });
+    }
 
-    review.isActive = false;
-
-    await product.save();
+    // Update product ratings
+    await updateProductRatings(review.product);
 
     res.status(200).json({ success: true, message: "Review soft-deleted successfully" });
   } catch (error) {
@@ -51,17 +63,20 @@ exports.softDeleteReview = async (req, res) => {
 // ✅ Restore a soft-deleted review
 exports.restoreReview = async (req, res) => {
   try {
-    const { productId, reviewId } = req.params;
+    const { reviewId } = req.params;
 
-    const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    const review = await Review.findByIdAndUpdate(
+      reviewId,
+      { isActive: true },
+      { new: true }
+    );
 
-    const review = product.reviews.id(reviewId);
-    if (!review) return res.status(404).json({ success: false, message: "Review not found" });
+    if (!review) {
+      return res.status(404).json({ success: false, message: "Review not found" });
+    }
 
-    review.isActive = true;
-
-    await product.save();
+    // Update product ratings
+    await updateProductRatings(review.product);
 
     res.status(200).json({ success: true, message: "Review restored successfully" });
   } catch (error) {
@@ -73,26 +88,26 @@ exports.restoreReview = async (req, res) => {
 // ✅ Get all soft-deleted reviews
 exports.getDeletedReviews = async (req, res) => {
   try {
-    const products = await Product.find();
+    const reviews = await Review.find({ isActive: false })
+      .populate('user', 'name email')
+      .populate('product', 'name')
+      .sort({ createdAt: -1 });
 
-    const deletedReviews = products.flatMap((product) =>
-      product.reviews
-        .filter((review) => review.isActive === false) // only deleted reviews
-        .map((review) => ({
-          _id: review._id,
-          productId: product._id,
-          productName: product.name,
-          user: review.name || "Deleted User",
-          rating: review.rating,
-          comment: review.comment,
-          createdAt: review.createdAt,
-        }))
-    );
+    const formattedReviews = reviews.map(review => ({
+      _id: review._id,
+      productId: review.product?._id,
+      productName: review.product?.name || 'Deleted Product',
+      user: review.user?.name || 'Deleted User',
+      userEmail: review.user?.email || '',
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+    }));
 
     res.status(200).json({
       success: true,
-      count: deletedReviews.length,
-      reviews: deletedReviews,
+      count: reviews.length,
+      reviews: formattedReviews,
     });
   } catch (error) {
     console.error("Error fetching deleted reviews:", error);
@@ -100,34 +115,43 @@ exports.getDeletedReviews = async (req, res) => {
   }
 };
 
-
+// ✅ Permanently delete a review
 exports.deleteReview = async (req, res) => {
   try {
-    const { productId, reviewId } = req.params;
+    const { reviewId } = req.params;
 
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
-    }
-
-    // Remove the review manually from the array
-    const reviewIndex = product.reviews.findIndex(
-      (r) => r._id.toString() === reviewId
-    );
-
-    if (reviewIndex === -1) {
+    const review = await Review.findById(reviewId);
+    if (!review) {
       return res.status(404).json({ success: false, message: "Review not found" });
     }
 
-    // Permanently delete it
-    product.reviews.splice(reviewIndex, 1);
+    const productId = review.product;
+    await Review.findByIdAndDelete(reviewId);
 
-    // Save the updated product
-    await product.save();
+    // Update product ratings
+    await updateProductRatings(productId);
 
     res.status(200).json({ success: true, message: "Review permanently deleted" });
   } catch (error) {
     console.error("Error deleting review:", error);
     res.status(500).json({ success: false, message: "Failed to delete review" });
+  }
+};
+
+// Helper function to update product ratings
+const updateProductRatings = async (productId) => {
+  try {
+    const product = await Product.findById(productId);
+    if (!product) return;
+
+    const reviews = await Review.find({ product: productId, isActive: true });
+    product.numOfReviews = reviews.length;
+    product.ratings = reviews.length > 0 
+      ? reviews.reduce((acc, item) => acc + item.rating, 0) / reviews.length 
+      : 0;
+
+    await product.save();
+  } catch (error) {
+    console.error("Error updating product ratings:", error);
   }
 };

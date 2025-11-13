@@ -51,7 +51,7 @@ const productSchema = new mongoose.Schema({
     supplier: {
         type: mongoose.Schema.ObjectId,
         ref: 'Supplier',
-        required: false // CHANGE FROM true TO false
+        required: false
     },
     stock: {
         type: Number,
@@ -63,39 +63,7 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-reviews: [
-    {
-        user: {
-            type: mongoose.Schema.ObjectId,
-            ref: 'User',
-            required: true
-        },
-        name: {
-            type: String,
-            required: true
-        },
-        rating: {
-            type: Number,
-            min: 1,
-            max: 5,
-            required: true
-        },
-        comment: {
-            type: String,
-            required: true
-        },
-        createdAt: {
-            type: Date,
-            default: Date.now
-        },
-        isActive: {
-            type: Boolean,
-            default: true
-        }
-    }
-],
-
-        isActive: {
+    isActive: {
         type: Boolean,
         default: true
     },
@@ -103,7 +71,6 @@ reviews: [
         type: Date,
         default: Date.now
     }
-    
 })
 
 module.exports = mongoose.model('Product', productSchema);

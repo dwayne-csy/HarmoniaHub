@@ -1,8 +1,8 @@
 const fs = require('fs');
 const Product = require('../models/ProductModels');
 const Supplier = require('../models/SupplierModels');
+const Review = require('../models/ReviewModels'); // Add this import
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/Cloudinary');
-
 
 // Helper to delete local temp file if exists
 const safeUnlink = (path) => {
@@ -78,12 +78,30 @@ exports.getAllProducts = async (req, res, next) => {
     try {
         const products = await Product.find({ isActive: true })
             .populate('supplier', 'name email')
-            .populate('reviews.user', 'name');
+            .select('-reviews'); // Remove reviews since we have separate model now
+
+        // Get review counts and ratings for each product
+        const productsWithReviews = await Promise.all(
+            products.map(async (product) => {
+                const reviews = await Review.find({ 
+                    product: product._id, 
+                    isActive: true 
+                });
+                
+                const productObj = product.toObject();
+                productObj.numOfReviews = reviews.length;
+                productObj.ratings = reviews.length > 0 
+                    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length 
+                    : 0;
+                
+                return productObj;
+            })
+        );
 
         res.status(200).json({
             success: true,
-            count: products.length,
-            products
+            count: productsWithReviews.length,
+            products: productsWithReviews
         });
     } catch (error) {
         res.status(500).json({
@@ -93,12 +111,11 @@ exports.getAllProducts = async (req, res, next) => {
     }
 };
 
+// Get single product with reviews
 exports.getProduct = async (req, res, next) => {
   try {
-    // Admin can fetch any product
     const product = await Product.findById(req.params.id)
-      .populate('supplier', 'name email phone address')
-      .populate('reviews.user', 'name');
+      .populate('supplier', 'name email phone address');
 
     if (!product) {
       return res.status(404).json({
@@ -107,9 +124,24 @@ exports.getProduct = async (req, res, next) => {
       });
     }
 
+    // Get reviews for this product
+    const reviews = await Review.find({ 
+      product: product._id, 
+      isActive: true 
+    })
+    .populate('user', 'name')
+    .sort({ createdAt: -1 });
+
+    const productObj = product.toObject();
+    productObj.reviews = reviews;
+    productObj.numOfReviews = reviews.length;
+    productObj.ratings = reviews.length > 0 
+      ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length 
+      : 0;
+
     res.status(200).json({
       success: true,
-      product
+      product: productObj
     });
   } catch (error) {
     res.status(500).json({
@@ -197,7 +229,10 @@ exports.updateProduct = async (req, res, next) => {
       images: newImages
     };
 
-    const product = await Product.findByIdAndUpdate(req.params.id, updatePayload, { new: true, runValidators: true }).populate('supplier', 'name email');
+    const product = await Product.findByIdAndUpdate(req.params.id, updatePayload, { 
+      new: true, 
+      runValidators: true 
+    }).populate('supplier', 'name email');
 
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
@@ -206,34 +241,6 @@ exports.updateProduct = async (req, res, next) => {
     console.error('❌ UPDATE PRODUCT ERROR:', error);
     res.status(500).json({ success: false, message: error.message });
   }
-};
-
-// Soft delete product   =>  /api/v1/admin/products/:id
-exports.softDeleteProduct = async (req, res, next) => {
-    try {
-        const product = await Product.findByIdAndUpdate(
-            req.params.id,
-            { isActive: false },
-            { new: true }
-        );
-
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: 'Product not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Product deleted successfully'
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
 };
 
 // Get active suppliers for dropdown   =>  /api/v1/suppliers/dropdown
@@ -254,7 +261,61 @@ exports.getActiveSuppliers = async (req, res, next) => {
     }
 };
 
-// ✅ Soft delete product   =>  /api/v1/admin/products/:id
+// Get deleted products
+exports.getDeletedProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ isActive: false })
+      .sort({ updatedAt: -1 })
+      .populate('supplier', 'name');
+
+    // Get review counts for deleted products
+    const productsWithReviews = await Promise.all(
+      products.map(async (product) => {
+        const reviewCount = await Review.countDocuments({ 
+          product: product._id, 
+          isActive: true 
+        });
+        
+        const productObj = product.toObject();
+        productObj.numOfReviews = reviewCount;
+        return productObj;
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      count: productsWithReviews.length,
+      products: productsWithReviews
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Restore product
+exports.restoreProduct = async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { isActive: true },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Product restored successfully',
+      product
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Soft delete product
 exports.softDeleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findByIdAndUpdate(
@@ -282,42 +343,7 @@ exports.softDeleteProduct = async (req, res, next) => {
   }
 };
 
-// ProductController.js
-exports.getDeletedProducts = async (req, res) => {
-  try {
-    const products = await Product.find({ isActive: false }).sort({ updatedAt: -1 }).populate('supplier', 'name');
-    res.status(200).json({
-      success: true,
-      count: products.length,
-      products
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.restoreProduct = async (req, res) => {
-  try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { isActive: true },
-      { new: true }
-    );
-
-    if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Product restored successfully',
-      product
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
+// Permanently delete product
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -340,6 +366,10 @@ exports.deleteProduct = async (req, res) => {
       }
     }
 
+    // Delete all reviews associated with this product
+    await Review.deleteMany({ product: req.params.id });
+    console.log(`✅ Deleted all reviews for product: ${req.params.id}`);
+
     // Remove the product from DB
     await Product.findByIdAndDelete(req.params.id);
 
@@ -349,6 +379,25 @@ exports.deleteProduct = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ DELETE PRODUCT ERROR:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get product reviews (for admin panel)
+exports.getProductReviews = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const reviews = await Review.find({ product: productId })
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: reviews.length,
+      reviews
+    });
+  } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
