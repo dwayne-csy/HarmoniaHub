@@ -17,6 +17,7 @@ export default function OrderList() {
   const [displayedOrders, setDisplayedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -76,6 +77,26 @@ export default function OrderList() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return alert('No orders selected.');
+    if (!window.confirm(`Permanently delete ${selectedIds.length} selected orders? This cannot be undone.`)) return;
+
+    try {
+      await Promise.all(selectedIds.map(id =>
+        axios.delete(`${BASE_URL}/admin/orders/${id}`, { 
+          headers: { Authorization: `Bearer ${token}` } 
+        })
+      ));
+      
+      showSnackbar(`${selectedIds.length} orders deleted successfully`, "success");
+      fetchOrders();
+      setSelectedIds([]);
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to delete orders", "error");
+    }
+  };
+
   const showSnackbar = (message, severity) => {
     setSnackbar({ open: true, message, severity });
   };
@@ -100,7 +121,7 @@ export default function OrderList() {
         order._id,
         order.user?.name || "N/A",
         products,
-        `$${order.totalPrice?.toFixed(2) || "0.00"}`,
+        `₱${order.totalPrice?.toFixed(2) || "0.00"}`,
         order.orderStatus,
       ]);
     });
@@ -136,7 +157,7 @@ export default function OrderList() {
       label: "Total Price",
       options: {
         customBodyRenderLite: (dataIndex) =>
-          `$${displayedOrders[dataIndex].totalPrice?.toFixed(2) || "0.00"}`,
+          `₱${displayedOrders[dataIndex].totalPrice?.toFixed(2) || "0.00"}`,
       },
     },
     {
@@ -152,6 +173,18 @@ export default function OrderList() {
               <Select
                 value={order.orderStatus}
                 onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                onClick={(e) => {
+                  // Stop propagation to prevent row selection
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  // Stop propagation to prevent row selection
+                  e.stopPropagation();
+                }}
+                onOpen={(e) => {
+                  // Stop propagation when dropdown opens
+                  e.stopPropagation();
+                }}
               >
                 {statusOptions.map((status) => (
                   <MenuItem key={status} value={status}>
@@ -175,7 +208,11 @@ export default function OrderList() {
             variant="contained"
             size="small"
             color="primary"
-            onClick={() => navigate(`/admin/orders/view/${displayedOrders[dataIndex]._id}`)}
+            onClick={(e) => {
+              // Stop propagation to prevent row selection
+              e.stopPropagation();
+              navigate(`/admin/orders/view/${displayedOrders[dataIndex]._id}`);
+            }}
           >
             View
           </Button>
@@ -185,7 +222,13 @@ export default function OrderList() {
   ];
 
   const options = {
-    selectableRows: "none",
+    selectableRows: "multiple",
+    selectableRowsOnClick: true,
+    rowsSelected: displayedOrders.map((p, i) => selectedIds.includes(p._id) ? i : null).filter(i => i !== null),
+    onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelectedIndexes) => {
+      const ids = rowsSelectedIndexes.map(i => displayedOrders[i]._id);
+      setSelectedIds(ids);
+    },
     download: false,
     print: false,
     viewColumns: false,
@@ -195,6 +238,13 @@ export default function OrderList() {
     rowsPerPageOptions: [5, 10, 25, 50],
     elevation: 0,
     responsive: "standard",
+    customToolbarSelect: () => <></>,
+    selectableRowsHeader: true,
+    // Additional option to prevent selection on certain clicks
+    isRowSelectable: (dataIndex) => {
+      // This doesn't directly solve the issue but helps with the logic
+      return true;
+    }
   };
 
   if (loading)
@@ -224,6 +274,16 @@ export default function OrderList() {
             ))}
           </Select>
         </FormControl>
+
+        {/* Bulk Delete Button */}
+        <Button 
+          variant="contained" 
+          color="error" 
+          onClick={handleBulkDelete}
+          disabled={selectedIds.length === 0}
+        >
+          Delete Selected ({selectedIds.length})
+        </Button>
       </Stack>
 
       <MUIDataTable data={displayedOrders} columns={columns} options={options} />

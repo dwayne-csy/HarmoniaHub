@@ -88,3 +88,79 @@ exports.checkout = async (req, res) => {
   }
 };
 
+
+
+exports.soloCheckout = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { productId, quantity = 1 } = req.body;
+
+    // Fetch user
+    const user = await User.findById(userId);
+    if (!user) 
+      return res.status(404).json({ success: false, message: "User not found" });
+
+    // Fetch product
+    const product = await Product.findById(productId);
+    if (!product) 
+      return res.status(404).json({ success: false, message: "Product not found" });
+
+    if (product.stock < quantity) 
+      return res.status(400).json({ success: false, message: "Product out of stock" });
+
+    // Map user address to shippingInfo
+    const shippingInfo = {
+      address: `${user.address.street || ""}, ${user.address.barangay || ""}`,
+      city: user.address.city || "",
+      postalCode: user.address.zipcode || "",
+      country: "Philippines",
+      phoneNo: user.contact || "",
+    };
+
+    // Validate shipping info
+    if (!shippingInfo.address || !shippingInfo.city || !shippingInfo.postalCode || !shippingInfo.country || !shippingInfo.phoneNo) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipping address incomplete. Please update your profile with a valid address and contact number.",
+      });
+    }
+
+    // Calculate totals
+    const TAX_RATE = 0.1;
+    const SHIPPING_PRICE = 50;
+
+    const itemsPrice = product.price * quantity;
+    const taxPrice = itemsPrice * TAX_RATE;
+    const totalPrice = itemsPrice + taxPrice + SHIPPING_PRICE;
+
+    // Create order item
+    const orderItems = [{
+      name: product.name,
+      quantity: quantity,
+      price: product.price,
+      image: product.images?.[0]?.url || "",
+      product: product._id,
+    }];
+
+    // Create order
+    const order = await Order.create({
+      user: userId,
+      orderItems,
+      shippingInfo,
+      itemsPrice,
+      taxPrice,
+      shippingPrice: SHIPPING_PRICE,
+      totalPrice,
+      orderStatus: "Processing",
+    });
+
+    // Decrease stock
+    product.stock = Math.max(product.stock - quantity, 0);
+    await product.save();
+
+    res.status(201).json({ success: true, order });
+  } catch (error) {
+    console.error("Solo checkout error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

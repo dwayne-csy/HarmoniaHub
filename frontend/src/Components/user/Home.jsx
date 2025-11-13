@@ -14,6 +14,7 @@ const Home = () => {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [cartCount, setCartCount] = useState(0);
   const [currentImageIndexes, setCurrentImageIndexes] = useState({});
+  const [processingCheckout, setProcessingCheckout] = useState(null);
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
@@ -104,8 +105,55 @@ const Home = () => {
     }
   };
 
-  const handleCheckoutSolo = (productId) => {
-    navigate(`/checkout/solo/${productId}`);
+  const handleSoloCheckout = async (productId) => {
+    if (!token) {
+      alert("Please log in to checkout.");
+      return;
+    }
+
+    setProcessingCheckout(productId);
+
+    try {
+      // Fetch product details for the confirmation page
+      const productRes = await axios.get(`http://localhost:4001/api/v1/products/${productId}`);
+      const product = productRes.data.product || productRes.data;
+      
+      if (!product) {
+        alert("Product not found.");
+        return;
+      }
+
+      if (product.stock < 1) {
+        alert("Product is out of stock.");
+        return;
+      }
+
+      // Create a mock cart object for the solo product
+      const soloCart = {
+        items: [
+          {
+            product: product,
+            quantity: 1,
+            _id: `solo-${productId}`
+          }
+        ]
+      };
+
+      // Navigate to checkout confirmation with the solo product
+      navigate("/checkout-confirmation", { 
+        state: { 
+          cart: soloCart,
+          checkoutType: "solo", // Add this to identify solo checkout
+          productId: productId 
+        } 
+      });
+
+    } catch (error) {
+      console.error("Failed to process checkout:", error);
+      alert("Failed to process checkout. Please try again.");
+    } finally {
+      setProcessingCheckout(null);
+    }
   };
 
   const handleLogout = () => {
@@ -115,105 +163,105 @@ const Home = () => {
 
   return (
     <div className="home-container">
-<header className="home-header">
-  <div
-        className="header-actions"
-        style={{ display: "flex", gap: "15px", justifyContent: "flex-end" }}
-      >
-        {user ? (
-          <>
-            {/* Order History - icon only */}
-            <button
-              onClick={() => navigate("/order-history")}
-              style={{
-                padding: "6px",
-                backgroundColor: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                color: "#1976d2",
-              }}
-              title="Order History"
-            >
-              <HistoryIcon fontSize="large" />
-            </button>
+      <header className="home-header">
+        <div
+          className="header-actions"
+          style={{ display: "flex", gap: "15px", justifyContent: "flex-end" }}
+        >
+          {user ? (
+            <>
+              {/* Order History - icon only */}
+              <button
+                onClick={() => navigate("/order-history")}
+                style={{
+                  padding: "6px",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#1976d2",
+                }}
+                title="Order History"
+              >
+                <HistoryIcon fontSize="large" />
+              </button>
 
-            {/* Profile */}
-            <button
-              onClick={() => navigate("/profile")}
-              style={{
-                padding: "6px",
-                backgroundColor: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                color: "#1976d2",
-              }}
-              title="Profile"
-            >
-              <AccountCircleIcon fontSize="large" />
-            </button>
+              {/* Profile */}
+              <button
+                onClick={() => navigate("/profile")}
+                style={{
+                  padding: "6px",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#1976d2",
+                }}
+                title="Profile"
+              >
+                <AccountCircleIcon fontSize="large" />
+              </button>
 
-            {/* Cart */}
-            <button
-              onClick={() => navigate("/cart")}
-              style={{
-                padding: "6px",
-                backgroundColor: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                color: "#1976d2",
-                position: "relative",
-              }}
-              title="Cart"
-            >
-              <ShoppingCartIcon fontSize="large" />
-              {cartCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -5,
-                    right: -5,
-                    backgroundColor: "red",
-                    color: "white",
-                    borderRadius: "50%",
-                    padding: "2px 6px",
-                    fontSize: 12,
-                  }}
-                >
-                  {cartCount}
-                </span>
-              )}
-            </button>
+              {/* Cart */}
+              <button
+                onClick={() => navigate("/cart")}
+                style={{
+                  padding: "6px",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#1976d2",
+                  position: "relative",
+                }}
+                title="Cart"
+              >
+                <ShoppingCartIcon fontSize="large" />
+                {cartCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -5,
+                      right: -5,
+                      backgroundColor: "red",
+                      color: "white",
+                      borderRadius: "50%",
+                      padding: "2px 6px",
+                      fontSize: 12,
+                    }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
+              </button>
 
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: "6px",
-                backgroundColor: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                color: "#d32f2f",
-              }}
-              title="Logout"
-            >
-              <LogoutIcon fontSize="large" />
-            </button>
-          </>
-        ) : (
-          <Link to="/login" className="btn-primary">
-            Login
-          </Link>
-        )}
-      </div>
-    </header>
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                style={{
+                  padding: "6px",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#d32f2f",
+                }}
+                title="Logout"
+              >
+                <LogoutIcon fontSize="large" />
+              </button>
+            </>
+          ) : (
+            <Link to="/login" className="btn-primary">
+              Login
+            </Link>
+          )}
+        </div>
+      </header>
 
       {user && (
         <main className="products-section">
@@ -352,7 +400,8 @@ const Home = () => {
                         </button>
 
                         <button
-                          onClick={() => handleCheckoutSolo(product._id)}
+                          onClick={() => handleSoloCheckout(product._id)}
+                          disabled={processingCheckout === product._id}
                           style={{
                             flex: 1,
                             display: "flex",
@@ -360,16 +409,23 @@ const Home = () => {
                             justifyContent: "center",
                             gap: 5,
                             padding: "8px 10px",
-                            backgroundColor: "#388e3c",
+                            backgroundColor: processingCheckout === product._id ? "#6b8e23" : "#388e3c",
                             color: "#fff",
                             border: "none",
                             borderRadius: 8,
-                            cursor: "pointer",
+                            cursor: processingCheckout === product._id ? "not-allowed" : "pointer",
                             fontWeight: 500,
                             transition: "0.3s",
+                            opacity: processingCheckout === product._id ? 0.7 : 1,
                           }}
                         >
-                          Checkout <ArrowForwardIcon fontSize="small" />
+                          {processingCheckout === product._id ? (
+                            "Processing..."
+                          ) : (
+                            <>
+                              Checkout <ArrowForwardIcon fontSize="small" />
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>

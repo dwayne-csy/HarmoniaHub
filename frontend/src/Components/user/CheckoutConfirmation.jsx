@@ -9,14 +9,17 @@ import {
   CardContent, 
   CardMedia, 
   Stack, 
-  CircularProgress 
+  Alert 
 } from "@mui/material";
+import Loader from "../layouts/Loader";
 
 const CheckoutConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const cart = location.state?.cart;
+  const checkoutType = location.state?.checkoutType; 
+  const productId = location.state?.productId;
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +55,7 @@ const CheckoutConfirmation = () => {
   if (loading)
     return (
       <Box display="flex" justifyContent="center" mt={5}>
-        <CircularProgress />
+        <Loader />
       </Box>
     );
 
@@ -84,13 +87,27 @@ const CheckoutConfirmation = () => {
     setCheckoutLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:4001/api/v1/checkout",
-        {}, // backend fetches cart from DB
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      let res;
+
+      if (checkoutType === "solo" && productId) {
+        // Solo checkout
+        res = await axios.post(
+          "http://localhost:4001/api/v1/checkout/solo",
+          { productId, quantity: 1 },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+      } else {
+        // Cart checkout
+        res = await axios.post(
+          "http://localhost:4001/api/v1/checkout",
+          {}, // backend fetches cart from DB
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+      }
 
       if (res.data.success) {
         alert("Order placed successfully!");
@@ -100,7 +117,21 @@ const CheckoutConfirmation = () => {
       }
     } catch (error) {
       console.error("Checkout failed:", error.response?.data || error.message);
-      alert(error.response?.data?.message || "Checkout failed");
+      const errorMessage = error.response?.data?.message || "Checkout failed";
+      
+      if (error.response?.status === 400) {
+        if (errorMessage.includes("Shipping address incomplete")) {
+          alert("Please complete your shipping address in your profile before checking out.");
+          navigate("/profile");
+          return;
+        } else if (errorMessage.includes("out of stock")) {
+          alert("One or more products are out of stock. Please refresh the page and try again.");
+          navigate("/");
+          return;
+        }
+      }
+      
+      alert(errorMessage);
       if (error.response?.status === 401) navigate("/login");
     } finally {
       setCheckoutLoading(false);
@@ -109,7 +140,14 @@ const CheckoutConfirmation = () => {
 
   return (
     <Box p={3}>
-      <Typography variant="h4" mb={3}>Confirm Your Order</Typography>
+      <Typography variant="h4" mb={3}>
+        Confirm Your Order
+        {checkoutType === "solo" && (
+          <Alert severity="info" sx={{ mt: 1 }}>
+            Single Product Checkout
+          </Alert>
+        )}
+      </Typography>
 
       {/* User Info */}
       {user && (
@@ -161,7 +199,14 @@ const CheckoutConfirmation = () => {
         <Typography variant="h5" mt={1}>Total: ${totalPrice.toFixed(2)}</Typography>
       </Box>
 
-      <Box mt={3} display="flex" justifyContent="flex-end">
+      <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
+        <Button
+          variant="outlined"
+          onClick={() => navigate(-1)}
+          disabled={checkoutLoading}
+        >
+          Back
+        </Button>
         <Button
           variant="contained"
           color="primary"
