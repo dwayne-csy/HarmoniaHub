@@ -89,8 +89,8 @@ export default function ReviewList() {
       if (showDeleted) {
         // Permanently delete
         await Promise.all(
-          selectedIds.map(({ productId, reviewId }) =>
-            axios.delete(`${BASE_URL}/admin/reviews/delete/${productId}/${reviewId}`, {
+          selectedIds.map((reviewId) =>
+            axios.delete(`${BASE_URL}/admin/reviews/delete/${reviewId}`, {
               headers: { Authorization: `Bearer ${token}` },
             })
           )
@@ -99,8 +99,8 @@ export default function ReviewList() {
       } else {
         // Soft delete
         await Promise.all(
-          selectedIds.map(({ productId, reviewId }) =>
-            axios.delete(`${BASE_URL}/admin/reviews/softdelete/${productId}/${reviewId}`, {
+          selectedIds.map((reviewId) =>
+            axios.patch(`${BASE_URL}/admin/reviews/softdelete/${reviewId}`, {}, {
               headers: { Authorization: `Bearer ${token}` },
             })
           )
@@ -200,9 +200,10 @@ export default function ReviewList() {
               variant="contained"
               color="primary"
               size="small"
-              onClick={() =>
-                navigate(`/admin/reviews/view/${rev.productId}/${rev._id}`)
-              }
+              onClick={() => {
+                console.log("Navigating to review:", rev._id);
+                navigate(`/admin/reviews/view/${rev._id}`);
+              }}
             >
               View
             </Button>
@@ -216,10 +217,7 @@ export default function ReviewList() {
     selectableRows: "multiple",
     selectableRowsOnClick: true,
     onRowSelectionChange: (currentRowsSelected, allRowsSelected, rowsSelectedIndexes) => {
-      const selected = rowsSelectedIndexes.map((i) => ({
-        productId: filteredReviews[i].productId,
-        reviewId: filteredReviews[i]._id,
-      }));
+      const selected = rowsSelectedIndexes.map((i) => filteredReviews[i]._id);
       setSelectedIds(selected);
     },
     download: false,

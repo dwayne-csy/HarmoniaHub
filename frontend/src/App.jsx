@@ -38,6 +38,7 @@ import ViewOrder from "./Components/admin/ordermanagement/ViewOrder";
 
 // Review Management (NEW)
 import ReviewList from "./Components/admin/reviewmanagement/ReviewList";
+import ViewReview from "./Components/admin/reviewmanagement/ViewReview";
 
 const App = () => {
   const token = localStorage.getItem("token");
@@ -96,6 +97,7 @@ const App = () => {
 
         {/* Review Management (NEW) */}
         <Route path="/admin/reviews" element={<AdminRoutes><ReviewList /></AdminRoutes>} />
+        <Route path="/admin/reviews/view/:reviewId" element={<AdminRoutes><ViewReview /></AdminRoutes>} />
 
         {/* Catch-all Redirect */}
         <Route path="*" element={<Navigate to={getDefaultRoute()} />} />
