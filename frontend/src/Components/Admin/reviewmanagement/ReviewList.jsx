@@ -179,7 +179,7 @@ export default function ReviewList() {
     doc.save("Reviews.pdf");
   };
 
-  const columns = [
+ const columns = [
   {
     name: "productName",
     label: "Product",
@@ -300,31 +300,37 @@ export default function ReviewList() {
         display: "flex", 
         flexDirection: "column", 
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={user} handleLogout={handleLogout} />
-        <Box sx={{ 
-          display: "flex", 
-          justifyContent: "center", 
-          alignItems: "center", 
-          minHeight: "60vh",
-          flex: 1 
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '80vh', 
+          flex: 1,
+          margin: 0,
+          padding: 0
         }}>
           <Loader />
-        </Box>
+        </div>
         <AdminFooter />
       </div>
     );
   }
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
       minHeight: "100vh",
       background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      margin: 0,
+      padding: 0
     }}>
       
       {/* Gold shimmer overlay */}
@@ -343,36 +349,98 @@ export default function ReviewList() {
       
       <main style={{ 
         flex: 1, 
-        padding: "20px 30px",
+        padding: "0",
+        backgroundColor: "transparent",
         position: "relative",
-        zIndex: 1
+        zIndex: 1,
+        margin: 0,
+        width: "100%"
       }}>
+        <style>
+          {`
+            /* Override MUIDataTable styles to remove white backgrounds */
+            .MuiTable-root {
+              background-color: transparent !important;
+            }
+            .MuiTableHead-root {
+              background-color: rgba(30, 30, 30, 0.9) !important;
+            }
+            .MuiTableRow-root {
+              background-color: transparent !important;
+            }
+            .MuiTableCell-head {
+              background-color: rgba(40, 40, 40, 0.9) !important;
+              color: #d4af37 !important;
+              border-bottom: 1px solid rgba(212,175,55,0.3) !important;
+            }
+            .MuiTableCell-body {
+              background-color: transparent !important;
+              color: #ffffff !important;
+              border-bottom: 1px solid rgba(212,175,55,0.2) !important;
+            }
+            .MuiTableSortLabel-root:hover {
+              color: #d4af37 !important;
+            }
+            .MuiTableSortLabel-icon {
+              color: #d4af37 !important;
+            }
+            .MuiCheckbox-root {
+              color: #d4af37 !important;
+            }
+            .MuiTablePagination-root {
+              color: #d4af37 !important;
+            }
+            .MuiTablePagination-selectIcon {
+              color: #d4af37 !important;
+            }
+            .MuiInputBase-root {
+              color: #000000ff !important;
+            }
+            .MuiTableContainer-root {
+              background-color: transparent !important;
+              box-shadow: none !important;
+            }
+            /* Remove any white gaps around the table */
+            body {
+              margin: 0;
+              padding: 0;
+              overflow-x: hidden;
+            }
+          `}
+        </style>
+        
         <Box sx={{ 
-          maxWidth: 1200, 
-          margin: '24px auto',
-          background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
-          backdropFilter: "blur(15px)",
-          padding: "30px",
-          borderRadius: "18px",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
-          border: "1px solid rgba(212,175,55,0.3)",
-          position: "relative",
-          overflow: "hidden"
+          maxWidth: "100%", 
+          margin: "0",
+          padding: "20px 0"
         }}>
-          
-          {/* Gold accent line */}
-          <div style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "3px",
-            background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
-          }}></div>
+          <Box sx={{ 
+            maxWidth: "100%", 
+            margin: '0',
+            background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
+            backdropFilter: "blur(15px)",
+            padding: "30px 20px",
+            borderRadius: "0",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
+            border: "1px solid rgba(212,175,55,0.3)",
+            position: "relative",
+            overflow: "hidden",
+            minHeight: "calc(100vh - 140px)"
+          }}>
+            
+            {/* Gold accent line */}
+            <div style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "3px",
+              background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
+            }}></div>
 
-          {/* Back Button and Title Section */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-           <IconButton
+            {/* Back Button and Title Section */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, maxWidth: "1200px", margin: "0 auto", padding: "0 10px" }}>
+             <IconButton
   onClick={() => navigate("/admin/dashboard")}
   sx={{
     color: "#d4af37",
@@ -389,187 +457,192 @@ export default function ReviewList() {
 >
   <ArrowBack />
 </IconButton>
-            
-            <Typography variant="h4" sx={{ 
-              fontWeight: "bold", 
-              color: "#d4af37",
-              textShadow: "0 2px 4px rgba(0,0,0,0.5)"
-            }}>
-              {showDeleted ? 'Deleted Reviews (Trash)' : 'Review Management'}
-            </Typography>
-          </Box>
+              
+              <Typography variant="h4" sx={{ 
+                fontWeight: "bold", 
+                color: "#d4af37",
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+              }}>
+                {showDeleted ? 'Deleted Reviews (Trash)' : 'Review Management'}
+              </Typography>
+            </Box>
 
-          {/* Filter Section */}
-          <Stack direction="row" spacing={2} mb={3}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel sx={{ color: "#d4af37" }}>Filter by Product</InputLabel>
-              <Select
-                value={productFilter}
-                label="Filter by Product"
-                onChange={handleFilterChange}
-                sx={{
-                  color: "#fff",
-                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(212,175,55,0.3)" },
-                  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(212,175,55,0.5)" },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#d4af37" },
-                  "& .MuiSvgIcon-root": { color: "#d4af37" }
-                }}
-              >
-                <MenuItem value="">All Products</MenuItem>
-                {productOptions.map((p) => (
-                  <MenuItem key={p} value={p} sx={{ color: "#fff", background: "#2d2d2d" }}>
-                    {p}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {/* Filter Section */}
+            <Box sx={{ maxWidth: "1200px", margin: "0 auto", padding: "0 10px" }}>
+              <Stack direction="row" spacing={2} mb={3}>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel sx={{ color: "#d4af37" }}>Filter by Product</InputLabel>
+                  <Select
+                    value={productFilter}
+                    label="Filter by Product"
+                    onChange={handleFilterChange}
+                    sx={{
+                      color: "#fff",
+                      "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(212,175,55,0.3)" },
+                      "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(212,175,55,0.5)" },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#d4af37" },
+                      "& .MuiSvgIcon-root": { color: "#d4af37" }
+                    }}
+                  >
+                    <MenuItem value="">All Products</MenuItem>
+                    {productOptions.map((p) => (
+                      <MenuItem key={p} value={p} sx={{ color: "#000000ff", background: "#2d2d2d" }}>
+                        {p}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel sx={{ color: "#d4af37" }}>Filter by Star</InputLabel>
-              <Select
-                value={starFilter}
-                label="Filter by Star"
-                onChange={handleStarFilterChange}
-                sx={{
-                  color: "#fff",
-                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(212,175,55,0.3)" },
-                  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(212,175,55,0.5)" },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#d4af37" },
-                  "& .MuiSvgIcon-root": { color: "#d4af37" }
-                }}
-              >
-                <MenuItem value={0} sx={{ color: "#fff", background: "#2d2d2d" }}>
-                  All Stars
-                </MenuItem>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <MenuItem key={s} value={s} sx={{ color: "#fff", background: "#2d2d2d" }}>
-                    {s} <StarIcon style={{ color: "#FFD700", verticalAlign: "middle", marginLeft: 8 }} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel sx={{ color: "#ffc400ff" }}></InputLabel>
+                  <Select
+                    value={starFilter}
+                    label="Filter by Star"
+                    onChange={handleStarFilterChange}
+                    sx={{
+                      color: "#fff",
+                      "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(212,175,55,0.3)" },
+                      "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(212,175,55,0.5)" },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#d4af37" },
+                      "& .MuiSvgIcon-root": { color: "#d4af37" }
+                    }}
+                  >
+                    <MenuItem value={0} sx={{ color: "#000000ff", background: "#d0c746ff" }}>
+                      All Stars
+                    </MenuItem>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <MenuItem key={s} value={s} sx={{ color: "#000000ff", background: "#ffffffff" }}>
+                        {s} <StarIcon style={{ color: "#FFD700", verticalAlign: "middle", marginLeft: 8 }} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
 
-          {/* Action Buttons */}
-          <Stack direction="row" spacing={2} mb={3} flexWrap="wrap" gap={1}>
-            <Button
-              variant="contained"
-              onClick={() => setShowDeleted(!showDeleted)}
-              sx={{
-                background: showDeleted 
-                  ? "linear-gradient(135deg, #4CAF50, #45a049)"
-                  : "linear-gradient(135deg, #d4af37, #b8860b)",
-                color: "#1a1a1a",
-                fontWeight: "bold",
-                "&:hover": {
-                  background: showDeleted 
-                    ? "linear-gradient(135deg, #66bb6a, #4caf50)"
-                    : "linear-gradient(135deg, #e6c453, #c9970b)",
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
-                },
-                transition: "all 0.3s ease"
-              }}
-            >
-              {showDeleted ? 'Show Active' : 'Trash'}
-            </Button>
-
-            {showDeleted ? (
-              <>
+              {/* Action Buttons */}
+              <Stack direction="row" spacing={2} mb={3} flexWrap="wrap" gap={1}>
                 <Button
                   variant="contained"
-                  onClick={handleBulkRestore}
-                  disabled={selectedIds.length === 0}
+                  onClick={() => setShowDeleted(!showDeleted)}
                   sx={{
-                    background: "linear-gradient(135deg, #28a745, #218838)",
-                    color: "#fff",
+                    background: showDeleted 
+                      ? "linear-gradient(135deg, #4CAF50, #45a049)"
+                      : "linear-gradient(135deg, #d4af37, #b8860b)",
+                    color: "#1a1a1a",
                     fontWeight: "bold",
                     "&:hover": {
-                      background: "linear-gradient(135deg, #34ce57, #28a745)",
-                      transform: "translateY(-2px)"
-                    },
-                    "&:disabled": {
-                      background: "rgba(40, 167, 69, 0.3)",
-                      color: "rgba(255,255,255,0.5)"
+                      background: showDeleted 
+                        ? "linear-gradient(135deg, #66bb6a, #4caf50)"
+                        : "linear-gradient(135deg, #e6c453, #c9970b)",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
                     },
                     transition: "all 0.3s ease"
                   }}
                 >
-                  Restore Selected
+                  {showDeleted ? 'Show Active' : 'Trash'}
                 </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleBulkDelete}
-                  disabled={selectedIds.length === 0}
-                  sx={{
-                    background: "linear-gradient(135deg, #dc3545, #c82333)",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    "&:hover": {
-                      background: "linear-gradient(135deg, #e74c3c, #dc3545)",
-                      transform: "translateY(-2px)"
-                    },
-                    "&:disabled": {
-                      background: "rgba(220, 53, 69, 0.3)",
-                      color: "rgba(255,255,255,0.5)"
-                    },
-                    transition: "all 0.3s ease"
-                  }}
-                >
-                  Delete Selected
-                </Button>
-              </>
-            ) : (
+
+                {showDeleted ? (
+                  <>
+                    <Button
+                      variant="contained"
+                      onClick={handleBulkRestore}
+                      disabled={selectedIds.length === 0}
+                      sx={{
+                        background: "linear-gradient(135deg, #28a745, #218838)",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        "&:hover": {
+                          background: "linear-gradient(135deg, #34ce57, #28a745)",
+                          transform: "translateY(-2px)"
+                        },
+                        "&:disabled": {
+                          background: "rgba(40, 167, 69, 0.3)",
+                          color: "rgba(255,255,255,0.5)"
+                        },
+                        transition: "all 0.3s ease"
+                      }}
+                    >
+                      Restore Selected
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={handleBulkDelete}
+                      disabled={selectedIds.length === 0}
+                      sx={{
+                        background: "linear-gradient(135deg, #dc3545, #c82333)",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        "&:hover": {
+                          background: "linear-gradient(135deg, #e74c3c, #dc3545)",
+                          transform: "translateY(-2px)"
+                        },
+                        "&:disabled": {
+                          background: "rgba(220, 53, 69, 0.3)",
+                          color: "rgba(255,255,255,0.5)"
+                        },
+                        transition: "all 0.3s ease"
+                      }}
+                    >
+                      Delete Selected
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleBulkDelete}
+                    disabled={selectedIds.length === 0}
+                    sx={{
+                      background: "linear-gradient(135deg, #dc3545, #c82333)",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      "&:hover": {
+                        background: "linear-gradient(135deg, #e74c3c, #dc3545)",
+                        transform: "translateY(-2px)"
+                      },
+                      "&:disabled": {
+                        background: "rgba(220, 53, 69, 0.3)",
+                        color: "rgba(255,255,255,0.5)"
+                      },
+                      transition: "all 0.3s ease"
+                    }}
+                  >
+                    Delete Selected
+                  </Button>
+                )}
+              </Stack>
+            </Box>
+
+            {/* Data Table - Full Width */}
+            <Box sx={{ width: "100%", padding: "0 10px" }}>
+              <MUIDataTable
+                data={filteredReviews}
+                columns={columns}
+                options={options}
+              />
+            </Box>
+
+            {/* Export Button */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2, maxWidth: "1200px", margin: "0 auto", padding: "0 10px" }}>
               <Button
                 variant="contained"
-                onClick={handleBulkDelete}
-                disabled={selectedIds.length === 0}
+                onClick={exportPDF}
                 sx={{
-                  background: "linear-gradient(135deg, #dc3545, #c82333)",
-                  color: "#fff",
+                  background: "linear-gradient(135deg, #d4af37, #b8860b)",
+                  color: "#1a1a1a",
                   fontWeight: "bold",
                   "&:hover": {
-                    background: "linear-gradient(135deg, #e74c3c, #dc3545)",
-                    transform: "translateY(-2px)"
-                  },
-                  "&:disabled": {
-                    background: "rgba(220, 53, 69, 0.3)",
-                    color: "rgba(255,255,255,0.5)"
+                    background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
                   },
                   transition: "all 0.3s ease"
                 }}
               >
-                Delete Selected
+                Export PDF
               </Button>
-            )}
-          </Stack>
-
-          {/* Data Table */}
-          <MUIDataTable
-            data={filteredReviews}
-            columns={columns}
-            options={options}
-          />
-
-          {/* Export Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-            <Button
-              variant="contained"
-              onClick={exportPDF}
-              sx={{
-                background: "linear-gradient(135deg, #d4af37, #b8860b)",
-                color: "#1a1a1a",
-                fontWeight: "bold",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #e6c453, #c9970b)",
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
-                },
-                transition: "all 0.3s ease"
-              }}
-            >
-              Export PDF
-            </Button>
+            </Box>
           </Box>
         </Box>
       </main>

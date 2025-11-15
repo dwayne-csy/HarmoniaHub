@@ -18,8 +18,7 @@ import {
   Card,
   CardMedia,
   Stack,
-  FormHelperText,
-  Container
+  FormHelperText
 } from "@mui/material";
 import { Close as CloseIcon, ArrowBack } from "@mui/icons-material";
 import { toast, ToastContainer } from "react-toastify";
@@ -240,7 +239,9 @@ export default function CreateProduct() {
         display: "flex", 
         flexDirection: "column", 
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={user} handleLogout={handleLogout} />
         <Box sx={{ 
@@ -248,7 +249,9 @@ export default function CreateProduct() {
           justifyContent: "center", 
           alignItems: "center", 
           minHeight: "60vh",
-          flex: 1 
+          flex: 1,
+          margin: 0,
+          padding: 0
         }}>
           <Loader />
         </Box>
@@ -264,7 +267,9 @@ export default function CreateProduct() {
       minHeight: "100vh",
       background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      margin: 0,
+      padding: 0
     }}>
       
       {/* Gold shimmer overlay */}
@@ -283,20 +288,41 @@ export default function CreateProduct() {
 
       <main style={{ 
         flex: 1, 
-        padding: "20px 30px",
+        padding: "0",
+        backgroundColor: "transparent",
         position: "relative",
-        zIndex: 1
+        zIndex: 1,
+        margin: 0,
+        width: "100%"
       }}>
-        <Container maxWidth="md">
+        <style>
+          {`
+            /* Remove default body margins */
+            body {
+              margin: 0;
+              padding: 0;
+              overflow-x: hidden;
+            }
+          `}
+        </style>
+        
+        <Box sx={{ 
+          maxWidth: "100%", 
+          margin: "0",
+          padding: "20px 0"
+        }}>
           <Box sx={{
+            maxWidth: "100%", 
+            margin: '0',
             background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
             backdropFilter: "blur(15px)",
-            padding: "30px",
-            borderRadius: "18px",
+            padding: "30px 20px",
+            borderRadius: "0",
             boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
             border: "1px solid rgba(212,175,55,0.3)",
             position: "relative",
-            overflow: "hidden"
+            overflow: "hidden",
+            minHeight: "calc(100vh - 140px)"
           }}>
             
             {/* Gold accent line */}
@@ -309,294 +335,299 @@ export default function CreateProduct() {
               background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
             }}></div>
 
-            <Box sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: "15px",
-              mb: 3
-            }}>
-              <IconButton
-                onClick={() => navigate("/admin/products")}
-                sx={{
-                  color: "#d4af37",
-                  border: "1px solid rgba(212,175,55,0.3)",
-                  background: "rgba(212,175,55,0.1)",
-                  '&:hover': {
-                    background: "rgba(212,175,55,0.2)"
-                  }
-                }}
-              >
-                <ArrowBack />
-              </IconButton>
-              <Typography variant="h4" sx={{ 
-                fontWeight: "bold", 
-                color: "#d4af37",
-                textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+            <Box sx={{ maxWidth: "800px", margin: "0 auto", padding: "0 10px" }}>
+              <Box sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "15px",
+                mb: 3
               }}>
-                Create Product
-              </Typography>
-            </Box>
+                <IconButton
+                  onClick={() => navigate("/admin/products")}
+                  sx={{
+                    color: "#d4af37",
+                    border: "1px solid rgba(212,175,55,0.3)",
+                    background: "rgba(212,175,55,0.1)",
+                    '&:hover': {
+                      background: "rgba(212,175,55,0.2)",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 12px rgba(212,175,55,0.3)"
+                    },
+                    transition: "all 0.3s ease"
+                  }}
+                >
+                  <ArrowBack />
+                </IconButton>
+                <Typography variant="h4" sx={{ 
+                  fontWeight: "bold", 
+                  color: "#d4af37",
+                  textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+                }}>
+                  Create Product
+                </Typography>
+              </Box>
 
-            <Box sx={{
-              background: "rgba(20,20,20,0.8)",
-              borderRadius: "12px",
-              p: 3,
-              border: "1px solid rgba(212,175,55,0.2)",
-              boxShadow: "0 8px 25px rgba(0,0,0,0.2)"
-            }}>
-              
-              <form onSubmit={handleSubmit}>
-                <Stack spacing={3}>
+              <Box sx={{
+                background: "rgba(20,20,20,0.8)",
+                borderRadius: "12px",
+                p: 3,
+                border: "1px solid rgba(212,175,55,0.2)",
+                boxShadow: "0 8px 25px rgba(0,0,0,0.2)"
+              }}>
+                
+                <form onSubmit={handleSubmit}>
+                  <Stack spacing={3}>
 
-                  {/* Styled Input Fields */}
-                  <TextField
-                    label="Name*"
-                    fullWidth
-                    value={form.name}
-                    onChange={(e) => handleFieldChange('name', e.target.value)}
-                    onBlur={(e) => handleFieldChange('name', e.target.value)}
-                    error={!!errors.name}
-                    helperText={errors.name}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
-                    }}
-                  />
-
-                  <TextField
-                    label="Price*"
-                    type="number"
-                    fullWidth
-                    value={form.price}
-                    onChange={(e) => handleFieldChange('price', e.target.value)}
-                    onBlur={(e) => handleFieldChange('price', e.target.value)}
-                    error={!!errors.price}
-                    helperText={errors.price}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
-                    }}
-                  />
-
-                  <TextField
-                    label="Description*"
-                    multiline
-                    rows={4}
-                    fullWidth
-                    value={form.description}
-                    onChange={(e) => handleFieldChange('description', e.target.value)}
-                    onBlur={(e) => handleFieldChange('description', e.target.value)}
-                    error={!!errors.description}
-                    helperText={errors.description}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
-                    }}
-                  />
-
-                  <FormControl fullWidth error={!!errors.category}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}>
-                    <InputLabel>Category*</InputLabel>
-                    <Select
-                      value={form.category}
-                      label="Category*"
-                      onChange={(e) => handleFieldChange('category', e.target.value)}
-                    >
-                      {categories.map((c) => (
-                        <MenuItem key={c} value={c} sx={{ color: "#fff", background: "#2d2d2d" }}>{c}</MenuItem>
-                      ))}
-                    </Select>
-                    {errors.category && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.category}</FormHelperText>}
-                  </FormControl>
-
-                  <FormControl fullWidth error={!!errors.supplier}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}>
-                    <InputLabel>Supplier*</InputLabel>
-                    <Select
-                      value={form.supplier}
-                      label="Supplier*"
-                      onChange={(e) => handleFieldChange('supplier', e.target.value)}
-                    >
-                      <MenuItem value="" sx={{ color: "#000000ff", background: "#2d2d2d" }}>-- Select Supplier --</MenuItem>
-                      {suppliers.map((s) => (
-                        <MenuItem key={s._id} value={s._id} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{s.name}</MenuItem>
-                      ))}
-                    </Select>
-                    {errors.supplier && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.supplier}</FormHelperText>}
-                  </FormControl>
-
-                  <TextField
-                    label="Stock*"
-                    type="number"
-                    fullWidth
-                    value={form.stock}
-                    onChange={(e) => handleFieldChange('stock', e.target.value)}
-                    onBlur={(e) => handleFieldChange('stock', e.target.value)}
-                    error={!!errors.stock}
-                    helperText={errors.stock}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
-                    }}
-                  />
-
-                  {/* Image Upload */}
-                  <FormControl error={!!errors.images}>
-                    <Button
-                      variant="contained"
-                      component="label"
+                    {/* Styled Input Fields */}
+                    <TextField
+                      label="Name*"
+                      fullWidth
+                      value={form.name}
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
+                      onBlur={(e) => handleFieldChange('name', e.target.value)}
+                      error={!!errors.name}
+                      helperText={errors.name}
                       sx={{
-                        background: "linear-gradient(135deg, #d4af37, #b8860b)",
-                        color: "#1a1a1a",
-                        fontWeight: "bold",
-                        padding: "12px 24px",
-                        borderRadius: "10px",
-                        "&:hover": {
-                          background: "linear-gradient(135deg, #e6c453, #c9970b)",
-                          transform: "translateY(-2px)",
-                          boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
                         },
-                        transition: "all 0.3s ease"
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                        "& .MuiFormHelperText-root": { color: "#ff6b6b" }
                       }}
-                    >
-                      📸 Choose Images* (Min 2)
-                      <input type="file" hidden multiple accept="image/*" onChange={handleFileChange} />
-                    </Button>
-                    {errors.images && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.images}</FormHelperText>}
-                  </FormControl>
+                    />
 
-                  {/* Image Preview Grid */}
-                  {imagePreviews.length > 0 && (
-                    <Grid container spacing={2}>
-                      {imagePreviews.map((img, i) => (
-                        <Grid item key={i}>
-                          <Card sx={{
-                            width: 100,
-                            height: 100,
-                            position: "relative",
-                            border: "2px solid #d4af37",
-                            borderRadius: "12px",
-                            overflow: "hidden",
-                            boxShadow: "0 4px 15px rgba(212,175,55,0.3)"
-                          }}>
-                            <CardMedia
-                              component="img"
-                              image={img}
-                              alt="preview"
-                              sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                            <IconButton
-                              size="small"
-                              sx={{
-                                position: "absolute",
-                                top: -5,
-                                right: -5,
-                                background: "#b22222",
-                                color: "white",
-                                "&:hover": { background: "#7a1616" }
-                              }}
-                              onClick={() => removeImage(i)}
-                            >
-                              <CloseIcon fontSize="small" />
-                            </IconButton>
-                          </Card>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  )}
-
-                  {/* Submit Buttons */}
-                  <Stack direction="row" spacing={2} mt={2}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={loading || hasErrors}
-                      startIcon={loading && <CircularProgress size={16} sx={{ color: "#1a1a1a" }} />}
+                    <TextField
+                      label="Price*"
+                      type="number"
+                      fullWidth
+                      value={form.price}
+                      onChange={(e) => handleFieldChange('price', e.target.value)}
+                      onBlur={(e) => handleFieldChange('price', e.target.value)}
+                      error={!!errors.price}
+                      helperText={errors.price}
                       sx={{
-                        background: "linear-gradient(135deg, #d4af37, #b8860b)",
-                        color: "#1a1a1a",
-                        fontWeight: "bold",
-                        padding: "12px 30px",
-                        borderRadius: "10px",
-                        "&:hover": {
-                          background: "linear-gradient(135deg, #e6c453, #c9970b)",
-                          transform: "translateY(-2px)",
-                          boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
                         },
-                        "&:disabled": {
-                          background: "rgba(212,175,55,0.3)",
-                          color: "rgba(255,255,255,0.5)"
-                        },
-                        transition: "all 0.3s ease"
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                        "& .MuiFormHelperText-root": { color: "#ff6b6b" }
                       }}
-                    >
-                      {loading ? "Creating..." : "Create Product"}
-                    </Button>
+                    />
+
+                    <TextField
+                      label="Description*"
+                      multiline
+                      rows={4}
+                      fullWidth
+                      value={form.description}
+                      onChange={(e) => handleFieldChange('description', e.target.value)}
+                      onBlur={(e) => handleFieldChange('description', e.target.value)}
+                      error={!!errors.description}
+                      helperText={errors.description}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                        "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                      }}
+                    />
+
+                    <FormControl fullWidth error={!!errors.category}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}>
+                      <InputLabel>Category*</InputLabel>
+                      <Select
+                        value={form.category}
+                        label="Category*"
+                        onChange={(e) => handleFieldChange('category', e.target.value)}
+                      >
+                        {categories.map((c) => (
+                          <MenuItem key={c} value={c} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{c}</MenuItem>
+                        ))}
+                      </Select>
+                      {errors.category && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.category}</FormHelperText>}
+                    </FormControl>
+
+                    <FormControl fullWidth error={!!errors.supplier}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}>
+                      <InputLabel>Supplier*</InputLabel>
+                      <Select
+                        value={form.supplier}
+                        label="Supplier*"
+                        onChange={(e) => handleFieldChange('supplier', e.target.value)}
+                      >
+                        <MenuItem value="" sx={{ color: "#fff", background: "#2d2d2d" }}>-- Select Supplier --</MenuItem>
+                        {suppliers.map((s) => (
+                          <MenuItem key={s._id} value={s._id} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{s.name}</MenuItem>
+                        ))}
+                      </Select>
+                      {errors.supplier && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.supplier}</FormHelperText>}
+                    </FormControl>
+
+                    <TextField
+                      label="Stock*"
+                      type="number"
+                      fullWidth
+                      value={form.stock}
+                      onChange={(e) => handleFieldChange('stock', e.target.value)}
+                      onBlur={(e) => handleFieldChange('stock', e.target.value)}
+                      error={!!errors.stock}
+                      helperText={errors.stock}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                        "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                      }}
+                    />
+
+                    {/* Image Upload */}
+                    <FormControl error={!!errors.images}>
+                      <Button
+                        variant="contained"
+                        component="label"
+                        sx={{
+                          background: "linear-gradient(135deg, #d4af37, #b8860b)",
+                          color: "#1a1a1a",
+                          fontWeight: "bold",
+                          padding: "12px 24px",
+                          borderRadius: "10px",
+                          "&:hover": {
+                            background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                          },
+                          transition: "all 0.3s ease"
+                        }}
+                      >
+                        📸 Choose Images* (Min 2)
+                        <input type="file" hidden multiple accept="image/*" onChange={handleFileChange} />
+                      </Button>
+                      {errors.images && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.images}</FormHelperText>}
+                    </FormControl>
+
+                    {/* Image Preview Grid */}
+                    {imagePreviews.length > 0 && (
+                      <Grid container spacing={2}>
+                        {imagePreviews.map((img, i) => (
+                          <Grid item key={i}>
+                            <Card sx={{
+                              width: 100,
+                              height: 100,
+                              position: "relative",
+                              border: "2px solid #d4af37",
+                              borderRadius: "12px",
+                              overflow: "hidden",
+                              boxShadow: "0 4px 15px rgba(212,175,55,0.3)"
+                            }}>
+                              <CardMedia
+                                component="img"
+                                image={img}
+                                alt="preview"
+                                sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                              <IconButton
+                                size="small"
+                                sx={{
+                                  position: "absolute",
+                                  top: -5,
+                                  right: -5,
+                                  background: "#b22222",
+                                  color: "white",
+                                  "&:hover": { background: "#7a1616" }
+                                }}
+                                onClick={() => removeImage(i)}
+                              >
+                                <CloseIcon fontSize="small" />
+                              </IconButton>
+                            </Card>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    )}
+
+                    {/* Submit Buttons */}
+                    <Stack direction="row" spacing={2} mt={2}>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={loading || hasErrors}
+                        startIcon={loading && <CircularProgress size={16} sx={{ color: "#1a1a1a" }} />}
+                        sx={{
+                          background: "linear-gradient(135deg, #d4af37, #b8860b)",
+                          color: "#1a1a1a",
+                          fontWeight: "bold",
+                          padding: "12px 30px",
+                          borderRadius: "10px",
+                          "&:hover": {
+                            background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                          },
+                          "&:disabled": {
+                            background: "rgba(212,175,55,0.3)",
+                            color: "rgba(255,255,255,0.5)"
+                          },
+                          transition: "all 0.3s ease"
+                        }}
+                      >
+                        {loading ? "Creating..." : "Create Product"}
+                      </Button>
+
+                    </Stack>
 
                   </Stack>
+                </form>
 
-                </Stack>
-              </form>
+                <ToastContainer 
+                  position="top-center" 
+                  theme="dark"
+                  toastStyle={{
+                    background: "linear-gradient(135deg, #2d2d2d, #1a1a1a)",
+                    color: "#d4af37",
+                    border: "1px solid rgba(212,175,55,0.3)"
+                  }}
+                />
 
-              <ToastContainer 
-                position="top-center" 
-                theme="dark"
-                toastStyle={{
-                  background: "linear-gradient(135deg, #2d2d2d, #1a1a1a)",
-                  color: "#d4af37",
-                  border: "1px solid rgba(212,175,55,0.3)"
-                }}
-              />
-
+              </Box>
             </Box>
           </Box>
-        </Container>
+        </Box>
       </main>
 
       <AdminFooter />

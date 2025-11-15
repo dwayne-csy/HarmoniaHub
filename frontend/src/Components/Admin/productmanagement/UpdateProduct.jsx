@@ -283,7 +283,9 @@ export default function UpdateProduct() {
         display: "flex", 
         flexDirection: "column", 
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={user} handleLogout={() => navigate("/login")} />
         <Box sx={{ 
@@ -306,7 +308,9 @@ export default function UpdateProduct() {
         display: "flex", 
         flexDirection: "column", 
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={user} handleLogout={() => navigate("/login")} />
         <Box sx={{ 
@@ -336,7 +340,9 @@ export default function UpdateProduct() {
       minHeight: "100vh",
       background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      margin: 0,
+      padding: 0
     }}>
       
       {/* Gold shimmer overlay */}
@@ -355,11 +361,60 @@ export default function UpdateProduct() {
 
       <main style={{ 
         flex: 1, 
-        padding: "20px 30px",
+        padding: "0",
+        backgroundColor: "transparent",
         position: "relative",
-        zIndex: 1
+        zIndex: 1,
+        margin: 0,
+        width: "100%"
       }}>
-        <Container maxWidth="md">
+        <style>
+          {`
+            /* Remove all white backgrounds from form elements */
+            .MuiOutlinedInput-root {
+              background-color: rgba(30, 30, 30, 0.8) !important;
+            }
+            .MuiInputBase-input {
+              color: #ffffff !important;
+            }
+            .MuiSelect-select {
+              background-color: rgba(30, 30, 30, 0.8) !important;
+              color: #ffffff !important;
+            }
+            .MuiMenu-paper {
+              background: linear-gradient(135deg, #2d2d2d, #1a1a1a) !important;
+              border: 1px solid rgba(212,175,55,0.3) !important;
+            }
+            .MuiMenuItem-root {
+              color: #ffffff !important;
+            }
+            .MuiMenuItem-root:hover {
+              background-color: rgba(212,175,55,0.2) !important;
+            }
+            .MuiFormHelperText-root {
+              color: #d4af37 !important;
+            }
+            /* Remove any remaining white backgrounds */
+            * {
+              background-color: transparent !important;
+            }
+            /* Fix container backgrounds */
+            .MuiContainer-root {
+              background-color: transparent !important;
+            }
+            .MuiPaper-root {
+              background: transparent !important;
+            }
+            /* Remove body margins */
+            body {
+              margin: 0;
+              padding: 0;
+              overflow-x: hidden;
+            }
+          `}
+        </style>
+        
+        <Container maxWidth="md" sx={{ padding: "20px 0" }}>
           <Box sx={{
             background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
             backdropFilter: "blur(15px)",
@@ -394,8 +449,11 @@ export default function UpdateProduct() {
                   border: "1px solid rgba(212,175,55,0.3)",
                   background: "rgba(212,175,55,0.1)",
                   '&:hover': {
-                    background: "rgba(212,175,55,0.2)"
-                  }
+                    background: "rgba(212,175,55,0.2)",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 4px 12px rgba(212,175,55,0.3)"
+                  },
+                  transition: "all 0.3s ease"
                 }}
               >
                 <ArrowBack />
@@ -460,7 +518,7 @@ export default function UpdateProduct() {
                       },
                       "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
                       "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                      "& .MuiFormHelperText-root": { color: "#f2f2f2ff" }
+                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
                     }}
                   />
                   
@@ -504,7 +562,7 @@ export default function UpdateProduct() {
                       onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
                     >
                       {categories.map((c) => (
-                        <MenuItem key={c} value={c} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{c}</MenuItem>
+                        <MenuItem key={c} value={c} sx={{ color: "#ffffff", background: "#2d2d2d", '&:hover': { background: "rgba(212,175,55,0.2)" } }}>{c}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
@@ -526,9 +584,9 @@ export default function UpdateProduct() {
                       label="Supplier*"
                       onChange={(e) => handleFieldChange('supplier', e.target.value)}
                     >
-                      <MenuItem value="" sx={{ color: "#fff", background: "#2d2d2d" }}>-- Select Supplier --</MenuItem>
+                      <MenuItem value="" sx={{ color: "#ffffff", background: "#2d2d2d", '&:hover': { background: "rgba(212,175,55,0.2)" } }}>-- Select Supplier --</MenuItem>
                       {suppliers.map((s) => (
-                        <MenuItem key={s._id} value={s._id} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{s.name}</MenuItem>
+                        <MenuItem key={s._id} value={s._id} sx={{ color: "#ffffff", background: "#2d2d2d", '&:hover': { background: "rgba(212,175,55,0.2)" } }}>{s.name}</MenuItem>
                       ))}
                     </Select>
                     {errors.supplier && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.supplier}</FormHelperText>}
@@ -602,9 +660,9 @@ export default function UpdateProduct() {
                                     position: "absolute", 
                                     top: -5, 
                                     right: -5, 
-                                    bgcolor: "error.main", 
+                                    bgcolor: "#b22222", 
                                     color: "white",
-                                    '&:hover': { bgcolor: "error.dark" }
+                                    '&:hover': { bgcolor: "#7a1616" }
                                   }}
                                   onClick={() => removeExistingImage(idx)}
                                 >
@@ -670,9 +728,9 @@ export default function UpdateProduct() {
                                   position: "absolute", 
                                   top: -5, 
                                   right: -5, 
-                                  bgcolor: "error.main", 
+                                  bgcolor: "#b22222", 
                                   color: "white",
-                                  '&:hover': { bgcolor: "error.dark" }
+                                  '&:hover': { bgcolor: "#7a1616" }
                                 }}
                                 onClick={() => removeNewFile(i)}
                               >

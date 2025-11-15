@@ -63,7 +63,9 @@ export default function ViewOrder() {
         display: "flex", 
         flexDirection: "column", 
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={currentUser} handleLogout={handleLogout} />
         <Box
@@ -72,7 +74,9 @@ export default function ViewOrder() {
             justifyContent: "center",
             alignItems: "center",
             height: "80vh",
-            flex: 1
+            flex: 1,
+            margin: 0,
+            padding: 0
           }}
         >
           <Loader />
@@ -88,15 +92,19 @@ export default function ViewOrder() {
         display: "flex", 
         flexDirection: "column", 
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={currentUser} handleLogout={handleLogout} />
         <main style={{ 
           flex: 1, 
-          padding: "20px 30px",
+          padding: "0",
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'center'
+          alignItems: 'center',
+          margin: 0,
+          width: "100%"
         }}>
           <Typography variant="h6" sx={{ color: '#d4af37' }}>
             Order not found.
@@ -125,7 +133,9 @@ export default function ViewOrder() {
       minHeight: "100vh",
       background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      margin: 0,
+      padding: 0
     }}>
       
       {/* Gold shimmer overlay */}
@@ -144,22 +154,41 @@ export default function ViewOrder() {
       
       <main style={{ 
         flex: 1, 
-        padding: "20px 30px",
+        padding: "0",
+        backgroundColor: "transparent",
         position: "relative",
-        zIndex: 1
+        zIndex: 1,
+        margin: 0,
+        width: "100%"
       }}>
-        <Container maxWidth="lg">
+        <style>
+          {`
+            /* Remove default body margins */
+            body {
+              margin: 0;
+              padding: 0;
+              overflow-x: hidden;
+            }
+          `}
+        </style>
+        
+        <Box sx={{ 
+          maxWidth: "100%", 
+          margin: "0",
+          padding: "20px 0"
+        }}>
           <Box sx={{ 
-            maxWidth: 1000, 
-            margin: '24px auto',
+            maxWidth: "100%", 
+            margin: '0',
             background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
             backdropFilter: "blur(15px)",
-            padding: "30px",
-            borderRadius: "18px",
+            padding: "30px 20px",
+            borderRadius: "0",
             boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
             border: "1px solid rgba(212,175,55,0.3)",
             position: "relative",
-            overflow: "hidden"
+            overflow: "hidden",
+            minHeight: "calc(100vh - 140px)"
           }}>
             
             {/* Gold accent line */}
@@ -172,255 +201,266 @@ export default function ViewOrder() {
               background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
             }}></div>
 
-            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={4}>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <IconButton
-                  onClick={() => navigate(-1)}
-                  sx={{
+            <Box sx={{ maxWidth: "1200px", margin: "0 auto", padding: "0 10px" }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={4}>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <IconButton
+                    onClick={() => navigate(-1)}
+                    sx={{
+                      color: "#d4af37",
+                      border: "1px solid rgba(212,175,55,0.3)",
+                      background: "rgba(212,175,55,0.1)",
+                      '&:hover': {
+                        background: "rgba(212,175,55,0.2)",
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 4px 12px rgba(212,175,55,0.3)"
+                      },
+                      transition: "all 0.3s ease"
+                    }}
+                  >
+                    <ArrowBack />
+                  </IconButton>
+                  <Typography variant="h4" sx={{ 
+                    fontWeight: "bold", 
                     color: "#d4af37",
-                    border: "1px solid rgba(212,175,55,0.3)",
-                    background: "rgba(212,175,55,0.1)",
-                    '&:hover': {
-                      background: "rgba(212,175,55,0.2)"
-                    }
-                  }}
-                >
-                  <ArrowBack />
-                </IconButton>
-                <Typography variant="h4" sx={{ 
-                  fontWeight: "bold", 
-                  color: "#d4af37",
-                  textShadow: "0 2px 4px rgba(0,0,0,0.5)"
-                }}>
-                  Order Details
-                </Typography>
-                <Chip
-                  label={order.orderStatus}
-                  sx={{
-                    background: getStatusColor(order.orderStatus),
-                    color: "#fff",
-                    fontWeight: "bold",
-                    fontSize: "14px"
-                  }}
-                />
+                    textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+                  }}>
+                    Order Details
+                  </Typography>
+                  <Chip
+                    label={order.orderStatus}
+                    sx={{
+                      background: getStatusColor(order.orderStatus),
+                      color: "#fff",
+                      fontWeight: "bold",
+                      fontSize: "14px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                    }}
+                  />
+                </Stack>
               </Stack>
-            </Stack>
 
-            {/* Order & User Information */}
-            <Box mb={4}>
-              <Typography variant="h6" sx={{ color: '#d4af37', mb: 2 }}>
-                Order & Customer Information
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Box sx={{
-                    background: 'rgba(20,20,20,0.8)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(212,175,55,0.2)'
-                  }}>
-                    <Typography variant="subtitle1" sx={{ color: '#d4af37', mb: 1 }}>
-                      Order Information
-                    </Typography>
-                    <Stack spacing={1}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography sx={{ color: '#ccc' }}>Order ID:</Typography>
-                        <Typography sx={{ color: '#fff', fontWeight: '500' }}>{order._id}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography sx={{ color: '#ccc' }}>Order Date:</Typography>
-                        <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Box sx={{
-                    background: 'rgba(20,20,20,0.8)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(212,175,55,0.2)'
-                  }}>
-                    <Typography variant="subtitle1" sx={{ color: '#d4af37', mb: 1 }}>
-                      Customer Information
-                    </Typography>
-                    <Stack spacing={1}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography sx={{ color: '#ccc' }}>Name:</Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                            {order.user?.name || "N/A"}
-                          </Typography>
-                          {order.user?.isVerified && (
-                            <Chip
-                              label="Verified"
-                              size="small"
-                              sx={{
-                                background: "linear-gradient(135deg, #4CAF50, #45a049)",
-                                color: "#fff",
-                                fontSize: "10px",
-                                height: "20px"
-                              }}
-                            />
-                          )}
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography sx={{ color: '#ccc' }}>Email:</Typography>
-                        <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                          {order.user?.email || "N/A"}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Box>
-
-            {/* Shipping Information */}
-            {order.shippingInfo && (
+              {/* Order & User Information */}
               <Box mb={4}>
                 <Typography variant="h6" sx={{ color: '#d4af37', mb: 2 }}>
-                  Shipping Information
+                  Order & Customer Information
                 </Typography>
-                <Box sx={{
-                  background: 'rgba(20,20,20,0.8)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(212,175,55,0.2)'
-                }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Typography sx={{ color: '#ccc' }}>Address:</Typography>
-                      <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                        {order.shippingInfo.address}, {order.shippingInfo.city}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography sx={{ color: '#ccc' }}>Postal Code & Country:</Typography>
-                      <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                        {order.shippingInfo.postalCode}, {order.shippingInfo.country}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography sx={{ color: '#ccc' }}>Phone:</Typography>
-                      <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                        {order.shippingInfo.phoneNo}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Box>
-              </Box>
-            )}
-
-            <Divider sx={{ my: 4, borderColor: 'rgba(212,175,55,0.3)' }} />
-
-            {/* Products */}
-            <Typography variant="h6" sx={{ color: '#d4af37', mb: 3 }}>
-              Order Items ({order.orderItems.length})
-            </Typography>
-            <Grid container spacing={3} mb={4}>
-              {order.orderItems.map((item) => (
-                <Grid item xs={12} sm={6} md={4} key={item._id || item.product}>
-                  <Card sx={{ 
-                    background: "linear-gradient(135deg, rgba(40,40,40,0.9) 0%, rgba(50,50,50,0.9) 100%)",
-                    border: "1px solid rgba(212,175,55,0.3)",
-                    borderRadius: "12px",
-                    overflow: "hidden",
-                    transition: "all 0.3s ease",
-                    '&:hover': {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 8px 25px rgba(212,175,55,0.2)"
-                    }
-                  }}>
-                    <CardMedia
-                      component="img"
-                      height="160"
-                      image={item.image}
-                      alt={item.name}
-                      sx={{ objectFit: 'cover' }}
-                    />
-                    <CardContent>
-                      <Typography variant="h6" sx={{ color: '#d4af37', mb: 1, fontSize: '1rem' }}>
-                        {item.name}
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{
+                      background: 'rgba(20,20,20,0.8)',
+                      padding: '20px',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(212,175,55,0.2)',
+                      boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
+                    }}>
+                      <Typography variant="subtitle1" sx={{ color: '#d4af37', mb: 1, fontWeight: '600' }}>
+                        Order Information
                       </Typography>
                       <Stack spacing={1}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography sx={{ color: '#ccc' }}>Quantity:</Typography>
-                          <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                            {item.quantity}
-                          </Typography>
+                          <Typography sx={{ color: '#ccc' }}>Order ID:</Typography>
+                          <Typography sx={{ color: '#fff', fontWeight: '500' }}>{order._id}</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography sx={{ color: '#ccc' }}>Price:</Typography>
+                          <Typography sx={{ color: '#ccc' }}>Order Date:</Typography>
                           <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                            ${item.price.toFixed(2)}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography sx={{ color: '#ccc' }}>Subtotal:</Typography>
-                          <Typography sx={{ color: '#d4af37', fontWeight: 'bold' }}>
-                            ${(item.price * item.quantity).toFixed(2)}
+                            {new Date(order.createdAt).toLocaleDateString()}
                           </Typography>
                         </Box>
                       </Stack>
-                    </CardContent>
-                  </Card>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{
+                      background: 'rgba(20,20,20,0.8)',
+                      padding: '20px',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(212,175,55,0.2)',
+                      boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
+                    }}>
+                      <Typography variant="subtitle1" sx={{ color: '#d4af37', mb: 1, fontWeight: '600' }}>
+                        Customer Information
+                      </Typography>
+                      <Stack spacing={1}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography sx={{ color: '#ccc' }}>Name:</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                              {order.user?.name || "N/A"}
+                            </Typography>
+                            {order.user?.isVerified && (
+                              <Chip
+                                label="Verified"
+                                size="small"
+                                sx={{
+                                  background: "linear-gradient(135deg, #4CAF50, #45a049)",
+                                  color: "#fff",
+                                  fontSize: "10px",
+                                  height: "20px"
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography sx={{ color: '#ccc' }}>Email:</Typography>
+                          <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                            {order.user?.email || "N/A"}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  </Grid>
                 </Grid>
-              ))}
-            </Grid>
+              </Box>
 
-            <Divider sx={{ my: 4, borderColor: 'rgba(212,175,55,0.3)' }} />
+              {/* Shipping Information */}
+              {order.shippingInfo && (
+                <Box mb={4}>
+                  <Typography variant="h6" sx={{ color: '#d4af37', mb: 2 }}>
+                    Shipping Information
+                  </Typography>
+                  <Box sx={{
+                    background: 'rgba(20,20,20,0.8)',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(212,175,55,0.2)',
+                    boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
+                  }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography sx={{ color: '#ccc' }}>Address:</Typography>
+                        <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                          {order.shippingInfo.address}, {order.shippingInfo.city}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography sx={{ color: '#ccc' }}>Postal Code & Country:</Typography>
+                        <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                          {order.shippingInfo.postalCode}, {order.shippingInfo.country}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography sx={{ color: '#ccc' }}>Phone:</Typography>
+                        <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                          {order.shippingInfo.phoneNo}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Box>
+              )}
 
-            {/* Pricing Summary */}
-            <Box>
+              <Divider sx={{ my: 4, borderColor: 'rgba(212,175,55,0.3)' }} />
+
+              {/* Products */}
               <Typography variant="h6" sx={{ color: '#d4af37', mb: 3 }}>
-                Pricing Summary
+                Order Items ({order.orderItems.length})
               </Typography>
-              <Box sx={{
-                background: 'rgba(20,20,20,0.8)',
-                padding: '24px',
-                borderRadius: '12px',
-                border: '1px solid rgba(212,175,55,0.2)',
-                maxWidth: 400,
-                marginLeft: 'auto'
-              }}>
-                <Stack spacing={2}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography sx={{ color: '#ccc' }}>Items Total:</Typography>
-                    <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                      ${order.itemsPrice.toFixed(2)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography sx={{ color: '#ccc' }}>Tax:</Typography>
-                    <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                      ${order.taxPrice.toFixed(2)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography sx={{ color: '#ccc' }}>Shipping Fee:</Typography>
-                    <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                      ${order.shippingPrice.toFixed(2)}
-                    </Typography>
-                  </Box>
-                  <Divider sx={{ borderColor: 'rgba(212,175,55,0.3)' }} />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="h6" sx={{ color: '#d4af37' }}>
-                      Total Price:
-                    </Typography>
-                    <Typography variant="h6" sx={{ color: '#d4af37', fontWeight: 'bold' }}>
-                      ${order.totalPrice.toFixed(2)}
-                    </Typography>
-                  </Box>
-                </Stack>
+              <Grid container spacing={3} mb={4}>
+                {order.orderItems.map((item) => (
+                  <Grid item xs={12} sm={6} md={4} key={item._id || item.product}>
+                    <Card sx={{ 
+                      background: "linear-gradient(135deg, rgba(40,40,40,0.9) 0%, rgba(50,50,50,0.9) 100%)",
+                      border: "1px solid rgba(212,175,55,0.3)",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      transition: "all 0.3s ease",
+                      boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+                      '&:hover': {
+                        transform: "translateY(-4px)",
+                        boxShadow: "0 8px 25px rgba(212,175,55,0.2)"
+                      }
+                    }}>
+                      <CardMedia
+                        component="img"
+                        height="160"
+                        image={item.image}
+                        alt={item.name}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                      <CardContent>
+                        <Typography variant="h6" sx={{ color: '#d4af37', mb: 1, fontSize: '1rem', fontWeight: '600' }}>
+                          {item.name}
+                        </Typography>
+                        <Stack spacing={1}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography sx={{ color: '#ccc' }}>Quantity:</Typography>
+                            <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                              {item.quantity}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography sx={{ color: '#ccc' }}>Price:</Typography>
+                            <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                              ${item.price.toFixed(2)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography sx={{ color: '#ccc' }}>Subtotal:</Typography>
+                            <Typography sx={{ color: '#d4af37', fontWeight: 'bold' }}>
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+
+              <Divider sx={{ my: 4, borderColor: 'rgba(212,175,55,0.3)' }} />
+
+              {/* Pricing Summary */}
+              <Box>
+                <Typography variant="h6" sx={{ color: '#d4af37', mb: 3 }}>
+                  Pricing Summary
+                </Typography>
+                <Box sx={{
+                  background: 'rgba(20,20,20,0.8)',
+                  padding: '24px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(212,175,55,0.2)',
+                  maxWidth: 400,
+                  marginLeft: 'auto',
+                  boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
+                }}>
+                  <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography sx={{ color: '#ccc' }}>Items Total:</Typography>
+                      <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                        ${order.itemsPrice.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography sx={{ color: '#ccc' }}>Tax:</Typography>
+                      <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                        ${order.taxPrice.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography sx={{ color: '#ccc' }}>Shipping Fee:</Typography>
+                      <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                        ${order.shippingPrice.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Divider sx={{ borderColor: 'rgba(212,175,55,0.3)' }} />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="h6" sx={{ color: '#d4af37' }}>
+                        Total Price:
+                      </Typography>
+                      <Typography variant="h6" sx={{ color: '#d4af37', fontWeight: 'bold' }}>
+                        ${order.totalPrice.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
               </Box>
             </Box>
           </Box>
-        </Container>
+        </Box>
       </main>
 
       <AdminFooter />

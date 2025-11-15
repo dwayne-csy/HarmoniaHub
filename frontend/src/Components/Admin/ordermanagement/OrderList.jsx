@@ -225,7 +225,8 @@ export default function OrderList() {
                   background: getStatusColor(order.orderStatus).background,
                   border: `1px solid ${getStatusColor(order.orderStatus).border}`,
                   borderRadius: "8px",
-                  '& .MuiSelect-icon': { color: "#d4af37" }
+                  '& .MuiSelect-icon': { color: "#d4af37" },
+                  '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
                 }}
               >
                 {statusOptions.map((status) => (
@@ -303,6 +304,11 @@ export default function OrderList() {
     responsive: "standard",
     customToolbarSelect: () => <></>,
     selectableRowsHeader: true,
+    setTableProps: () => ({
+      style: {
+        backgroundColor: 'transparent',
+      },
+    }),
     textLabels: {
       body: { noMatch: "No orders found", toolTip: "Sort" },
       pagination: { next: "Next", previous: "Previous", rowsPerPage: "Rows per page:" },
@@ -316,7 +322,9 @@ export default function OrderList() {
         display: "flex", 
         flexDirection: "column", 
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={currentUser} handleLogout={handleLogout} />
         <div style={{ 
@@ -324,7 +332,9 @@ export default function OrderList() {
           justifyContent: "center", 
           alignItems: "center", 
           height: "80vh",
-          flex: 1 
+          flex: 1,
+          margin: 0,
+          padding: 0
         }}>
           <Loader />
         </div>
@@ -340,7 +350,9 @@ export default function OrderList() {
       minHeight: "100vh",
       background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      margin: 0,
+      padding: 0
     }}>
       
       {/* Gold shimmer overlay */}
@@ -359,140 +371,207 @@ export default function OrderList() {
       
       <main style={{ 
         flex: 1, 
-        padding: "20px 30px",
+        padding: "0",
+        backgroundColor: "transparent",
         position: "relative",
-        zIndex: 1
+        zIndex: 1,
+        margin: 0,
+        width: "100%"
       }}>
+        <style>
+          {`
+            /* Override MUIDataTable styles to remove white backgrounds */
+            .MuiTable-root {
+              background-color: transparent !important;
+            }
+            .MuiTableHead-root {
+              background-color: rgba(30, 30, 30, 0.9) !important;
+            }
+            .MuiTableRow-root {
+              background-color: transparent !important;
+            }
+            .MuiTableCell-head {
+              background-color: rgba(40, 40, 40, 0.9) !important;
+              color: #d4af37 !important;
+              border-bottom: 1px solid rgba(212,175,55,0.3) !important;
+            }
+            .MuiTableCell-body {
+              background-color: transparent !important;
+              color: #ffffff !important;
+              border-bottom: 1px solid rgba(212,175,55,0.2) !important;
+            }
+            .MuiTableSortLabel-root:hover {
+              color: #d4af37 !important;
+            }
+            .MuiTableSortLabel-icon {
+              color: #d4af37 !important;
+            }
+            .MuiCheckbox-root {
+              color: #d4af37 !important;
+            }
+            .MuiTablePagination-root {
+              color: #d4af37 !important;
+            }
+            .MuiTablePagination-selectIcon {
+              color: #d4af37 !important;
+            }
+            .MuiInputBase-root {
+              color: #000000ff !important;
+            }
+            .MuiTableContainer-root {
+              background-color: transparent !important;
+              box-shadow: none !important;
+            }
+            /* Remove any white gaps around the table */
+            body {
+              margin: 0;
+              padding: 0;
+              overflow-x: hidden;
+            }
+          `}
+        </style>
+        
         <Box sx={{ 
-          maxWidth: 1200, 
-          margin: '24px auto',
-          background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
-          backdropFilter: "blur(15px)",
-          padding: "30px",
-          borderRadius: "18px",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
-          border: "1px solid rgba(212,175,55,0.3)",
-          position: "relative",
-          overflow: "hidden"
+          maxWidth: "100%", 
+          margin: "0",
+          padding: "20px 0"
         }}>
-          
-          {/* Gold accent line */}
-          <div style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "3px",
-            background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
-          }}></div>
-
-          {/* Back Button and Title Section */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-           <IconButton
-  onClick={() => navigate("/admin/dashboard")}
-  sx={{
-    color: "#d4af37",
-    background: "rgba(212,175,55,0.1)",
-    border: "1px solid rgba(212,175,55,0.3)",
-    mr: 2,
-    '&:hover': {
-      background: "rgba(212,175,55,0.2)",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 12px rgba(212,175,55,0.3)"
-    },
-    transition: "all 0.3s ease"
-  }}
->
-  <ArrowBack />
-</IconButton>
+          <Box sx={{ 
+            maxWidth: "100%", 
+            margin: '0',
+            background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
+            backdropFilter: "blur(15px)",
+            padding: "30px 20px",
+            borderRadius: "0",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
+            border: "1px solid rgba(212,175,55,0.3)",
+            position: "relative",
+            overflow: "hidden",
+            minHeight: "calc(100vh - 140px)"
+          }}>
             
-            <Typography variant="h4" sx={{ 
-              fontWeight: "bold", 
-              color: "#d4af37",
-              textShadow: "0 2px 4px rgba(0,0,0,0.5)"
-            }}>
-              Order Management
-            </Typography>
-          </Box>
+            {/* Gold accent line */}
+            <div style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "3px",
+              background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
+            }}></div>
 
-          {/* Filter Section */}
-          <Stack direction="row" spacing={2} mb={3}>
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel sx={{ color: '#d4af37' }}>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Status"
-                onChange={e => setStatusFilter(e.target.value)}
-                sx={{ 
-                  color: '#fff', 
-                  borderColor: '#D4AF37',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.3)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.5)' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#d4af37' },
-                  '& .MuiSvgIcon-root': { color: '#D4AF37' }
+            {/* Back Button and Title Section */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, maxWidth: "1200px", margin: "0 auto", padding: "0 10px" }}>
+              <IconButton
+                onClick={() => navigate("/admin/dashboard")}
+                sx={{
+                  color: "#d4af37",
+                  background: "rgba(212,175,55,0.1)",
+                  border: "1px solid rgba(212,175,55,0.3)",
+                  mr: 2,
+                  '&:hover': {
+                    background: "rgba(212,175,55,0.2)",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 4px 12px rgba(212,175,55,0.3)"
+                  },
+                  transition: "all 0.3s ease"
                 }}
               >
-                <MenuItem value="">All</MenuItem>
-                {statusOptions.map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {status}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
+                <ArrowBack />
+              </IconButton>
+              
+              <Typography variant="h4" sx={{ 
+                fontWeight: "bold", 
+                color: "#d4af37",
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+              }}>
+                Order Management
+              </Typography>
+            </Box>
 
-          {/* Action Buttons */}
-          <Stack direction="row" spacing={2} mb={3} flexWrap="wrap" gap={1}>
-            <Button
-              variant="contained"
-              onClick={handleBulkDelete}
-              disabled={selectedIds.length === 0}
-              sx={{
-                background: "linear-gradient(135deg, #dc3545, #c82333)",
-                color: "#fff",
-                fontWeight: "bold",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #e74c3c, #dc3545)",
-                  transform: "translateY(-2px)"
-                },
-                "&:disabled": {
-                  background: "rgba(220, 53, 69, 0.3)",
-                  color: "rgba(255,255,255,0.5)"
-                },
-                transition: "all 0.3s ease"
-              }}
-            >
-              Delete Selected ({selectedIds.length})
-            </Button>
-          </Stack>
+            {/* Filter Section */}
+            <Box sx={{ maxWidth: "1200px", margin: "0 auto", padding: "0 10px" }}>
+              <Stack direction="row" spacing={2} mb={3}>
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel sx={{ color: '#d4af37' }}>Status</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Status"
+                    onChange={e => setStatusFilter(e.target.value)}
+                    sx={{ 
+                      color: '#000000ff', 
+                      borderColor: '#D4AF37',
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.3)' },
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.5)' },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#d4af37' },
+                      '& .MuiSvgIcon-root': { color: '#D4AF37' }
+                    }}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {statusOptions.map((status) => (
+                      <MenuItem key={status} value={status}>
+                        {status}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
 
-          {/* Data Table */}
-          <MUIDataTable
-            data={displayedOrders}
-            columns={columns}
-            options={options}
-          />
+              {/* Action Buttons */}
+              <Stack direction="row" spacing={2} mb={3} flexWrap="wrap" gap={1}>
+                <Button
+                  variant="contained"
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.length === 0}
+                  sx={{
+                    background: "linear-gradient(135deg, #dc3545, #c82333)",
+                    color: "#000000ff",
+                    fontWeight: "bold",
+                    "&:hover": {
+                      background: "linear-gradient(135deg, #e74c3c, #dc3545)",
+                      transform: "translateY(-2px)"
+                    },
+                    "&:disabled": {
+                      background: "rgba(220, 53, 69, 0.3)",
+                      color: "rgba(255,255,255,0.5)"
+                    },
+                    transition: "all 0.3s ease"
+                  }}
+                >
+                  Delete Selected ({selectedIds.length})
+                </Button>
+              </Stack>
+            </Box>
 
-          {/* Export Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-            <Button
-              variant="contained"
-              onClick={exportPDF}
-              sx={{
-                background: "linear-gradient(135deg, #d4af37, #b8860b)",
-                color: "#1a1a1a",
-                fontWeight: "bold",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #e6c453, #c9970b)",
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
-                },
-                transition: "all 0.3s ease"
-              }}
-            >
-              Export PDF
-            </Button>
+            {/* Data Table - Full Width */}
+            <Box sx={{ width: "100%", padding: "0 10px" }}>
+              <MUIDataTable
+                data={displayedOrders}
+                columns={columns}
+                options={options}
+              />
+            </Box>
+
+            {/* Export Button */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2, maxWidth: "1200px", margin: "0 auto", padding: "0 10px" }}>
+              <Button
+                variant="contained"
+                onClick={exportPDF}
+                sx={{
+                  background: "linear-gradient(135deg, #d4af37, #b8860b)",
+                  color: "#1a1a1a",
+                  fontWeight: "bold",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                  },
+                  transition: "all 0.3s ease"
+                }}
+              >
+                Export PDF
+              </Button>
+            </Box>
           </Box>
         </Box>
 

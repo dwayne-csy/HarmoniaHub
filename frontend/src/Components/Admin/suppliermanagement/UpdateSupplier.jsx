@@ -200,7 +200,9 @@ export default function UpdateSupplier() {
         display: 'flex', 
         flexDirection: 'column', 
         minHeight: '100vh',
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={user} handleLogout={handleLogout} />
         <Box sx={{ 
@@ -208,7 +210,9 @@ export default function UpdateSupplier() {
           justifyContent: "center", 
           alignItems: "center", 
           minHeight: "60vh",
-          flex: 1 
+          flex: 1,
+          margin: 0,
+          padding: 0
         }}>
           <Loader />
         </Box>
@@ -223,7 +227,9 @@ export default function UpdateSupplier() {
         display: 'flex', 
         flexDirection: 'column', 
         minHeight: '100vh',
-        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+        margin: 0,
+        padding: 0
       }}>
         <AdminHeader admin={user} handleLogout={handleLogout} />
         <Box sx={{ 
@@ -231,7 +237,9 @@ export default function UpdateSupplier() {
           justifyContent: "center", 
           alignItems: "center", 
           minHeight: "60vh",
-          flex: 1 
+          flex: 1,
+          margin: 0,
+          padding: 0
         }}>
           <Loader />
         </Box>
@@ -247,7 +255,9 @@ export default function UpdateSupplier() {
       minHeight: "100vh",
       background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      margin: 0,
+      padding: 0
     }}>
       
       {/* Gold shimmer overlay */}
@@ -266,20 +276,30 @@ export default function UpdateSupplier() {
 
       <main style={{ 
         flex: 1, 
-        padding: "20px 30px",
+        padding: "0",
+        backgroundColor: "transparent",
         position: "relative",
-        zIndex: 1
+        zIndex: 1,
+        margin: 0,
+        width: "100%"
       }}>
-        <Container maxWidth="md">
+        <Box sx={{ 
+          maxWidth: "100%", 
+          margin: "0",
+          padding: "20px 0"
+        }}>
           <Box sx={{
+            maxWidth: "100%", 
+            margin: '0',
             background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
             backdropFilter: "blur(15px)",
-            padding: "30px",
-            borderRadius: "18px",
+            padding: "30px 20px",
+            borderRadius: "0",
             boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
             border: "1px solid rgba(212,175,55,0.3)",
             position: "relative",
-            overflow: "hidden"
+            overflow: "hidden",
+            minHeight: "calc(100vh - 140px)"
           }}>
             
             {/* Gold accent line */}
@@ -292,253 +312,258 @@ export default function UpdateSupplier() {
               background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
             }}></div>
 
-            <Box sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: "15px",
-              mb: 3
-            }}>
-              <IconButton
-                onClick={() => navigate("/admin/suppliers")}
-                sx={{
-                  color: "#d4af37",
-                  border: "1px solid rgba(212,175,55,0.3)",
-                  background: "rgba(212,175,55,0.1)",
-                  '&:hover': {
-                    background: "rgba(212,175,55,0.2)"
-                  }
-                }}
-              >
-                <ArrowBack />
-              </IconButton>
-              <Typography variant="h4" sx={{ 
-                fontWeight: "bold", 
-                color: "#d4af37",
-                textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+            <Box sx={{ maxWidth: "800px", margin: "0 auto", padding: "0 10px" }}>
+              <Box sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "15px",
+                mb: 3
               }}>
-                Update Supplier
-              </Typography>
-            </Box>
-
-            <Box sx={{
-              background: "rgba(20,20,20,0.8)",
-              borderRadius: "12px",
-              p: 3,
-              border: "1px solid rgba(212,175,55,0.2)",
-              boxShadow: "0 8px 25px rgba(0,0,0,0.2)"
-            }}>
-
-              <form onSubmit={handleUpdate}>
-                <Stack spacing={3}>
-                  <TextField
-                    label="Name*"
-                    name="name"
-                    fullWidth
-                    required
-                    value={supplier.name || ""}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}
-                  />
-                  <TextField
-                    label="Email*"
-                    name="email"
-                    type="email"
-                    fullWidth
-                    required
-                    value={supplier.email || ""}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}
-                  />
-                  <TextField
-                    label="Phone*"
-                    name="phone"
-                    fullWidth
-                    required
-                    value={supplier.phone || ""}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}
-                  />
-                  <TextField
-                    label="Street*"
-                    name="address.street"
-                    fullWidth
-                    required
-                    value={supplier.address?.street || ""}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}
-                  />
-                  <TextField
-                    label="City*"
-                    name="address.city"
-                    fullWidth
-                    required
-                    value={supplier.address?.city || ""}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}
-                  />
-                  <TextField
-                    label="State*"
-                    name="address.state"
-                    fullWidth
-                    required
-                    value={supplier.address?.state || ""}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}
-                  />
-                  <TextField
-                    label="Country*"
-                    name="address.country"
-                    fullWidth
-                    required
-                    value={supplier.address?.country || ""}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}
-                  />
-                  <TextField
-                    label="Zip Code*"
-                    name="address.zipCode"
-                    fullWidth
-                    required
-                    value={supplier.address?.zipCode || ""}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                      },
-                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                    }}
-                  />
-
-                  <Stack direction="row" spacing={2} mt={2}>
-                    <Button 
-                      type="submit" 
-                      variant="contained"
-                      disabled={updating}
-                      startIcon={updating && <CircularProgress size={16} sx={{ color: "#1a1a1a" }} />}
-                      sx={{
-                        background: "linear-gradient(135deg, #d4af37, #b8860b)",
-                        color: "#1a1a1a",
-                        fontWeight: "bold",
-                        padding: "12px 30px",
-                        borderRadius: "10px",
-                        "&:hover": {
-                          background: "linear-gradient(135deg, #e6c453, #c9970b)",
-                          transform: "translateY(-2px)",
-                          boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
-                        },
-                        "&:disabled": {
-                          background: "rgba(212,175,55,0.3)",
-                          color: "rgba(255,255,255,0.5)"
-                        },
-                        transition: "all 0.3s ease"
-                      }}
-                    >
-                      {updating ? "Updating..." : "Update Supplier"}
-                    </Button>
-                    <Button 
-                      variant="outlined" 
-                      onClick={() => navigate("/admin/suppliers")}
-                      sx={{
-                        borderColor: "#d4af37",
-                        color: "#d4af37",
-                        fontWeight: "bold",
-                        padding: "12px 30px",
-                        borderRadius: "10px",
-                        "&:hover": {
-                          borderColor: "#b8860b",
-                          background: "rgba(212,175,55,0.15)",
-                          transform: "translateY(-2px)"
-                        },
-                        transition: "all 0.3s ease"
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </Stack>
-                </Stack>
-              </form>
-
-              <ToastContainer 
-                position="top-center" 
-                autoClose={3000} 
-                hideProgressBar
-                theme="dark"
-                toastStyle={{
-                  background: "linear-gradient(135deg, #2d2d2d, #1a1a1a)",
+                <IconButton
+                  onClick={() => navigate("/admin/suppliers")}
+                  sx={{
+                    color: "#d4af37",
+                    border: "1px solid rgba(212,175,55,0.3)",
+                    background: "rgba(212,175,55,0.1)",
+                    '&:hover': {
+                      background: "rgba(212,175,55,0.2)",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 12px rgba(212,175,55,0.3)"
+                    },
+                    transition: "all 0.3s ease"
+                  }}
+                >
+                  <ArrowBack />
+                </IconButton>
+                <Typography variant="h4" sx={{ 
+                  fontWeight: "bold", 
                   color: "#d4af37",
-                  border: "1px solid rgba(212,175,55,0.3)"
-                }}
-              />
+                  textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+                }}>
+                  Update Supplier
+                </Typography>
+              </Box>
+
+              <Box sx={{
+                background: "rgba(20,20,20,0.8)",
+                borderRadius: "12px",
+                p: 3,
+                border: "1px solid rgba(212,175,55,0.2)",
+                boxShadow: "0 8px 25px rgba(0,0,0,0.2)"
+              }}>
+
+                <form onSubmit={handleUpdate}>
+                  <Stack spacing={3}>
+                    <TextField
+                      label="Name*"
+                      name="name"
+                      fullWidth
+                      required
+                      value={supplier.name || ""}
+                      onChange={handleChange}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}
+                    />
+                    <TextField
+                      label="Email*"
+                      name="email"
+                      type="email"
+                      fullWidth
+                      required
+                      value={supplier.email || ""}
+                      onChange={handleChange}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}
+                    />
+                    <TextField
+                      label="Phone*"
+                      name="phone"
+                      fullWidth
+                      required
+                      value={supplier.phone || ""}
+                      onChange={handleChange}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}
+                    />
+                    <TextField
+                      label="Street*"
+                      name="address.street"
+                      fullWidth
+                      required
+                      value={supplier.address?.street || ""}
+                      onChange={handleChange}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}
+                    />
+                    <TextField
+                      label="City*"
+                      name="address.city"
+                      fullWidth
+                      required
+                      value={supplier.address?.city || ""}
+                      onChange={handleChange}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}
+                    />
+                    <TextField
+                      label="State*"
+                      name="address.state"
+                      fullWidth
+                      required
+                      value={supplier.address?.state || ""}
+                      onChange={handleChange}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}
+                    />
+                    <TextField
+                      label="Country*"
+                      name="address.country"
+                      fullWidth
+                      required
+                      value={supplier.address?.country || ""}
+                      onChange={handleChange}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}
+                    />
+                    <TextField
+                      label="Zip Code*"
+                      name="address.zipCode"
+                      fullWidth
+                      required
+                      value={supplier.address?.zipCode || ""}
+                      onChange={handleChange}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          color: "#fff",
+                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                        },
+                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                      }}
+                    />
+
+                    <Stack direction="row" spacing={2} mt={2}>
+                      <Button 
+                        type="submit" 
+                        variant="contained"
+                        disabled={updating}
+                        startIcon={updating && <CircularProgress size={16} sx={{ color: "#1a1a1a" }} />}
+                        sx={{
+                          background: "linear-gradient(135deg, #d4af37, #b8860b)",
+                          color: "#1a1a1a",
+                          fontWeight: "bold",
+                          padding: "12px 30px",
+                          borderRadius: "10px",
+                          "&:hover": {
+                            background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                          },
+                          "&:disabled": {
+                            background: "rgba(212,175,55,0.3)",
+                            color: "rgba(255,255,255,0.5)"
+                          },
+                          transition: "all 0.3s ease"
+                        }}
+                      >
+                        {updating ? "Updating..." : "Update Supplier"}
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        onClick={() => navigate("/admin/suppliers")}
+                        sx={{
+                          borderColor: "#d4af37",
+                          color: "#d4af37",
+                          fontWeight: "bold",
+                          padding: "12px 30px",
+                          borderRadius: "10px",
+                          "&:hover": {
+                            borderColor: "#b8860b",
+                            background: "rgba(212,175,55,0.15)",
+                            transform: "translateY(-2px)"
+                          },
+                          transition: "all 0.3s ease"
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </form>
+
+                <ToastContainer 
+                  position="top-center" 
+                  autoClose={3000} 
+                  hideProgressBar
+                  theme="dark"
+                  toastStyle={{
+                    background: "linear-gradient(135deg, #2d2d2d, #1a1a1a)",
+                    color: "#d4af37",
+                    border: "1px solid rgba(212,175,55,0.3)"
+                  }}
+                />
+              </Box>
             </Box>
           </Box>
-        </Container>
+        </Box>
       </main>
 
       <AdminFooter />
