@@ -2,8 +2,21 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import MUIDataTable from "mui-datatables";
-import { Button, Stack, FormControl, InputLabel, Select, MenuItem, Box, Snackbar, Alert } from "@mui/material";
+import { 
+  Button, 
+  Stack, 
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem, 
+  Box, 
+  Snackbar, 
+  Alert,
+  Typography,
+  IconButton
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { ArrowBack } from "@mui/icons-material";
 import Loader from "../../layouts/Loader";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -23,6 +36,7 @@ export default function OrderList() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
+  const currentUser = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     fetchOrders();
@@ -31,6 +45,12 @@ export default function OrderList() {
   useEffect(() => {
     applyFilters();
   }, [orders, statusFilter]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
 
   const fetchOrders = async () => {
     try {
@@ -110,6 +130,7 @@ export default function OrderList() {
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
+    doc.setTextColor(212, 175, 55);
     doc.text("HarmoniaHub", 14, 15);
     doc.setFontSize(12);
     doc.text("Order List", 14, 25);
@@ -133,12 +154,26 @@ export default function OrderList() {
   };
 
   const columns = [
-    { name: "_id", label: "Order ID" },
+    { 
+      name: "_id", 
+      label: "Order ID",
+      options: {
+        customBodyRenderLite: (dataIndex) => (
+          <Typography sx={{ color: '#000000ff', fontWeight: '500' }}>
+            {displayedOrders[dataIndex]._id}
+          </Typography>
+        )
+      }
+    },
     {
       name: "user",
       label: "User",
       options: {
-        customBodyRenderLite: (dataIndex) => displayedOrders[dataIndex].user?.name || "N/A",
+        customBodyRenderLite: (dataIndex) => (
+          <Typography sx={{ color: '#000000ff' }}>
+            {displayedOrders[dataIndex].user?.name || "N/A"}
+          </Typography>
+        ),
       },
     },
     {
@@ -150,7 +185,11 @@ export default function OrderList() {
         customBodyRenderLite: (dataIndex) => {
           const order = displayedOrders[dataIndex];
           const products = order.orderItems?.map((item) => `${item.quantity}x ${item.name}`).join(", ");
-          return products || "N/A";
+          return (
+            <Typography sx={{ color: '#000000ff' }}>
+              {products || "N/A"}
+            </Typography>
+          );
         },
       },
     },
@@ -158,8 +197,11 @@ export default function OrderList() {
       name: "totalPrice",
       label: "Total Price",
       options: {
-        customBodyRenderLite: (dataIndex) =>
-          `₱${displayedOrders[dataIndex].totalPrice?.toFixed(2) || "0.00"}`,
+        customBodyRenderLite: (dataIndex) => (
+          <Typography sx={{ color: '#000000ff', fontWeight: 'bold' }}>
+            ₱{displayedOrders[dataIndex].totalPrice?.toFixed(2) || "0.00"}
+          </Typography>
+        ),
       },
     },
     {
@@ -175,21 +217,23 @@ export default function OrderList() {
               <Select
                 value={order.orderStatus}
                 onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                onClick={(e) => {
-                  // Stop propagation to prevent row selection
-                  e.stopPropagation();
-                }}
-                onMouseDown={(e) => {
-                  // Stop propagation to prevent row selection
-                  e.stopPropagation();
-                }}
-                onOpen={(e) => {
-                  // Stop propagation when dropdown opens
-                  e.stopPropagation();
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onOpen={(e) => e.stopPropagation()}
+                sx={{
+                  color: "#000000ff",
+                  background: getStatusColor(order.orderStatus).background,
+                  border: `1px solid ${getStatusColor(order.orderStatus).border}`,
+                  borderRadius: "8px",
+                  '& .MuiSelect-icon': { color: "#d4af37" }
                 }}
               >
                 {statusOptions.map((status) => (
-                  <MenuItem key={status} value={status}>
+                  <MenuItem 
+                    key={status} 
+                    value={status}
+                    sx={{ color: "#000000ff", background: "#2d2d2d" }}
+                  >
                     {status}
                   </MenuItem>
                 ))}
@@ -207,11 +251,17 @@ export default function OrderList() {
         sort: false,
         customBodyRenderLite: (dataIndex) => (
           <Button
-            variant="contained"
-            size="small"
-            color="primary"
+            sx={{ 
+              background: "linear-gradient(135deg, #d4af37, #b8860b)",
+              color: "#1a1a1a",
+              fontWeight: "bold",
+              '&:hover': { 
+                background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                transform: "translateY(-2px)"
+              },
+              transition: "all 0.3s ease"
+            }}
             onClick={(e) => {
-              // Stop propagation to prevent row selection
               e.stopPropagation();
               navigate(`/admin/orders/view/${displayedOrders[dataIndex]._id}`);
             }}
@@ -222,6 +272,17 @@ export default function OrderList() {
       },
     },
   ];
+
+  const getStatusColor = (status) => {
+    const colors = {
+      "Processing": { background: "rgba(255, 152, 0, 0.2)", border: "rgba(255, 152, 0, 0.5)" },
+      "Accepted": { background: "rgba(33, 150, 243, 0.2)", border: "rgba(33, 150, 243, 0.5)" },
+      "Cancelled": { background: "rgba(244, 67, 54, 0.2)", border: "rgba(244, 67, 54, 0.5)" },
+      "Out for Delivery": { background: "rgba(156, 39, 176, 0.2)", border: "rgba(156, 39, 176, 0.5)" },
+      "Delivered": { background: "rgba(76, 175, 80, 0.2)", border: "rgba(76, 175, 80, 0.5)" }
+    };
+    return colors[status] || { background: "rgba(212,175,55,0.1)", border: "rgba(212,175,55,0.3)" };
+  };
 
   const options = {
     selectableRows: "multiple",
@@ -242,64 +303,197 @@ export default function OrderList() {
     responsive: "standard",
     customToolbarSelect: () => <></>,
     selectableRowsHeader: true,
-    // Additional option to prevent selection on certain clicks
-    isRowSelectable: (dataIndex) => {
-      // This doesn't directly solve the issue but helps with the logic
-      return true;
+    textLabels: {
+      body: { noMatch: "No orders found", toolTip: "Sort" },
+      pagination: { next: "Next", previous: "Previous", rowsPerPage: "Rows per page:" },
+      toolbar: { search: "Search", downloadCsv: "Download CSV", print: "Print", viewColumns: "View Columns", filterTable: "Filter Table" },
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-        <AdminHeader />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh" }}>
+      <div style={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+      }}>
+        <AdminHeader admin={currentUser} handleLogout={handleLogout} />
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "center", 
+          alignItems: "center", 
+          height: "80vh",
+          flex: 1 
+        }}>
           <Loader />
         </div>
         <AdminFooter />
       </div>
     );
+  }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <AdminHeader />
-      <div style={{ flex: 1, maxWidth: 1200, margin: "24px auto", padding: 16 }}>
-        <h2>Order Management</h2>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+      position: "relative",
+      overflow: "hidden"
+    }}>
+      
+      {/* Gold shimmer overlay */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "radial-gradient(circle at 20% 80%, rgba(212,175,55,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(212,175,55,0.05) 0%, transparent 50%)",
+        pointerEvents: "none",
+        zIndex: 0
+      }}></div>
 
-        <Stack direction="row" spacing={2} mb={2} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Status"
-              onChange={(e) => setStatusFilter(e.target.value)}
+      <AdminHeader admin={currentUser} handleLogout={handleLogout} />
+      
+      <main style={{ 
+        flex: 1, 
+        padding: "20px 30px",
+        position: "relative",
+        zIndex: 1
+      }}>
+        <Box sx={{ 
+          maxWidth: 1200, 
+          margin: '24px auto',
+          background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
+          backdropFilter: "blur(15px)",
+          padding: "30px",
+          borderRadius: "18px",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
+          border: "1px solid rgba(212,175,55,0.3)",
+          position: "relative",
+          overflow: "hidden"
+        }}>
+          
+          {/* Gold accent line */}
+          <div style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "3px",
+            background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
+          }}></div>
+
+          {/* Back Button and Title Section */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+           <IconButton
+  onClick={() => navigate("/admin/dashboard")}
+  sx={{
+    color: "#d4af37",
+    background: "rgba(212,175,55,0.1)",
+    border: "1px solid rgba(212,175,55,0.3)",
+    mr: 2,
+    '&:hover': {
+      background: "rgba(212,175,55,0.2)",
+      transform: "translateY(-2px)",
+      boxShadow: "0 4px 12px rgba(212,175,55,0.3)"
+    },
+    transition: "all 0.3s ease"
+  }}
+>
+  <ArrowBack />
+</IconButton>
+            
+            <Typography variant="h4" sx={{ 
+              fontWeight: "bold", 
+              color: "#d4af37",
+              textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+            }}>
+              Order Management
+            </Typography>
+          </Box>
+
+          {/* Filter Section */}
+          <Stack direction="row" spacing={2} mb={3}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel sx={{ color: '#d4af37' }}>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={e => setStatusFilter(e.target.value)}
+                sx={{ 
+                  color: '#fff', 
+                  borderColor: '#D4AF37',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.3)' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.5)' },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#d4af37' },
+                  '& .MuiSvgIcon-root': { color: '#D4AF37' }
+                }}
+              >
+                <MenuItem value="">All</MenuItem>
+                {statusOptions.map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {status}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
+
+          {/* Action Buttons */}
+          <Stack direction="row" spacing={2} mb={3} flexWrap="wrap" gap={1}>
+            <Button
+              variant="contained"
+              onClick={handleBulkDelete}
+              disabled={selectedIds.length === 0}
+              sx={{
+                background: "linear-gradient(135deg, #dc3545, #c82333)",
+                color: "#fff",
+                fontWeight: "bold",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #e74c3c, #dc3545)",
+                  transform: "translateY(-2px)"
+                },
+                "&:disabled": {
+                  background: "rgba(220, 53, 69, 0.3)",
+                  color: "rgba(255,255,255,0.5)"
+                },
+                transition: "all 0.3s ease"
+              }}
             >
-              <MenuItem value="">All</MenuItem>
-              {statusOptions.map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              Delete Selected ({selectedIds.length})
+            </Button>
+          </Stack>
 
-          {/* Bulk Delete Button */}
-          <Button 
-            variant="contained" 
-            color="error" 
-            onClick={handleBulkDelete}
-            disabled={selectedIds.length === 0}
-          >
-            Delete Selected ({selectedIds.length})
-          </Button>
-        </Stack>
+          {/* Data Table */}
+          <MUIDataTable
+            data={displayedOrders}
+            columns={columns}
+            options={options}
+          />
 
-        <MUIDataTable data={displayedOrders} columns={columns} options={options} />
-
-        <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
-          <Button variant="contained" color="secondary" onClick={exportPDF}>
-            Export PDF
-          </Button>
+          {/* Export Button */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+            <Button
+              variant="contained"
+              onClick={exportPDF}
+              sx={{
+                background: "linear-gradient(135deg, #d4af37, #b8860b)",
+                color: "#1a1a1a",
+                fontWeight: "bold",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                },
+                transition: "all 0.3s ease"
+              }}
+            >
+              Export PDF
+            </Button>
+          </Box>
         </Box>
 
         <Snackbar
@@ -312,7 +506,8 @@ export default function OrderList() {
             {snackbar.message}
           </Alert>
         </Snackbar>
-      </div>
+      </main>
+
       <AdminFooter />
     </div>
   );

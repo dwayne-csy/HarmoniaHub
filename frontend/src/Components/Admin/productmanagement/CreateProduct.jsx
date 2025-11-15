@@ -1,3 +1,5 @@
+/* --- DARK THEME WITH GOLD ACCENTS --- */
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -16,9 +18,10 @@ import {
   Card,
   CardMedia,
   Stack,
-  FormHelperText
+  FormHelperText,
+  Container
 } from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
+import { Close as CloseIcon, ArrowBack } from "@mui/icons-material";
 import { toast, ToastContainer } from "react-toastify";
 import Loader from '../../layouts/Loader';
 import AdminHeader from "../../layouts/admin/AdminHeader";
@@ -53,8 +56,6 @@ export default function CreateProduct() {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
-  
-  // Validation errors state
   const [errors, setErrors] = useState({
     name: "",
     price: "",
@@ -72,11 +73,7 @@ export default function CreateProduct() {
         const res = await axios.get(`${BASE_URL}/suppliers/dropdown`);
         if (res.data?.suppliers) setSuppliers(res.data.suppliers);
       } catch (err) {
-        console.error("fetch suppliers error", err);
-        toast.error("Failed to fetch suppliers", { 
-          position: "top-center",
-          theme: "colored"
-        });
+        toast.error("Failed to fetch suppliers");
       } finally {
         setShowLoader(false);
       }
@@ -90,159 +87,102 @@ export default function CreateProduct() {
     navigate("/login");
   };
 
-  // Validation functions
   const validateName = (name) => {
-    if (!name.trim()) {
-      return "Name is required";
-    }
-    if (!/^[A-Z]/.test(name)) {
-      return "First letter must be capitalized";
-    }
-    if (/\d/.test(name)) {
-      return "Name should not contain numbers";
-    }
+    if (!name.trim()) return "Name is required";
+    if (!/^[A-Z]/.test(name)) return "First letter must be capitalized";
+    if (/\d/.test(name)) return "Name should not contain numbers";
     return "";
   };
 
   const validatePrice = (price) => {
-    if (!price) {
-      return "Price is required";
-    }
-    if (isNaN(price) || parseFloat(price) <= 0) {
-      return "Price must be a positive number";
-    }
+    if (!price) return "Price is required";
+    if (isNaN(price) || parseFloat(price) <= 0) return "Price must be a positive number";
     return "";
   };
 
-  const validateDescription = (description) => {
-    if (!description.trim()) {
-      return "Description is required";
-    }
-    if (description.length < 50) {
-      return "Description must be at least 50 characters";
-    }
+  const validateDescription = (d) => {
+    if (!d.trim()) return "Description is required";
+    if (d.length < 50) return "Description must be at least 50 characters";
     return "";
   };
 
-  const validateCategory = (category) => {
-    if (!category) {
-      return "Category is required";
-    }
+  const validateCategory = (c) => (!c ? "Category is required" : "");
+  const validateSupplier = (s) => (!s ? "Supplier is required" : "");
+  const validateStock = (s) => {
+    if (!s) return "Stock is required";
+    if (isNaN(s) || parseInt(s, 10) < 0) return "Stock must be a non-negative number";
     return "";
   };
 
-  const validateSupplier = (supplier) => {
-    if (!supplier) {
-      return "Supplier is required";
-    }
-    return "";
-  };
+  const validateImages = (imgs) => imgs.length < 2 ? "At least 2 images are required" : "";
 
-  const validateStock = (stock) => {
-    if (!stock) {
-      return "Stock is required";
-    }
-    if (isNaN(stock) || parseInt(stock, 10) < 0) {
-      return "Stock must be a non-negative number";
-    }
-    return "";
-  };
-
-  const validateImages = (images) => {
-    if (images.length < 2) {
-      return "At least 2 images are required";
-    }
-    return "";
-  };
-
-  const validateField = (fieldName, value) => {
-    switch (fieldName) {
-      case 'name':
-        return validateName(value);
-      case 'price':
-        return validatePrice(value);
-      case 'description':
-        return validateDescription(value);
-      case 'category':
-        return validateCategory(value);
-      case 'supplier':
-        return validateSupplier(value);
-      case 'stock':
-        return validateStock(value);
-      case 'images':
-        return validateImages(value);
-      default:
-        return "";
+  const validateField = (field, value) => {
+    switch (field) {
+      case "name": return validateName(value);
+      case "price": return validatePrice(value);
+      case "description": return validateDescription(value);
+      case "category": return validateCategory(value);
+      case "supplier": return validateSupplier(value);
+      case "stock": return validateStock(value);
+      case "images": return validateImages(value);
+      default: return "";
     }
   };
 
-  const handleFieldChange = (fieldName, value) => {
-    setForm(prev => ({ ...prev, [fieldName]: value }));
-    
-    // Validate the field in real-time
-    const error = validateField(fieldName, value);
-    setErrors(prev => ({ ...prev, [fieldName]: error }));
+  const handleFieldChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    const error = validateField(field, value);
+    setErrors(prev => ({ ...prev, [field]: error }));
   };
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+    if (!files.length) return;
 
     const totalSize = files.reduce((t, f) => t + f.size, 0);
     if (totalSize > 10 * 1024 * 1024) {
-      toast.error("Total images size should be less than 10MB", { 
-        position: "top-center",
-        theme: "colored"
-      });
+      toast.error("Total images size should be less than 10MB");
       return;
     }
 
-    const validFiles = [];
-    const previews = [];
+    const valid = [];
+    const previewList = [];
 
     files.forEach((file) => {
       if (!file.type.startsWith("image/")) {
-        toast.error("Please select only image files", { 
-          position: "top-center",
-          theme: "colored"
-        });
+        toast.error("Only image files allowed");
         return;
       }
       if (file.size > 2 * 1024 * 1024) {
-        toast.error(`Image ${file.name} should be less than 2MB`, { 
-          position: "top-center",
-          theme: "colored"
-        });
+        toast.error(`Image ${file.name} must be < 2MB`);
         return;
       }
-      validFiles.push(file);
+
+      valid.push(file);
 
       const reader = new FileReader();
       reader.onloadend = () => {
-        previews.push(reader.result);
-        if (previews.length === validFiles.length) {
-          setImagePreviews((prev) => [...prev, ...previews]);
+        previewList.push(reader.result);
+        if (previewList.length === valid.length) {
+          setImagePreviews((prev) => [...prev, ...previewList]);
         }
       };
       reader.readAsDataURL(file);
     });
 
-    const newImagesFiles = [...imagesFiles, ...validFiles];
-    setImagesFiles(newImagesFiles);
-    
-    // Validate images count
-    const imagesError = validateImages(newImagesFiles);
+    const newImages = [...imagesFiles, ...valid];
+    setImagesFiles(newImages);
+
+    const imagesError = validateImages(newImages);
     setErrors(prev => ({ ...prev, images: imagesError }));
   };
 
-  const removeImage = (index) => {
-    setImagesFiles((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
-    
-    // Revalidate images count after removal
-    const newImagesFiles = imagesFiles.filter((_, i) => i !== index);
-    const imagesError = validateImages(newImagesFiles);
-    setErrors(prev => ({ ...prev, images: imagesError }));
+  const removeImage = (i) => {
+    setImagesFiles(prev => prev.filter((_, idx) => idx !== i));
+    setImagePreviews(prev => prev.filter((_, idx) => idx !== i));
+
+    const newImages = imagesFiles.filter((_, idx) => idx !== i);
+    setErrors(prev => ({ ...prev, images: validateImages(newImages) }));
   };
 
   const validateAllFields = () => {
@@ -255,21 +195,14 @@ export default function CreateProduct() {
       stock: validateStock(form.stock),
       images: validateImages(imagesFiles)
     };
-
     setErrors(newErrors);
-
-    // Check if there are any errors
-    return Object.values(newErrors).every(error => error === "");
+    return Object.values(newErrors).every(err => err === "");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateAllFields()) {
-      toast.error("Please fix all validation errors before submitting.", { 
-        position: "top-center",
-        theme: "colored"
-      });
+      toast.error("Fix validation errors first.");
       return;
     }
 
@@ -280,52 +213,43 @@ export default function CreateProduct() {
     formData.append("category", form.category);
     formData.append("supplier", form.supplier);
     formData.append("stock", parseInt(form.stock, 10));
-    imagesFiles.forEach((file) => formData.append("images", file));
+    imagesFiles.forEach((f) => formData.append("images", f));
 
     try {
       setLoading(true);
       setShowLoader(true);
-      
       await axios.post(`${BASE_URL}/admin/products`, formData, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      
-      toast.success("Product created successfully!", { 
-        position: "top-center",
-        theme: "colored"
-      });
-      
+      toast.success("Product created successfully!");
       setTimeout(() => navigate("/admin/products"), 1500);
-      
     } catch (error) {
       const text = error?.response?.data?.message || error.message;
-      toast.error(`Creation failed: ${text}`, { 
-        position: "top-center",
-        theme: "colored"
-      });
+      toast.error(`Creation failed: ${text}`);
     } finally {
       setLoading(false);
       setShowLoader(false);
     }
   };
 
-  const hasErrors = Object.values(errors).some(error => error !== "");
+  const hasErrors = Object.values(errors).some(e => e !== "");
 
-  // Show full page loader when loading suppliers or submitting
   if (showLoader) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div style={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)"
+      }}>
         <AdminHeader admin={user} handleLogout={handleLogout} />
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '60vh',
-            width: '100%',
-            flex: 1
-          }}
-        >
+        <Box sx={{ 
+          display: "flex", 
+          justifyContent: "center", 
+          alignItems: "center", 
+          minHeight: "60vh",
+          flex: 1 
+        }}>
           <Loader />
         </Box>
         <AdminFooter />
@@ -334,157 +258,345 @@ export default function CreateProduct() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <AdminHeader admin={user} handleLogout={handleLogout} />
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+      position: "relative",
+      overflow: "hidden"
+    }}>
       
-      <main style={{ flex: 1, padding: "20px 30px", backgroundColor: "#f5f5f5" }}>
-        <Box sx={{ maxWidth: 800, mx: "auto", p: 3, border: "1px solid #ddd", borderRadius: 2, backgroundColor: "white" }}>
-          <Typography variant="h5" mb={2}>
-            Create Product
-          </Typography>
+      {/* Gold shimmer overlay */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "radial-gradient(circle at 20% 80%, rgba(212,175,55,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(212,175,55,0.05) 0%, transparent 50%)",
+        pointerEvents: "none",
+        zIndex: 0
+      }}></div>
 
-          <form onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              <TextField
-                label="Name*"
-                fullWidth
-                value={form.name}
-                onChange={(e) => handleFieldChange('name', e.target.value)}
-                error={!!errors.name}
-                helperText={errors.name}
-                onBlur={(e) => handleFieldChange('name', e.target.value)}
-              />
-              
-              <TextField
-                label="Price*"
-                type="number"
-                fullWidth
-                value={form.price}
-                onChange={(e) => handleFieldChange('price', e.target.value)}
-                error={!!errors.price}
-                helperText={errors.price}
-                onBlur={(e) => handleFieldChange('price', e.target.value)}
-                inputProps={{ min: 0, step: "0.01" }}
-              />
-              
-              <TextField
-                label="Description*"
-                multiline
-                rows={4}
-                fullWidth
-                value={form.description}
-                onChange={(e) => handleFieldChange('description', e.target.value)}
-                error={!!errors.description}
-                helperText={errors.description || `${form.description.length}/50 characters minimum`}
-                onBlur={(e) => handleFieldChange('description', e.target.value)}
-              />
-              
-              <FormControl fullWidth error={!!errors.category}>
-                <InputLabel>Category*</InputLabel>
-                <Select
-                  value={form.category}
-                  label="Category*"
-                  onChange={(e) => handleFieldChange('category', e.target.value)}
-                >
-                  {categories.map((c) => (
-                    <MenuItem key={c} value={c}>{c}</MenuItem>
-                  ))}
-                </Select>
-                {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
-              </FormControl>
-              
-              <FormControl fullWidth error={!!errors.supplier}>
-                <InputLabel>Supplier*</InputLabel>
-                <Select
-                  value={form.supplier}
-                  label="Supplier*"
-                  onChange={(e) => handleFieldChange('supplier', e.target.value)}
-                >
-                  <MenuItem value="">-- Select Supplier --</MenuItem>
-                  {suppliers.map((s) => (
-                    <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
-                  ))}
-                </Select>
-                {errors.supplier && <FormHelperText>{errors.supplier}</FormHelperText>}
-              </FormControl>
-              
-              <TextField
-                label="Stock*"
-                type="number"
-                fullWidth
-                value={form.stock}
-                onChange={(e) => handleFieldChange('stock', e.target.value)}
-                error={!!errors.stock}
-                helperText={errors.stock}
-                onBlur={(e) => handleFieldChange('stock', e.target.value)}
-                inputProps={{ min: 0 }}
-              />
+      <AdminHeader admin={user} handleLogout={handleLogout} />
 
-              <FormControl error={!!errors.images}>
-                <Button variant="contained" component="label">
-                  Choose Images* (At least 2, Max 5, 2MB each)
-                  <input type="file" hidden multiple accept="image/*" onChange={handleFileChange} />
-                </Button>
-                {errors.images && <FormHelperText>{errors.images}</FormHelperText>}
-                <FormHelperText>
-                  {imagesFiles.length} image(s) selected - {2 - imagesFiles.length} more required
-                </FormHelperText>
-              </FormControl>
+      <main style={{ 
+        flex: 1, 
+        padding: "20px 30px",
+        position: "relative",
+        zIndex: 1
+      }}>
+        <Container maxWidth="md">
+          <Box sx={{
+            background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
+            backdropFilter: "blur(15px)",
+            padding: "30px",
+            borderRadius: "18px",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.2)",
+            border: "1px solid rgba(212,175,55,0.3)",
+            position: "relative",
+            overflow: "hidden"
+          }}>
+            
+            {/* Gold accent line */}
+            <div style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "3px",
+              background: "linear-gradient(90deg, transparent, #d4af37, transparent)"
+            }}></div>
 
-              {imagePreviews.length > 0 && (
-                <Grid container spacing={2}>
-                  {imagePreviews.map((preview, index) => (
-                    <Grid key={index}>
-                      <Card sx={{ position: "relative", width: 100, height: 100 }}>
-                        <CardMedia
-                          component="img"
-                          image={preview}
-                          alt={`Preview ${index + 1}`}
-                          sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                        <IconButton
-                          size="small"
-                          sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
-                          onClick={() => removeImage(index)}
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </Card>
+            <Box sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "15px",
+              mb: 3
+            }}>
+              <IconButton
+                onClick={() => navigate("/admin/products")}
+                sx={{
+                  color: "#d4af37",
+                  border: "1px solid rgba(212,175,55,0.3)",
+                  background: "rgba(212,175,55,0.1)",
+                  '&:hover': {
+                    background: "rgba(212,175,55,0.2)"
+                  }
+                }}
+              >
+                <ArrowBack />
+              </IconButton>
+              <Typography variant="h4" sx={{ 
+                fontWeight: "bold", 
+                color: "#d4af37",
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+              }}>
+                Create Product
+              </Typography>
+            </Box>
+
+            <Box sx={{
+              background: "rgba(20,20,20,0.8)",
+              borderRadius: "12px",
+              p: 3,
+              border: "1px solid rgba(212,175,55,0.2)",
+              boxShadow: "0 8px 25px rgba(0,0,0,0.2)"
+            }}>
+              
+              <form onSubmit={handleSubmit}>
+                <Stack spacing={3}>
+
+                  {/* Styled Input Fields */}
+                  <TextField
+                    label="Name*"
+                    fullWidth
+                    value={form.name}
+                    onChange={(e) => handleFieldChange('name', e.target.value)}
+                    onBlur={(e) => handleFieldChange('name', e.target.value)}
+                    error={!!errors.name}
+                    helperText={errors.name}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        color: "#fff",
+                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                      },
+                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                    }}
+                  />
+
+                  <TextField
+                    label="Price*"
+                    type="number"
+                    fullWidth
+                    value={form.price}
+                    onChange={(e) => handleFieldChange('price', e.target.value)}
+                    onBlur={(e) => handleFieldChange('price', e.target.value)}
+                    error={!!errors.price}
+                    helperText={errors.price}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        color: "#fff",
+                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                      },
+                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                    }}
+                  />
+
+                  <TextField
+                    label="Description*"
+                    multiline
+                    rows={4}
+                    fullWidth
+                    value={form.description}
+                    onChange={(e) => handleFieldChange('description', e.target.value)}
+                    onBlur={(e) => handleFieldChange('description', e.target.value)}
+                    error={!!errors.description}
+                    helperText={errors.description}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        color: "#fff",
+                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                      },
+                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                    }}
+                  />
+
+                  <FormControl fullWidth error={!!errors.category}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        color: "#fff",
+                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                      },
+                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                    }}>
+                    <InputLabel>Category*</InputLabel>
+                    <Select
+                      value={form.category}
+                      label="Category*"
+                      onChange={(e) => handleFieldChange('category', e.target.value)}
+                    >
+                      {categories.map((c) => (
+                        <MenuItem key={c} value={c} sx={{ color: "#fff", background: "#2d2d2d" }}>{c}</MenuItem>
+                      ))}
+                    </Select>
+                    {errors.category && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.category}</FormHelperText>}
+                  </FormControl>
+
+                  <FormControl fullWidth error={!!errors.supplier}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        color: "#fff",
+                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                      },
+                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                    }}>
+                    <InputLabel>Supplier*</InputLabel>
+                    <Select
+                      value={form.supplier}
+                      label="Supplier*"
+                      onChange={(e) => handleFieldChange('supplier', e.target.value)}
+                    >
+                      <MenuItem value="" sx={{ color: "#000000ff", background: "#2d2d2d" }}>-- Select Supplier --</MenuItem>
+                      {suppliers.map((s) => (
+                        <MenuItem key={s._id} value={s._id} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{s.name}</MenuItem>
+                      ))}
+                    </Select>
+                    {errors.supplier && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.supplier}</FormHelperText>}
+                  </FormControl>
+
+                  <TextField
+                    label="Stock*"
+                    type="number"
+                    fullWidth
+                    value={form.stock}
+                    onChange={(e) => handleFieldChange('stock', e.target.value)}
+                    onBlur={(e) => handleFieldChange('stock', e.target.value)}
+                    error={!!errors.stock}
+                    helperText={errors.stock}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        color: "#fff",
+                        "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                        "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                        "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                      },
+                      "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                      "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                      "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                    }}
+                  />
+
+                  {/* Image Upload */}
+                  <FormControl error={!!errors.images}>
+                    <Button
+                      variant="contained"
+                      component="label"
+                      sx={{
+                        background: "linear-gradient(135deg, #d4af37, #b8860b)",
+                        color: "#1a1a1a",
+                        fontWeight: "bold",
+                        padding: "12px 24px",
+                        borderRadius: "10px",
+                        "&:hover": {
+                          background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                        },
+                        transition: "all 0.3s ease"
+                      }}
+                    >
+                      📸 Choose Images* (Min 2)
+                      <input type="file" hidden multiple accept="image/*" onChange={handleFileChange} />
+                    </Button>
+                    {errors.images && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.images}</FormHelperText>}
+                  </FormControl>
+
+                  {/* Image Preview Grid */}
+                  {imagePreviews.length > 0 && (
+                    <Grid container spacing={2}>
+                      {imagePreviews.map((img, i) => (
+                        <Grid item key={i}>
+                          <Card sx={{
+                            width: 100,
+                            height: 100,
+                            position: "relative",
+                            border: "2px solid #d4af37",
+                            borderRadius: "12px",
+                            overflow: "hidden",
+                            boxShadow: "0 4px 15px rgba(212,175,55,0.3)"
+                          }}>
+                            <CardMedia
+                              component="img"
+                              image={img}
+                              alt="preview"
+                              sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                            <IconButton
+                              size="small"
+                              sx={{
+                                position: "absolute",
+                                top: -5,
+                                right: -5,
+                                background: "#b22222",
+                                color: "white",
+                                "&:hover": { background: "#7a1616" }
+                              }}
+                              onClick={() => removeImage(i)}
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </Card>
+                        </Grid>
+                      ))}
                     </Grid>
-                  ))}
-                </Grid>
-              )}
+                  )}
 
-              <Stack direction="row" spacing={2} mt={2}>
-                <Button 
-                  type="submit" 
-                  variant="contained" 
-                  disabled={loading || hasErrors}
-                  startIcon={loading && <CircularProgress size={16} />}
-                >
-                  {loading ? "Creating..." : "Create Product"}
-                </Button>
-                <Button variant="outlined" onClick={() => navigate("/admin/products")}>
-                  Back to List
-                </Button>
-              </Stack>
-            </Stack>
-          </form>
+                  {/* Submit Buttons */}
+                  <Stack direction="row" spacing={2} mt={2}>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={loading || hasErrors}
+                      startIcon={loading && <CircularProgress size={16} sx={{ color: "#1a1a1a" }} />}
+                      sx={{
+                        background: "linear-gradient(135deg, #d4af37, #b8860b)",
+                        color: "#1a1a1a",
+                        fontWeight: "bold",
+                        padding: "12px 30px",
+                        borderRadius: "10px",
+                        "&:hover": {
+                          background: "linear-gradient(135deg, #e6c453, #c9970b)",
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 8px 25px rgba(212,175,55,0.4)"
+                        },
+                        "&:disabled": {
+                          background: "rgba(212,175,55,0.3)",
+                          color: "rgba(255,255,255,0.5)"
+                        },
+                        transition: "all 0.3s ease"
+                      }}
+                    >
+                      {loading ? "Creating..." : "Create Product"}
+                    </Button>
 
-          {/* Toast Container with center position */}
-          <ToastContainer 
-            position="top-center"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="colored"
-          />
-        </Box>
+                  </Stack>
+
+                </Stack>
+              </form>
+
+              <ToastContainer 
+                position="top-center" 
+                theme="dark"
+                toastStyle={{
+                  background: "linear-gradient(135deg, #2d2d2d, #1a1a1a)",
+                  color: "#d4af37",
+                  border: "1px solid rgba(212,175,55,0.3)"
+                }}
+              />
+
+            </Box>
+          </Box>
+        </Container>
       </main>
 
       <AdminFooter />
