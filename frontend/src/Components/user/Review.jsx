@@ -1,8 +1,8 @@
-// HarmoniaHub/frontend/src/Components/user/Review.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Box, Typography, TextField, Button, Rating, CircularProgress } from "@mui/material";
+import { Box, Typography, TextField, Button, Rating, CircularProgress, Alert } from "@mui/material";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { Filter } from "bad-words";
 
 const Review = () => {
   const { productId } = useParams();
@@ -14,8 +14,33 @@ const Review = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
+
+  // Initialize bad words filter with custom words
+  const [filter] = useState(() => {
+    const customFilter = new Filter();
+    
+    // Add Filipino bad words
+    const filipinoBadWords = [
+      'putangina', 'puta', 'gago', 'tangina', 'bobo', 'ulol', 'lintik', 
+      'hayop', 'pakyu', 'burat', 'tite', 'pekpek', 'kantot', 'letche', 
+      'siraulo', 'pakshet', 'tarantado', 'punyeta', 'walang hiya', 
+      'bwisit', 'yawa', 'peste', 'hindot', 'suso'
+    ];
+    
+    // Add English bad words
+    const englishBadWords = [
+      'fuck', 'shit', 'asshole', 'bitch', 'bastard', 'dick', 'pussy', 
+      'cock', 'cunt', 'whore', 'slut', 'damn', 'hell', 'crap', 'piss', 
+      'dickhead', 'motherfucker', 'son of a bitch', 'bullshit', 'jerk'
+    ];
+    
+    customFilter.addWords(...filipinoBadWords, ...englishBadWords);
+    return customFilter;
+  });
 
   // Set existing review data if editing
   useEffect(() => {
@@ -26,19 +51,64 @@ const Review = () => {
     }
   }, [existingReview]);
 
+  // Function to filter comment (always filter, don't block)
+  const filterComment = (text) => {
+    if (!text) return { filteredText: text, hasBadWords: false };
+    
+    // Check if contains bad words
+    const hasBadWords = filter.isProfane(text);
+    
+    if (hasBadWords) {
+      // Clean the text by replacing bad words with asterisks
+      const cleanedText = filter.clean(text);
+      return { 
+        filteredText: cleanedText,
+        hasBadWords: true
+      };
+    }
+    
+    return { filteredText: text, hasBadWords: false };
+  };
+
+  const handleCommentChange = (e) => {
+    const newComment = e.target.value;
+    setComment(newComment);
+    setError(""); // Clear previous errors when user types
+    
+    // Check for bad words in real-time and show warning
+    const filtered = filterComment(newComment);
+    if (filtered.hasBadWords && newComment.trim()) {
+      setWarning("Note: Inappropriate language will be automatically filtered in your submitted review.");
+    } else {
+      setWarning("");
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!rating || !comment) {
-      alert("Please provide both rating and comment.");
+    // Basic validation
+    if (!rating) {
+      setError("Please provide a rating.");
+      return;
+    }
+
+    if (!comment.trim()) {
+      setError("Please provide a comment.");
       return;
     }
 
     if (!orderId) {
-      alert("Order information is missing.");
+      setError("Order information is missing.");
       return;
     }
 
     setSubmitting(true);
+    setError("");
+    setWarning("");
+
     try {
+      // Always filter the comment before submitting
+      const filteredComment = filterComment(comment).filteredText;
+
       const url = isEdit
         ? "http://localhost:4001/api/v1/review/update"
         : "http://localhost:4001/api/v1/review/create";
@@ -47,15 +117,27 @@ const Review = () => {
 
       await axios[method](
         url,
-        { productId, rating, comment, orderId },
+        { 
+          productId, 
+          rating, 
+          comment: filteredComment, // Always use filtered text
+          orderId 
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert(isEdit ? "Review updated successfully!" : "Review submitted successfully!");
+      // Show success message with filtering info if applicable
+      const hasBadWords = filter.isProfane(comment);
+      if (hasBadWords) {
+        alert(`${isEdit ? "Review updated" : "Review submitted"} successfully! Note: Inappropriate language has been filtered.`);
+      } else {
+        alert(`${isEdit ? "Review updated" : "Review submitted"} successfully!`);
+      }
+      
       navigate("/order-history");
     } catch (error) {
       console.error("Failed to submit review:", error);
-      alert(error.response?.data?.message || "Failed to submit review.");
+      setError(error.response?.data?.message || "Failed to submit review. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -77,28 +159,61 @@ const Review = () => {
         </Typography>
       )}
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {warning && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {warning}
+        </Alert>
+      )}
+
       <Box display="flex" alignItems="center" mb={2}>
         <Typography variant="subtitle1" mr={2}>
-          Rating:
+          Rating: *
         </Typography>
         <Rating
           value={rating}
-          onChange={(e, newValue) => setRating(newValue)}
+          onChange={(e, newValue) => {
+            setRating(newValue);
+            setError(""); // Clear error when rating is selected
+          }}
           precision={1}
           size="large"
         />
       </Box>
 
       <TextField
-        label="Your Comment"
+        label="Your Comment *"
         multiline
         rows={4}
         fullWidth
         value={comment}
-        onChange={(e) => setComment(e.target.value)}
+        onChange={handleCommentChange}
         margin="normal"
         placeholder="Share your experience with this product..."
+        error={!!error}
+        helperText="You can type anything - inappropriate language will be automatically filtered when submitted."
       />
+
+      <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+        Note: Inappropriate language will be automatically filtered and replaced with asterisks in your submitted review.
+      </Typography>
+
+      {/* Preview of filtered content */}
+      {comment && filter.isProfane(comment) && (
+        <Box mt={2} p={2} bgcolor="#f5f5f5" borderRadius={1}>
+          <Typography variant="caption" color="text.secondary" display="block">
+            Preview of how your comment will appear:
+          </Typography>
+          <Typography variant="body2" fontStyle="italic" mt={1}>
+            "{filter.clean(comment)}"
+          </Typography>
+        </Box>
+      )}
 
       <Box mt={3} display="flex" gap={2}>
         <Button
@@ -108,7 +223,7 @@ const Review = () => {
           disabled={submitting}
           size="large"
         >
-          {submitting ? "Submitting..." : isEdit ? "Update Review" : "Submit Review"}
+          {submitting ? <CircularProgress size={24} /> : isEdit ? "Update Review" : "Submit Review"}
         </Button>
         
         <Button

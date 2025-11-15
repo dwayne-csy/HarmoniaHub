@@ -27,7 +27,7 @@ const ManageOrderRoutes = require('./routes/ManageOrderRoutes');
 const orderRoutes = require("./routes/OrderRoutes");
 const reviewRoutes = require("./routes/ReviewRoutes");
 const ManageReviewRoutes = require("./routes/ManageReviewRoutes");
-
+const SalesAnalyticsRoutes = require("./routes/SalesAnalyticsRoutes");
 
 
 // Use routes
@@ -41,6 +41,7 @@ app.use('/api/v1', ManageOrderRoutes);
 app.use("/api/v1", orderRoutes);
 app.use("/api/v1", reviewRoutes);
 app.use("/api/v1", ManageReviewRoutes);
+app.use("/api/v1/order", SalesAnalyticsRoutes);
 
 // ========== HEALTH CHECK ENDPOINT ==========
 app.get('/api/v1/health', (req, res) => {

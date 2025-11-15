@@ -7,6 +7,8 @@ import { Button, FormControl, InputLabel, Select, MenuItem, Stack, Box } from "@
 import Loader from "../../layouts/Loader";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
@@ -233,66 +235,76 @@ export default function UserList() {
   };
 
   if (loading) {
-    return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh" }}><Loader /></div>;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        <AdminHeader />
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh" }}><Loader /></div>
+        <AdminFooter />
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: "24px auto", padding: 16 }}>
-      <h2>{showDeleted ? "Deleted Users (Trash)" : "Active Users"}</h2>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <AdminHeader />
+      <div style={{ flex: 1, maxWidth: 1200, margin: "24px auto", padding: 16 }}>
+        <h2>{showDeleted ? "Deleted Users (Trash)" : "Active Users"}</h2>
 
-      {/* Filter Dropdowns */}
-      <Stack direction="row" spacing={2} mb={2}>
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Role</InputLabel>
-          <Select value={roleFilter} label="Role" onChange={(e) => setRoleFilter(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="user">User</MenuItem>
-            <MenuItem value="admin">Admin</MenuItem>
-          </Select>
-        </FormControl>
+        {/* Filter Dropdowns */}
+        <Stack direction="row" spacing={2} mb={2}>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Role</InputLabel>
+            <Select value={roleFilter} label="Role" onChange={(e) => setRoleFilter(e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="user">User</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+            </Select>
+          </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Status</InputLabel>
-          <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="Active">Active</MenuItem>
-            <MenuItem value="Inactive">Inactive</MenuItem>
-          </Select>
-        </FormControl>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Status</InputLabel>
+            <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="Active">Active</MenuItem>
+              <MenuItem value="Inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Verified</InputLabel>
-          <Select value={verifiedFilter} label="Verified" onChange={(e) => setVerifiedFilter(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="Verified">Verified</MenuItem>
-            <MenuItem value="NotVerified">Not Verified</MenuItem>
-          </Select>
-        </FormControl>
-      </Stack>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Verified</InputLabel>
+            <Select value={verifiedFilter} label="Verified" onChange={(e) => setVerifiedFilter(e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="Verified">Verified</MenuItem>
+              <MenuItem value="NotVerified">Not Verified</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {!showDeleted && <Button variant="contained" onClick={() => navigate("/admin/users/create")}>➕ Create User</Button>}
-        <Button variant="contained" color={showDeleted ? "success" : "primary"} onClick={() => setShowDeleted(!showDeleted)}>
-          {showDeleted ? "Show Active" : "Trash"}
-        </Button>
-        {showDeleted ? (
-          <>
-            <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
-            <Button variant="contained" color="error" onClick={handlePermanentDelete}>Delete Selected</Button>
-          </>
-        ) : (
-          <Button variant="contained" color="error" onClick={handleDelete}>Delete Selected</Button>
-        )}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {!showDeleted && <Button variant="contained" onClick={() => navigate("/admin/users/create")}>➕ Create User</Button>}
+          <Button variant="contained" color={showDeleted ? "success" : "primary"} onClick={() => setShowDeleted(!showDeleted)}>
+            {showDeleted ? "Show Active" : "Trash"}
+          </Button>
+          {showDeleted ? (
+            <>
+              <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
+              <Button variant="contained" color="error" onClick={handlePermanentDelete}>Delete Selected</Button>
+            </>
+          ) : (
+            <Button variant="contained" color="error" onClick={handleDelete}>Delete Selected</Button>
+          )}
+        </div>
+
+        <MUIDataTable data={filteredUsers} columns={columns} options={options} />
+
+        {/* PDF Export Button below table */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+          <Button variant="contained" color="secondary" onClick={exportPDF}>
+            CSV
+          </Button>
+        </Box>
       </div>
-
-      <MUIDataTable data={filteredUsers} columns={columns} options={options} />
-
-      {/* PDF Export Button below table */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <Button variant="contained" color="secondary" onClick={exportPDF}>
-          CSV
-        </Button>
-      </Box>
+      <AdminFooter />
     </div>
   );
 }

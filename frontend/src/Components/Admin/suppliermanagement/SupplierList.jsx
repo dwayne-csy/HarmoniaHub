@@ -3,10 +3,13 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import MUIDataTable from "mui-datatables";
-import { Button, MenuItem, FormControl, Select, InputLabel, Stack, Box } from '@mui/material';
+import { Button, MenuItem, FormControl, Select, InputLabel, Stack, Box, IconButton } from '@mui/material';
+import { Edit, Visibility } from '@mui/icons-material';
 import Loader from '../../layouts/Loader';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
 
 const BASE_URL = 'http://localhost:4001/api/v1';
 
@@ -114,6 +117,14 @@ export default function SupplierList() {
     }
   };
 
+  const handleView = (id) => {
+    navigate(`/admin/suppliers/view/${id}`);
+  };
+
+  const handleUpdate = (id) => {
+    navigate(`/admin/suppliers/edit/${id}`);
+  };
+
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
@@ -150,7 +161,42 @@ export default function SupplierList() {
     { name: "email", label: "Email" },
     { name: "phone", label: "Phone" },
     { name: "address.city", label: "City", options: { customBodyRenderLite: (dataIndex) => displayedSuppliers[dataIndex].address?.city || '—' } },
-    { name: "isActive", label: "Status", options: { customBodyRenderLite: (dataIndex) => displayedSuppliers[dataIndex].isActive ? 'Active' : 'Inactive' } }
+    { name: "isActive", label: "Status", options: { customBodyRenderLite: (dataIndex) => displayedSuppliers[dataIndex].isActive ? 'Active' : 'Inactive' } },
+    {
+      name: "actions",
+      label: "Actions",
+      options: {
+        customBodyRenderLite: (dataIndex) => {
+          const supplier = displayedSuppliers[dataIndex];
+          return (
+            <Stack direction="row" spacing={1}>
+              <IconButton 
+                color="primary" 
+                size="small" 
+                onClick={() => handleView(supplier._id)}
+                title="View Supplier"
+              >
+                <Visibility />
+              </IconButton>
+              {!showDeleted && (
+                <IconButton 
+                  color="secondary" 
+                  size="small" 
+                  onClick={() => handleUpdate(supplier._id)}
+                  title="Edit Supplier"
+                >
+                  <Edit />
+                </IconButton>
+              )}
+            </Stack>
+          );
+        },
+        filter: false,
+        sort: false,
+        download: false,
+        print: false
+      }
+    }
   ];
 
   const options = {
@@ -173,62 +219,91 @@ export default function SupplierList() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <Loader />
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <AdminHeader />
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          flex: 1 
+        }}>
+          <Loader />
+        </div>
+        <AdminFooter />
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16 }}>
-      <h2>{showDeleted ? 'Deleted Suppliers (Trash)' : 'Active Suppliers'}</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AdminHeader />
+      <div style={{ 
+        maxWidth: 1200, 
+        margin: '24px auto', 
+        padding: 16,
+        flex: 1,
+        width: '100%'
+      }}>
+        <h2>{showDeleted ? 'Deleted Suppliers (Trash)' : 'Active Suppliers'}</h2>
 
-      {/* Filter */}
-      <Stack direction="row" spacing={2} mb={2} alignItems="center">
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>City</InputLabel>
-          <Select
-            value={cityFilter}
-            label="City"
-            onChange={e => setCityFilter(e.target.value)}
-          >
-            <MenuItem value="">All</MenuItem>
-            {cities.map(city => (
-              <MenuItem key={city} value={city}>{city}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Stack>
+        {/* Filter */}
+        <Stack direction="row" spacing={2} mb={2} alignItems="center">
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>City</InputLabel>
+            <Select
+              value={cityFilter}
+              label="City"
+              onChange={e => setCityFilter(e.target.value)}
+            >
+              <MenuItem value="">All</MenuItem>
+              {cities.map(city => (
+                <MenuItem key={city} value={city}>{city}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
 
-      {/* Toolbar buttons */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {!showDeleted && <Button variant="contained" onClick={() => navigate('/admin/suppliers/new')}>➕ Create Supplier</Button>}
+        {/* Toolbar buttons */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          {!showDeleted && (
+            <Button variant="contained" onClick={() => navigate('/admin/suppliers/new')}>
+              ➕ Create Supplier
+            </Button>
+          )}
 
-        <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
-          {showDeleted ? 'Show Active' : 'Trash'}
-        </Button>
+          <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
+            {showDeleted ? 'Show Active' : 'Trash'}
+          </Button>
 
-        {showDeleted ? (
-          <>
-            <Button variant="contained" color="success" onClick={handleRestore}>♻️ Restore Selected</Button>
-            <Button variant="contained" color="error" onClick={handlePermanentDelete}>🗑️ Delete Selected</Button>
-          </>
-        ) : (
-          <Button variant="contained" color="error" onClick={handleBulkSoftDelete}>Delete Selected</Button>
-        )}
+          {showDeleted ? (
+            <>
+              <Button variant="contained" color="success" onClick={handleRestore}>
+                ♻️ Restore Selected
+              </Button>
+              <Button variant="contained" color="error" onClick={handlePermanentDelete}>
+                🗑️ Delete Selected
+              </Button>
+            </>
+          ) : (
+            <Button variant="contained" color="error" onClick={handleBulkSoftDelete}>
+              Delete Selected
+            </Button>
+          )}
+        </div>
+
+        <MUIDataTable
+          data={displayedSuppliers}
+          columns={columns}
+          options={options}
+        />
+
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+          <Button variant="contained" color="secondary" onClick={exportPDF}>
+            CSV
+          </Button>
+        </Box>
       </div>
-
-      <MUIDataTable
-        data={displayedSuppliers}
-        columns={columns}
-        options={options}
-      />
-
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <Button variant="contained" color="secondary" onClick={exportPDF}>
-          CSV
-        </Button>
-      </Box>
+      <AdminFooter />
     </div>
   );
 }

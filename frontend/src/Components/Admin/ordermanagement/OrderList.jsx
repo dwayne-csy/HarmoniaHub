@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import Loader from "../../layouts/Loader";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
@@ -249,61 +251,69 @@ export default function OrderList() {
 
   if (loading)
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh" }}>
-        <Loader />
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        <AdminHeader />
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh" }}>
+          <Loader />
+        </div>
+        <AdminFooter />
       </div>
     );
 
   return (
-    <div style={{ maxWidth: 1200, margin: "24px auto", padding: 16 }}>
-      <h2>Order Management</h2>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <AdminHeader />
+      <div style={{ flex: 1, maxWidth: 1200, margin: "24px auto", padding: 16 }}>
+        <h2>Order Management</h2>
 
-      <Stack direction="row" spacing={2} mb={2} alignItems="center">
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            label="Status"
-            onChange={(e) => setStatusFilter(e.target.value)}
+        <Stack direction="row" spacing={2} mb={2} alignItems="center">
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Status"
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <MenuItem value="">All</MenuItem>
+              {statusOptions.map((status) => (
+                <MenuItem key={status} value={status}>
+                  {status}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Bulk Delete Button */}
+          <Button 
+            variant="contained" 
+            color="error" 
+            onClick={handleBulkDelete}
+            disabled={selectedIds.length === 0}
           >
-            <MenuItem value="">All</MenuItem>
-            {statusOptions.map((status) => (
-              <MenuItem key={status} value={status}>
-                {status}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            Delete Selected ({selectedIds.length})
+          </Button>
+        </Stack>
 
-        {/* Bulk Delete Button */}
-        <Button 
-          variant="contained" 
-          color="error" 
-          onClick={handleBulkDelete}
-          disabled={selectedIds.length === 0}
+        <MUIDataTable data={displayedOrders} columns={columns} options={options} />
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
+          <Button variant="contained" color="secondary" onClick={exportPDF}>
+            Export PDF
+          </Button>
+        </Box>
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          Delete Selected ({selectedIds.length})
-        </Button>
-      </Stack>
-
-      <MUIDataTable data={displayedOrders} columns={columns} options={options} />
-
-      <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
-        <Button variant="contained" color="secondary" onClick={exportPDF}>
-          Export PDF
-        </Button>
-      </Box>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </div>
+      <AdminFooter />
     </div>
   );
 }

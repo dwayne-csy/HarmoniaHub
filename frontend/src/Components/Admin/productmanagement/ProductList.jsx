@@ -7,6 +7,8 @@ import { Button, Box, FormControl, InputLabel, Select, MenuItem, Stack } from '@
 import Loader from '../../layouts/Loader';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
 
 const BASE_URL = 'http://localhost:4001/api/v1';
 
@@ -23,6 +25,7 @@ export default function ProductList() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user'));
 
   const categoryOptions = [
     'Idiophones',
@@ -43,6 +46,12 @@ export default function ProductList() {
     if (token) fetchDeletedProducts();
     fetchSuppliers();
   }, [token]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
 
   const fetchActiveProducts = async () => {
     try {
@@ -294,61 +303,73 @@ export default function ProductList() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <Loader />
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        <AdminHeader admin={user} handleLogout={handleLogout} />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh', flex: 1 }}>
+          <Loader />
+        </div>
+        <AdminFooter />
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16, position: 'relative' }}>
-      <h2>{showDeleted ? 'Deleted Products (Trash)' : 'Active Products'}</h2>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <AdminHeader admin={user} handleLogout={handleLogout} />
+      
+      <main style={{ flex: 1, padding: "20px 30px", backgroundColor: "#f5f5f5" }}>
+        <div style={{ maxWidth: 1200, margin: '24px auto', padding: 16, position: 'relative', backgroundColor: "white", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+          <h2>{showDeleted ? 'Deleted Products (Trash)' : 'Active Products'}</h2>
 
-      <Stack direction="row" spacing={2} mb={2}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Category</InputLabel>
-          <Select value={categoryFilter} label="Category" onChange={e => setCategoryFilter(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            {categoryOptions.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-          </Select>
-        </FormControl>
+          <Stack direction="row" spacing={2} mb={2}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Category</InputLabel>
+              <Select value={categoryFilter} label="Category" onChange={e => setCategoryFilter(e.target.value)}>
+                <MenuItem value="">All</MenuItem>
+                {categoryOptions.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+              </Select>
+            </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Supplier</InputLabel>
-          <Select value={supplierFilter} label="Supplier" onChange={e => setSupplierFilter(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            {suppliers.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-          </Select>
-        </FormControl>
-      </Stack>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Supplier</InputLabel>
+              <Select value={supplierFilter} label="Supplier" onChange={e => setSupplierFilter(e.target.value)}>
+                <MenuItem value="">All</MenuItem>
+                {suppliers.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Stack>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {!showDeleted && <Button variant="contained" onClick={() => navigate('/admin/products/new')}>➕ Create Product</Button>}
-        <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
-          {showDeleted ? 'Show Active' : 'Trash'}
-        </Button>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {!showDeleted && <Button variant="contained" onClick={() => navigate('/admin/products/new')}>➕ Create Product</Button>}
+            <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
+              {showDeleted ? 'Show Active' : 'Trash'}
+            </Button>
 
-        {showDeleted ? (
-          <>
-            <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
-            <Button variant="contained" color="error" onClick={handleBulkHardDelete}>Delete Selected</Button>
-          </>
-        ) : (
-          <Button variant="contained" color="error" onClick={handleBulkDelete}>Delete Selected</Button>
-        )}
-      </div>
+            {showDeleted ? (
+              <>
+                <Button variant="contained" color="success" onClick={handleRestore}>Restore Selected</Button>
+                <Button variant="contained" color="error" onClick={handleBulkHardDelete}>Delete Selected</Button>
+              </>
+            ) : (
+              <Button variant="contained" color="error" onClick={handleBulkDelete}>Delete Selected</Button>
+            )}
+          </div>
 
-      <MUIDataTable
-        data={displayedProducts}
-        columns={columns}
-        options={options}
-      />
+          <MUIDataTable
+            data={displayedProducts}
+            columns={columns}
+            options={options}
+          />
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <Button variant="contained" color="secondary" onClick={exportPDF}>
-          CSV
-        </Button>
-      </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+            <Button variant="contained" color="secondary" onClick={exportPDF}>
+              CSV
+            </Button>
+          </Box>
+        </div>
+      </main>
+
+      <AdminFooter />
     </div>
   );
 }

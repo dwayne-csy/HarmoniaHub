@@ -1,424 +1,460 @@
-import React, { useState, useEffect } from "react";
+// HarmoniaHub/frontend/src/Components/admin/productmanagement/UpdateProduct.jsx
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  TextField,
+  Button,
+  MenuItem,
+  Typography,
+  Box,
+  Select,
+  InputLabel,
+  FormControl,
+  CircularProgress,
+  Grid,
+  IconButton,
+  Card,
+  CardMedia,
+  Stack,
+  FormHelperText
+} from "@mui/material";
+import { Close as CloseIcon } from "@mui/icons-material";
+import { toast, ToastContainer } from "react-toastify";
+import Loader from '../../layouts/Loader';
 
-const UpdateProfile = () => {
+const BASE_URL = "http://localhost:4001/api/v1";
+
+const categories = [
+  "Idiophones",
+  "Membranophones",
+  "Chordophones",
+  "Aerophones",
+  "Electrophones",
+  "Keyboard Instruments",
+];
+
+export default function UpdateProduct() {
+  const { id } = useParams();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  const [user, setUser] = useState({
+  const [form, setForm] = useState({
     name: "",
-    email: "",
-    contact: "",
-    city: "",
-    barangay: "",
-    street: "",
-    zipcode: "",
+    price: "",
+    description: "",
+    category: categories[0],
+    supplier: "",
+    stock: 0,
   });
-
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState("");
-  const [message, setMessage] = useState("");
+  const [suppliers, setSuppliers] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [newFiles, setNewFiles] = useState([]);
+  const [newPreviews, setNewPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  // Validation errors state
-  const [errors, setErrors] = useState({
-    contact: "",
-    city: "",
-    barangay: "",
-    street: "",
-    zipcode: "",
-    avatar: ""
-  });
-
-  // Password change toggle and data
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-
-  // Fetch current user profile
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data } = await axios.get("http://localhost:4001/api/v1/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    if (id) {
+      fetchProduct();
+      fetchSuppliers();
+    }
+  }, [id]);
 
-        setUser({
-          name: data.user.name,
-          email: data.user.email,
-          contact: data.user.contact || "",
-          city: data.user.address?.city || "",
-          barangay: data.user.address?.barangay || "",
-          street: data.user.address?.street || "",
-          zipcode: data.user.address?.zipcode || "",
-        });
+  const fetchProduct = async () => {
+    try {
+      setShowLoader(true);
+      const res = await axios.get(`${BASE_URL}/products/${id}`);
+      const product = res.data.product;
+      setForm({
+        name: product.name || "",
+        price: product.price || "",
+        description: product.description || "",
+        category: product.category || categories[0],
+        supplier: product.supplier?._id || "",
+        stock: product.stock || 0,
+      });
+      setExistingImages(product.images || []);
+    } catch (err) {
+      toast.error("Failed to load product", { 
+        position: "top-center",
+        theme: "colored"
+      });
+    } finally {
+      setShowLoader(false);
+    }
+  };
 
-        setAvatarPreview(data.user.avatar?.url || "");
-      } catch (error) {
-        setMessage("Failed to load profile");
-        console.error(error);
-      }
-    };
-    fetchProfile();
-  }, [token]);
+  const fetchSuppliers = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/suppliers/dropdown`);
+      setSuppliers(res.data.suppliers || []);
+    } catch (err) {
+      toast.error("Failed to fetch suppliers", { 
+        position: "top-center",
+        theme: "colored"
+      });
+    }
+  };
 
-  // Validation functions
-  const validateContact = (contact) => {
-    if (!contact.trim()) return "Contact number is required";
-    if (!/^\d+$/.test(contact)) return "Contact must contain only numbers";
-    if (contact.length < 11 || contact.length > 12) return "Contact must be 11 to 12 digits";
+  const validateName = (name) => {
+    if (!name.trim()) return "Name is required";
+    if (!/^[A-Z]/.test(name)) return "First letter must be capitalized";
+    if (/\d/.test(name)) return "Name should not contain numbers";
     return "";
   };
 
-  const validateCity = (city) => {
-    if (!city.trim()) return "City is required";
-    if (!/^[A-Z]/.test(city)) return "First letter must be capitalized";
+  const validatePrice = (price) => {
+    if (!price) return "Price is required";
+    if (isNaN(price) || parseFloat(price) <= 0) return "Price must be a positive number";
     return "";
   };
 
-  const validateBarangay = (barangay) => {
-    if (!barangay.trim()) return "Barangay is required";
-    if (!/^[A-Z]/.test(barangay)) return "First letter must be capitalized";
+  const validateDescription = (description) => {
+    if (!description.trim()) return "Description is required";
+    if (description.length < 50) return "Description must be at least 50 characters";
     return "";
   };
 
-  const validateStreet = (street) => {
-    if (!street.trim()) return "Street is required";
-    if (!/^[A-Z]/.test(street)) return "First letter must be capitalized";
+  const validateSupplier = (supplier) => {
+    if (!supplier) return "Supplier is required";
     return "";
   };
 
-  const validateZipcode = (zipcode) => {
-    if (!zipcode.trim()) return "Zipcode is required";
-    if (!/^\d+$/.test(zipcode)) return "Zipcode must contain only numbers";
-    if (zipcode.length !== 4) return "Zipcode must be exactly 4 digits";
+  const validateStock = (stock) => {
+    if (!stock && stock !== 0) return "Stock is required";
+    if (isNaN(stock) || parseInt(stock, 10) < 0) return "Stock must be a non-negative number";
     return "";
   };
 
-  const validateAvatar = (avatarFile, currentAvatar) => {
-    if (!avatarFile && !currentAvatar) return "Profile image is required";
+  const validateImages = (existing, newFiles) => {
+    const totalImages = existing.length + newFiles.length;
+    if (totalImages < 2) return "At least 2 images are required in total";
     return "";
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUser({ ...user, [name]: value });
+  const handleFieldChange = (fieldName, value) => {
+    setForm(prev => ({ ...prev, [fieldName]: value }));
     
-    // Validate field in real-time
     let error = "";
-    switch (name) {
-      case 'contact':
-        error = validateContact(value);
-        break;
-      case 'city':
-        error = validateCity(value);
-        break;
-      case 'barangay':
-        error = validateBarangay(value);
-        break;
-      case 'street':
-        error = validateStreet(value);
-        break;
-      case 'zipcode':
-        error = validateZipcode(value);
-        break;
-      default:
-        break;
+    switch (fieldName) {
+      case 'name': error = validateName(value); break;
+      case 'price': error = validatePrice(value); break;
+      case 'description': error = validateDescription(value); break;
+      case 'supplier': error = validateSupplier(value); break;
+      case 'stock': error = validateStock(value); break;
+      default: break;
     }
-    setErrors(prev => ({ ...prev, [name]: error }));
+    setErrors(prev => ({ ...prev, [fieldName]: error }));
   };
 
-  const handlePasswordChange = (e) =>
-    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  const removeExistingImage = (index) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
+    const imagesError = validateImages(
+      existingImages.filter((_, i) => i !== index), 
+      newFiles
+    );
+    setErrors(prev => ({ ...prev, images: imagesError }));
+  };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    
-    // Clear previous file and validation
-    setAvatarFile(null);
-    setErrors(prev => ({ ...prev, avatar: "" }));
+  const handleNewFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    if (!file) {
-      const avatarError = validateAvatar(null, avatarPreview);
-      setErrors(prev => ({ ...prev, avatar: avatarError }));
+    const totalSize = files.reduce((t, f) => t + f.size, 0);
+    if (totalSize > 10 * 1024 * 1024) {
+      toast.error("Total images size should be less than 10MB", { 
+        position: "top-center",
+        theme: "colored"
+      });
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setMessage("Please select an image file");
-      return;
-    }
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select only image files", { position: "top-center", theme: "colored" });
+        return false;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error(`Image ${file.name} should be less than 2MB`, { position: "top-center", theme: "colored" });
+        return false;
+      }
+      return true;
+    });
 
-    if (file.size > 2 * 1024 * 1024) {
-      setMessage("Image size should be less than 2MB");
-      return;
-    }
+    const previews = validFiles.map(file => {
+      const reader = new FileReader();
+      return new Promise(resolve => {
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    });
 
-    setAvatarFile(file);
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.readyState === 2) setAvatarPreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+    Promise.all(previews).then(results => {
+      setNewPreviews(prev => [...prev, ...results]);
+    });
 
-    // Clear avatar error when file is selected
-    setErrors(prev => ({ ...prev, avatar: "" }));
+    const updatedNewFiles = [...newFiles, ...validFiles];
+    setNewFiles(updatedNewFiles);
+    const imagesError = validateImages(existingImages, updatedNewFiles);
+    setErrors(prev => ({ ...prev, images: imagesError }));
+  };
+
+  const removeNewFile = (index) => {
+    setNewFiles(prev => prev.filter((_, i) => i !== index));
+    setNewPreviews(prev => prev.filter((_, i) => i !== index));
+    const imagesError = validateImages(existingImages, newFiles.filter((_, i) => i !== index));
+    setErrors(prev => ({ ...prev, images: imagesError }));
   };
 
   const validateAllFields = () => {
     const newErrors = {
-      contact: validateContact(user.contact),
-      city: validateCity(user.city),
-      barangay: validateBarangay(user.barangay),
-      street: validateStreet(user.street),
-      zipcode: validateZipcode(user.zipcode),
-      avatar: validateAvatar(avatarFile, avatarPreview)
+      name: validateName(form.name),
+      price: validatePrice(form.price),
+      description: validateDescription(form.description),
+      supplier: validateSupplier(form.supplier),
+      stock: validateStock(form.stock),
+      images: validateImages(existingImages, newFiles)
     };
 
     setErrors(newErrors);
     return Object.values(newErrors).every(error => error === "");
   };
 
-  // Submit profile update
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
 
     if (!validateAllFields()) {
-      setMessage("Please fix all validation errors before submitting.");
-      setLoading(false);
+      toast.error("Please fix all validation errors before submitting.", { 
+        position: "top-center",
+        theme: "colored"
+      });
       return;
     }
 
     try {
+      setLoading(true);
+      setShowLoader(true);
+
       const formData = new FormData();
-      Object.entries(user).forEach(([key, value]) => formData.append(key, value));
-      if (avatarFile) formData.append("avatar", avatarFile);
+      formData.append("name", form.name);
+      formData.append("price", parseFloat(form.price));
+      formData.append("description", form.description);
+      formData.append("category", form.category);
+      formData.append("supplier", form.supplier);
+      formData.append("stock", parseInt(form.stock, 10));
+      formData.append("existingImages", JSON.stringify(existingImages));
+      newFiles.forEach((file) => formData.append("images", file));
 
-      const { data } = await axios.put(
-        "http://localhost:4001/api/v1/me/update",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      await axios.put(`${BASE_URL}/admin/products/${id}`, formData, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
 
-      setMessage("Profile updated successfully!");
-      setTimeout(() => navigate("/profile"), 1200);
-    } catch (error) {
-      console.error("Update error:", error);
-      setMessage(error.response?.data?.message || "Update failed");
+      toast.success("Product updated successfully!", { 
+        position: "top-center",
+        theme: "colored"
+      });
+      
+      setTimeout(() => navigate("/admin/products"), 1500);
+      
+    } catch (err) {
+      const errorMessage = err?.response?.data?.message || err.message;
+      toast.error(`Update failed: ${errorMessage}`, { 
+        position: "top-center",
+        theme: "colored"
+      });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Change password handler
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage("Passwords do not match");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      await axios.put(
-        "http://localhost:4001/api/v1/password/update",
-        passwordData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setMessage("Password changed successfully!");
-      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
-      setShowPasswordForm(false);
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Password update failed");
-    } finally {
-      setLoading(false);
+      setShowLoader(false);
     }
   };
 
   const hasErrors = Object.values(errors).some(error => error !== "");
+  const totalImages = existingImages.length + newFiles.length;
+
+  if (showLoader) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', width: '100%' }}>
+        <Loader />
+      </Box>
+    );
+  }
+
+  if (!form.name && !loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', width: '100%' }}>
+        <Loader />
+      </Box>
+    );
+  }
 
   return (
-    <div className="form-container">
-      <h2>Update Profile</h2>
-
-      {avatarPreview && (
-        <div style={{ textAlign: "center", marginBottom: "20px" }}>
-          <img
-            src={avatarPreview}
-            alt="Avatar Preview"
-            style={{
-              width: "150px",
-              height: "150px",
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: "2px solid #ddd",
-            }}
-          />
-        </div>
-      )}
+    <Box sx={{ maxWidth: 800, mx: "auto", p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
+      <Typography variant="h5" mb={2}>Update Product</Typography>
 
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          value={user.name}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="email"
-          name="email"
-          value={user.email}
-          readOnly
-          style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
-        />
-        
-        <input
-          type="text"
-          name="contact"
-          placeholder="Contact Number (11-12 digits)"
-          value={user.contact}
-          onChange={handleChange}
-          maxLength="12"
-        />
-        {errors.contact && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.contact}</div>}
-        
-        <input
-          type="text"
-          name="city"
-          placeholder="City"
-          value={user.city}
-          onChange={handleChange}
-        />
-        {errors.city && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.city}</div>}
-        
-        <input
-          type="text"
-          name="barangay"
-          placeholder="Barangay"
-          value={user.barangay}
-          onChange={handleChange}
-        />
-        {errors.barangay && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.barangay}</div>}
-        
-        <input
-          type="text"
-          name="street"
-          placeholder="Street"
-          value={user.street}
-          onChange={handleChange}
-        />
-        {errors.street && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.street}</div>}
-        
-        <input
-          type="text"
-          name="zipcode"
-          placeholder="Zipcode (4 digits)"
-          value={user.zipcode}
-          onChange={handleChange}
-          maxLength="4"
-        />
-        {errors.zipcode && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.zipcode}</div>}
-
-        <div style={{ margin: "10px 0" }}>
-          <label htmlFor="avatar-upload" style={{ display: "block", marginBottom: "5px" }}>
-            Profile Picture: *
-          </label>
-          <input
-            id="avatar-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{ width: "100%" }}
+        <Stack spacing={2}>
+          <TextField
+            label="Name*"
+            fullWidth
+            value={form.name}
+            onChange={(e) => handleFieldChange('name', e.target.value)}
+            error={!!errors.name}
+            helperText={errors.name}
           />
-          {errors.avatar && <div style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>{errors.avatar}</div>}
-          <small style={{ color: "#666" }}>Supported: JPG, PNG, GIF (Max 2MB)</small>
-        </div>
+          
+          <TextField
+            label="Price*"
+            type="number"
+            fullWidth
+            value={form.price}
+            onChange={(e) => handleFieldChange('price', e.target.value)}
+            error={!!errors.price}
+            helperText={errors.price}
+            inputProps={{ min: 0, step: "0.01" }}
+          />
+          
+          <TextField
+            label="Description*"
+            multiline
+            rows={4}
+            fullWidth
+            value={form.description}
+            onChange={(e) => handleFieldChange('description', e.target.value)}
+            error={!!errors.description}
+            helperText={errors.description || `${form.description.length}/50 characters minimum`}
+          />
+          
+          <FormControl fullWidth>
+            <InputLabel>Category*</InputLabel>
+            <Select
+              value={form.category}
+              label="Category*"
+              onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
+            >
+              {categories.map((c) => (
+                <MenuItem key={c} value={c}>{c}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          <FormControl fullWidth error={!!errors.supplier}>
+            <InputLabel>Supplier*</InputLabel>
+            <Select
+              value={form.supplier}
+              label="Supplier*"
+              onChange={(e) => handleFieldChange('supplier', e.target.value)}
+            >
+              <MenuItem value="">-- Select Supplier --</MenuItem>
+              {suppliers.map((s) => (
+                <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
+              ))}
+            </Select>
+            {errors.supplier && <FormHelperText>{errors.supplier}</FormHelperText>}
+          </FormControl>
+          
+          <TextField
+            label="Stock*"
+            type="number"
+            fullWidth
+            value={form.stock}
+            onChange={(e) => handleFieldChange('stock', e.target.value)}
+            error={!!errors.stock}
+            helperText={errors.stock}
+            inputProps={{ min: 0 }}
+          />
 
-        <button type="submit" disabled={loading || hasErrors}>
-          {loading ? "Updating..." : "Update Profile"}
-        </button>
+          <Typography variant="h6">Existing Images</Typography>
+          <FormControl error={!!errors.images}>
+            <FormHelperText>
+              Total images: {totalImages} - {2 - totalImages > 0 ? `${2 - totalImages} more required` : 'Minimum requirement met'}
+            </FormHelperText>
+            {errors.images && <FormHelperText error>{errors.images}</FormHelperText>}
+          </FormControl>
+          
+          <Grid container spacing={2}>
+            {existingImages.length === 0 && (
+              <Grid item>
+                <Typography color="text.secondary">No existing images</Typography>
+              </Grid>
+            )}
+            {existingImages.map((img, idx) => (
+              <Grid item key={idx}>
+                <Card sx={{ position: "relative", width: 100, height: 100 }}>
+                  <CardMedia
+                    component="img"
+                    image={img.url}
+                    alt={`img-${idx}`}
+                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                  <IconButton
+                    size="small"
+                    sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
+                    onClick={() => removeExistingImage(idx)}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+
+          <FormControl error={!!errors.images}>
+            <Button variant="contained" component="label">
+              Add New Images (Max 5, 2MB each)
+              <input type="file" hidden multiple accept="image/*" onChange={handleNewFileChange} />
+            </Button>
+          </FormControl>
+          
+          {newPreviews.length > 0 && (
+            <Grid container spacing={2}>
+              {newPreviews.map((p, i) => (
+                <Grid item key={i}>
+                  <Card sx={{ position: "relative", width: 100, height: 100 }}>
+                    <CardMedia
+                      component="img"
+                      image={p}
+                      alt={`new-${i}`}
+                      sx={{ width: "100%", height: "100%", objectFit: "cover", border: "2px solid #007bff" }}
+                    />
+                    <IconButton
+                      size="small"
+                      sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
+                      onClick={() => removeNewFile(i)}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+
+          <Stack direction="row" spacing={2} mt={2}>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              disabled={loading || hasErrors}
+              startIcon={loading && <CircularProgress size={16} />}
+            >
+              {loading ? "Updating..." : "Update Product"}
+            </Button>
+            <Button variant="outlined" onClick={() => navigate("/admin/products")}>
+              Cancel
+            </Button>
+          </Stack>
+        </Stack>
       </form>
 
-      <hr style={{ margin: "30px 0" }} />
-
-      <div style={{ textAlign: "center" }}>
-        {!showPasswordForm ? (
-          <button onClick={() => setShowPasswordForm(true)} className="btn-secondary">
-            Change Password
-          </button>
-        ) : (
-          <>
-            <h3>Change Password</h3>
-            <form onSubmit={handlePasswordSubmit}>
-              <input
-                type="password"
-                name="oldPassword"
-                placeholder="Current Password"
-                value={passwordData.oldPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-              <input
-                type="password"
-                name="newPassword"
-                placeholder="New Password"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-              <input
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirm New Password"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-              <button type="submit" disabled={loading}>
-                {loading ? "Changing..." : "Save Password"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPasswordForm(false)}
-                style={{ marginLeft: "10px" }}
-              >
-                Cancel
-              </button>
-            </form>
-          </>
-        )}
-      </div>
-
-      {message && (
-        <p
-          style={{
-            color: message.includes("successfully") ? "green" : "red",
-            textAlign: "center",
-            marginTop: "20px",
-          }}
-        >
-          {message}
-        </p>
-      )}
-    </div>
+      <ToastContainer 
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        closeOnClick
+        pauseOnHover
+        theme="colored"
+      />
+    </Box>
   );
-};
-
-export default UpdateProfile;
+}

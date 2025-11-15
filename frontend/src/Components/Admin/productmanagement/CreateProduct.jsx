@@ -20,7 +20,9 @@ import {
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { toast, ToastContainer } from "react-toastify";
-import Loader from '../../layouts/Loader'; // Import the Loader component
+import Loader from '../../layouts/Loader';
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
@@ -36,6 +38,7 @@ const categories = [
 export default function CreateProduct() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const [form, setForm] = useState({
     name: "",
@@ -49,7 +52,7 @@ export default function CreateProduct() {
   const [imagesFiles, setImagesFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showLoader, setShowLoader] = useState(false); // For full page loader
+  const [showLoader, setShowLoader] = useState(false);
   
   // Validation errors state
   const [errors, setErrors] = useState({
@@ -80,6 +83,12 @@ export default function CreateProduct() {
     };
     fetchSuppliers();
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
 
   // Validation functions
   const validateName = (name) => {
@@ -305,167 +314,180 @@ export default function CreateProduct() {
   // Show full page loader when loading suppliers or submitting
   if (showLoader) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '60vh', // Adjust height as needed
-          width: '100%'
-        }}
-      >
-        <Loader />
-      </Box>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        <AdminHeader admin={user} handleLogout={handleLogout} />
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '60vh',
+            width: '100%',
+            flex: 1
+          }}
+        >
+          <Loader />
+        </Box>
+        <AdminFooter />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
-      <Typography variant="h5" mb={2}>
-        Create Product
-      </Typography>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <AdminHeader admin={user} handleLogout={handleLogout} />
+      
+      <main style={{ flex: 1, padding: "20px 30px", backgroundColor: "#f5f5f5" }}>
+        <Box sx={{ maxWidth: 800, mx: "auto", p: 3, border: "1px solid #ddd", borderRadius: 2, backgroundColor: "white" }}>
+          <Typography variant="h5" mb={2}>
+            Create Product
+          </Typography>
 
-      <form onSubmit={handleSubmit}>
-        <Stack spacing={2}>
-          <TextField
-            label="Name*"
-            fullWidth
-            value={form.name}
-            onChange={(e) => handleFieldChange('name', e.target.value)}
-            error={!!errors.name}
-            helperText={errors.name}
-            onBlur={(e) => handleFieldChange('name', e.target.value)}
-          />
-          
-          <TextField
-            label="Price*"
-            type="number"
-            fullWidth
-            value={form.price}
-            onChange={(e) => handleFieldChange('price', e.target.value)}
-            error={!!errors.price}
-            helperText={errors.price}
-            onBlur={(e) => handleFieldChange('price', e.target.value)}
-            inputProps={{ min: 0, step: "0.01" }}
-          />
-          
-          <TextField
-            label="Description*"
-            multiline
-            rows={4}
-            fullWidth
-            value={form.description}
-            onChange={(e) => handleFieldChange('description', e.target.value)}
-            error={!!errors.description}
-            helperText={errors.description || `${form.description.length}/50 characters minimum`}
-            onBlur={(e) => handleFieldChange('description', e.target.value)}
-          />
-          
-          <FormControl fullWidth error={!!errors.category}>
-            <InputLabel>Category*</InputLabel>
-            <Select
-              value={form.category}
-              label="Category*"
-              onChange={(e) => handleFieldChange('category', e.target.value)}
-            >
-              {categories.map((c) => (
-                <MenuItem key={c} value={c}>{c}</MenuItem>
-              ))}
-            </Select>
-            {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
-          </FormControl>
-          
-          <FormControl fullWidth error={!!errors.supplier}>
-            <InputLabel>Supplier*</InputLabel>
-            <Select
-              value={form.supplier}
-              label="Supplier*"
-              onChange={(e) => handleFieldChange('supplier', e.target.value)}
-            >
-              <MenuItem value="">-- Select Supplier --</MenuItem>
-              {suppliers.map((s) => (
-                <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
-              ))}
-            </Select>
-            {errors.supplier && <FormHelperText>{errors.supplier}</FormHelperText>}
-          </FormControl>
-          
-          <TextField
-            label="Stock*"
-            type="number"
-            fullWidth
-            value={form.stock}
-            onChange={(e) => handleFieldChange('stock', e.target.value)}
-            error={!!errors.stock}
-            helperText={errors.stock}
-            onBlur={(e) => handleFieldChange('stock', e.target.value)}
-            inputProps={{ min: 0 }}
-          />
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={2}>
+              <TextField
+                label="Name*"
+                fullWidth
+                value={form.name}
+                onChange={(e) => handleFieldChange('name', e.target.value)}
+                error={!!errors.name}
+                helperText={errors.name}
+                onBlur={(e) => handleFieldChange('name', e.target.value)}
+              />
+              
+              <TextField
+                label="Price*"
+                type="number"
+                fullWidth
+                value={form.price}
+                onChange={(e) => handleFieldChange('price', e.target.value)}
+                error={!!errors.price}
+                helperText={errors.price}
+                onBlur={(e) => handleFieldChange('price', e.target.value)}
+                inputProps={{ min: 0, step: "0.01" }}
+              />
+              
+              <TextField
+                label="Description*"
+                multiline
+                rows={4}
+                fullWidth
+                value={form.description}
+                onChange={(e) => handleFieldChange('description', e.target.value)}
+                error={!!errors.description}
+                helperText={errors.description || `${form.description.length}/50 characters minimum`}
+                onBlur={(e) => handleFieldChange('description', e.target.value)}
+              />
+              
+              <FormControl fullWidth error={!!errors.category}>
+                <InputLabel>Category*</InputLabel>
+                <Select
+                  value={form.category}
+                  label="Category*"
+                  onChange={(e) => handleFieldChange('category', e.target.value)}
+                >
+                  {categories.map((c) => (
+                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
+                </Select>
+                {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
+              </FormControl>
+              
+              <FormControl fullWidth error={!!errors.supplier}>
+                <InputLabel>Supplier*</InputLabel>
+                <Select
+                  value={form.supplier}
+                  label="Supplier*"
+                  onChange={(e) => handleFieldChange('supplier', e.target.value)}
+                >
+                  <MenuItem value="">-- Select Supplier --</MenuItem>
+                  {suppliers.map((s) => (
+                    <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
+                  ))}
+                </Select>
+                {errors.supplier && <FormHelperText>{errors.supplier}</FormHelperText>}
+              </FormControl>
+              
+              <TextField
+                label="Stock*"
+                type="number"
+                fullWidth
+                value={form.stock}
+                onChange={(e) => handleFieldChange('stock', e.target.value)}
+                error={!!errors.stock}
+                helperText={errors.stock}
+                onBlur={(e) => handleFieldChange('stock', e.target.value)}
+                inputProps={{ min: 0 }}
+              />
 
-          <FormControl error={!!errors.images}>
-            <Button variant="contained" component="label">
-              Choose Images* (At least 2, Max 5, 2MB each)
-              <input type="file" hidden multiple accept="image/*" onChange={handleFileChange} />
-            </Button>
-            {errors.images && <FormHelperText>{errors.images}</FormHelperText>}
-            <FormHelperText>
-              {imagesFiles.length} image(s) selected - {2 - imagesFiles.length} more required
-            </FormHelperText>
-          </FormControl>
+              <FormControl error={!!errors.images}>
+                <Button variant="contained" component="label">
+                  Choose Images* (At least 2, Max 5, 2MB each)
+                  <input type="file" hidden multiple accept="image/*" onChange={handleFileChange} />
+                </Button>
+                {errors.images && <FormHelperText>{errors.images}</FormHelperText>}
+                <FormHelperText>
+                  {imagesFiles.length} image(s) selected - {2 - imagesFiles.length} more required
+                </FormHelperText>
+              </FormControl>
 
-          {imagePreviews.length > 0 && (
-            <Grid container spacing={2}>
-              {imagePreviews.map((preview, index) => (
-                <Grid key={index}>
-                  <Card sx={{ position: "relative", width: 100, height: 100 }}>
-                    <CardMedia
-                      component="img"
-                      image={preview}
-                      alt={`Preview ${index + 1}`}
-                      sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                    <IconButton
-                      size="small"
-                      sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
-                      onClick={() => removeImage(index)}
-                    >
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  </Card>
+              {imagePreviews.length > 0 && (
+                <Grid container spacing={2}>
+                  {imagePreviews.map((preview, index) => (
+                    <Grid key={index}>
+                      <Card sx={{ position: "relative", width: 100, height: 100 }}>
+                        <CardMedia
+                          component="img"
+                          image={preview}
+                          alt={`Preview ${index + 1}`}
+                          sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                        <IconButton
+                          size="small"
+                          sx={{ position: "absolute", top: -5, right: -5, bgcolor: "error.main", color: "white" }}
+                          onClick={() => removeImage(index)}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Card>
+                    </Grid>
+                  ))}
                 </Grid>
-              ))}
-            </Grid>
-          )}
+              )}
 
-          <Stack direction="row" spacing={2} mt={2}>
-            <Button 
-              type="submit" 
-              variant="contained" 
-              disabled={loading || hasErrors}
-              startIcon={loading && <CircularProgress size={16} />}
-            >
-              {loading ? "Creating..." : "Create Product"}
-            </Button>
-            <Button variant="outlined" onClick={() => navigate("/admin/products")}>
-              Back to List
-            </Button>
-          </Stack>
-        </Stack>
-      </form>
+              <Stack direction="row" spacing={2} mt={2}>
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  disabled={loading || hasErrors}
+                  startIcon={loading && <CircularProgress size={16} />}
+                >
+                  {loading ? "Creating..." : "Create Product"}
+                </Button>
+                <Button variant="outlined" onClick={() => navigate("/admin/products")}>
+                  Back to List
+                </Button>
+              </Stack>
+            </Stack>
+          </form>
 
-      {/* Toast Container with center position */}
-      <ToastContainer 
-        position="top-center"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
-    </Box>
+          {/* Toast Container with center position */}
+          <ToastContainer 
+            position="top-center"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+          />
+        </Box>
+      </main>
+
+      <AdminFooter />
+    </div>
   );
 }

@@ -16,6 +16,8 @@ import {
 } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
@@ -45,64 +47,68 @@ const CreateUser = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 500, mx: "auto", mt: 6, p: 4, border: "1px solid #ddd", borderRadius: 2 }}>
-      <Typography variant="h5" mb={3}>Create New User</Typography>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <AdminHeader />
+      <Box sx={{ flex: 1, maxWidth: 500, mx: "auto", mt: 6, p: 4, border: "1px solid #ddd", borderRadius: 2 }}>
+        <Typography variant="h5" mb={3}>Create New User</Typography>
 
-      <form onSubmit={handleSubmit}>
-        <Stack spacing={2}>
-          <TextField
-            label="Name"
-            name="name"
-            fullWidth
-            required
-            value={user.name}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Email"
-            name="email"
-            type="email"
-            fullWidth
-            required
-            value={user.email}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Password"
-            name="password"
-            type="password"
-            fullWidth
-            required
-            value={user.password}
-            onChange={handleChange}
-          />
-
-          <FormControl fullWidth>
-            <InputLabel>Role</InputLabel>
-            <Select
-              name="role"
-              value={user.role}
-              label="Role"
+        <form onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            <TextField
+              label="Name"
+              name="name"
+              fullWidth
+              required
+              value={user.name}
               onChange={handleChange}
+            />
+            <TextField
+              label="Email"
+              name="email"
+              type="email"
+              fullWidth
+              required
+              value={user.email}
+              onChange={handleChange}
+            />
+            <TextField
+              label="Password"
+              name="password"
+              type="password"
+              fullWidth
+              required
+              value={user.password}
+              onChange={handleChange}
+            />
+
+            <FormControl fullWidth>
+              <InputLabel>Role</InputLabel>
+              <Select
+                name="role"
+                value={user.role}
+                label="Role"
+                onChange={handleChange}
+              >
+                <MenuItem value="user">User</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={20} /> : null}
             >
-              <MenuItem value="user">User</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-            </Select>
-          </FormControl>
+              {loading ? "Creating..." : "Create User"}
+            </Button>
+          </Stack>
+        </form>
 
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : null}
-          >
-            {loading ? "Creating..." : "Create User"}
-          </Button>
-        </Stack>
-      </form>
-
-      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
-    </Box>
+        <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
+      </Box>
+      <AdminFooter />
+    </div>
   );
 };
 

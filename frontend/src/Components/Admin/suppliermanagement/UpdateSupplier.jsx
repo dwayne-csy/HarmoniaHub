@@ -12,6 +12,8 @@ import {
 } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
@@ -109,93 +111,109 @@ export default function UpdateSupplier() {
 
   if (loading) {
     return (
-      <Box sx={{ textAlign: "center", mt: 6 }}>
-        <CircularProgress />
-        <Typography mt={2}>Loading supplier details...</Typography>
-      </Box>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <AdminHeader />
+        <Box sx={{ textAlign: "center", mt: 6, flex: 1 }}>
+          <CircularProgress />
+          <Typography mt={2}>Loading supplier details...</Typography>
+        </Box>
+        <AdminFooter />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 700, mx: "auto", mt: 4, p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
-      <Typography variant="h5" mb={2}>Update Supplier</Typography>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AdminHeader />
+      <Box sx={{ 
+        maxWidth: 700, 
+        mx: "auto", 
+        mt: 4, 
+        p: 3, 
+        border: "1px solid #ddd", 
+        borderRadius: 2,
+        flex: 1 
+      }}>
+        <Typography variant="h5" mb={2}>Update Supplier</Typography>
 
-      <form onSubmit={handleUpdate}>
-        <Stack spacing={2}>
-          <TextField
-            label="Name*"
-            name="name"
-            fullWidth
-            required
-            value={supplier.name || ""}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Email*"
-            name="email"
-            type="email"
-            fullWidth
-            required
-            value={supplier.email || ""}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Phone*"
-            name="phone"
-            fullWidth
-            required
-            value={supplier.phone || ""}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Street*"
-            name="address.street"
-            fullWidth
-            required
-            value={supplier.address?.street || ""}
-            onChange={handleChange}
-          />
-          <TextField
-            label="City*"
-            name="address.city"
-            fullWidth
-            required
-            value={supplier.address?.city || ""}
-            onChange={handleChange}
-          />
-          <TextField
-            label="State*"
-            name="address.state"
-            fullWidth
-            required
-            value={supplier.address?.state || ""}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Country*"
-            name="address.country"
-            fullWidth
-            required
-            value={supplier.address?.country || ""}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Zip Code*"
-            name="address.zipCode"
-            fullWidth
-            required
-            value={supplier.address?.zipCode || ""}
-            onChange={handleChange}
-          />
+        <form onSubmit={handleUpdate}>
+          <Stack spacing={2}>
+            <TextField
+              label="Name*"
+              name="name"
+              fullWidth
+              required
+              value={supplier.name || ""}
+              onChange={handleChange}
+            />
+            <TextField
+              label="Email*"
+              name="email"
+              type="email"
+              fullWidth
+              required
+              value={supplier.email || ""}
+              onChange={handleChange}
+            />
+            <TextField
+              label="Phone*"
+              name="phone"
+              fullWidth
+              required
+              value={supplier.phone || ""}
+              onChange={handleChange}
+            />
+            <TextField
+              label="Street*"
+              name="address.street"
+              fullWidth
+              required
+              value={supplier.address?.street || ""}
+              onChange={handleChange}
+            />
+            <TextField
+              label="City*"
+              name="address.city"
+              fullWidth
+              required
+              value={supplier.address?.city || ""}
+              onChange={handleChange}
+            />
+            <TextField
+              label="State*"
+              name="address.state"
+              fullWidth
+              required
+              value={supplier.address?.state || ""}
+              onChange={handleChange}
+            />
+            <TextField
+              label="Country*"
+              name="address.country"
+              fullWidth
+              required
+              value={supplier.address?.country || ""}
+              onChange={handleChange}
+            />
+            <TextField
+              label="Zip Code*"
+              name="address.zipCode"
+              fullWidth
+              required
+              value={supplier.address?.zipCode || ""}
+              onChange={handleChange}
+            />
 
-          <Stack direction="row" spacing={2} mt={2}>
-            <Button type="submit" variant="contained">Update Supplier</Button>
-            <Button variant="outlined" onClick={() => navigate("/admin/suppliers")}>Cancel</Button>
+            <Stack direction="row" spacing={2} mt={2}>
+              <Button type="submit" variant="contained">Update Supplier</Button>
+              <Button variant="outlined" onClick={() => navigate("/admin/suppliers")}>Cancel</Button>
+            </Stack>
           </Stack>
-        </Stack>
-      </form>
+        </form>
 
-      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
-    </Box>
+        <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
+      </Box>
+      <AdminFooter />
+    </div>
   );
 }

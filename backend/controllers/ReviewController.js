@@ -51,7 +51,7 @@ exports.createReview = async (req, res) => {
 // Update an existing review
 exports.updateReview = async (req, res) => {
   try {
-    const { rating, comment, productId } = req.body;
+    const { rating, comment, productId, orderId } = req.body; // Add orderId here
     const userId = req.user._id;
 
     if (!rating || !comment || !productId) {

@@ -7,6 +7,8 @@ import Loader from "../../layouts/Loader";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import StarIcon from "@mui/icons-material/Star";
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
@@ -234,57 +236,65 @@ export default function ReviewList() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
-        <Loader />
-      </Box>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        <AdminHeader />
+        <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
+          <Loader />
+        </Box>
+        <AdminFooter />
+      </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: "24px auto", padding: 16 }}>
-      <h2>Product Reviews</h2>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <AdminHeader />
+      <div style={{ flex: 1, maxWidth: 1200, margin: "24px auto", padding: 16 }}>
+        <h2>Product Reviews</h2>
 
-      <Stack direction="row" spacing={2} mb={2}>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Filter by Product</InputLabel>
-          <Select value={productFilter} label="Filter by Product" onChange={handleFilterChange}>
-            <MenuItem value="">All Products</MenuItem>
-            {productOptions.map((p) => (
-              <MenuItem key={p} value={p}>
-                {p}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Stack direction="row" spacing={2} mb={2}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Filter by Product</InputLabel>
+            <Select value={productFilter} label="Filter by Product" onChange={handleFilterChange}>
+              <MenuItem value="">All Products</MenuItem>
+              {productOptions.map((p) => (
+                <MenuItem key={p} value={p}>
+                  {p}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Filter by Star</InputLabel>
-          <Select value={starFilter} label="Filter by Star" onChange={handleStarFilterChange}>
-            <MenuItem value={0}>All Stars</MenuItem>
-            {[1, 2, 3, 4, 5].map((s) => (
-              <MenuItem key={s} value={s}>
-                {s} <StarIcon style={{ color: "#FFD700", verticalAlign: "middle" }} />
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Filter by Star</InputLabel>
+            <Select value={starFilter} label="Filter by Star" onChange={handleStarFilterChange}>
+              <MenuItem value={0}>All Stars</MenuItem>
+              {[1, 2, 3, 4, 5].map((s) => (
+                <MenuItem key={s} value={s}>
+                  {s} <StarIcon style={{ color: "#FFD700", verticalAlign: "middle" }} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <Button variant="contained" color="error" onClick={handleBulkDelete}>
-          Delete Selected
-        </Button>
+          <Button variant="contained" color="error" onClick={handleBulkDelete}>
+            Delete Selected
+          </Button>
 
-        <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
-          {showDeleted ? "Show Active" : "Trash"}
-        </Button>
-      </Stack>
+          <Button variant="contained" color="primary" onClick={() => setShowDeleted(!showDeleted)}>
+            {showDeleted ? "Show Active" : "Trash"}
+          </Button>
+        </Stack>
 
-      <MUIDataTable data={filteredReviews} columns={columns} options={options} />
+        <MUIDataTable data={filteredReviews} columns={columns} options={options} />
 
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-        <Button variant="contained" color="secondary" onClick={exportPDF}>
-          CSV
-        </Button>
-      </Box>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+          <Button variant="contained" color="secondary" onClick={exportPDF}>
+            CSV
+          </Button>
+        </Box>
+      </div>
+      <AdminFooter />
     </div>
   );
 }

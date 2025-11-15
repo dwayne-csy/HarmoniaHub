@@ -5,6 +5,9 @@ import { Box, TextField, Button, Stack, Typography } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+import AdminHeader from "../../layouts/admin/AdminHeader";
+import AdminFooter from "../../layouts/admin/AdminFooter";
+
 const BASE_URL = "http://localhost:4001/api/v1";
 
 export default function CreateSupplier() {
@@ -58,28 +61,32 @@ export default function CreateSupplier() {
   };
 
   return (
-    <Box sx={{ maxWidth: 700, mx: "auto", mt: 4, p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
-      <Typography variant="h5" mb={2}>Create Supplier</Typography>
+    <>
+      <AdminHeader />
+      <Box sx={{ maxWidth: 700, mx: "auto", mt: 4, p: 3, border: "1px solid #ddd", borderRadius: 2 }}>
+        <Typography variant="h5" mb={2}>Create Supplier</Typography>
 
-      <form onSubmit={handleSubmit}>
-        <Stack spacing={2}>
-          <TextField label="Name*" fullWidth value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required />
-          <TextField label="Email*" type="email" fullWidth value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required />
-          <TextField label="Phone*" fullWidth value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} required />
-          <TextField label="Street*" fullWidth value={form.street} onChange={e=>setForm({...form,street:e.target.value})} required />
-          <TextField label="City*" fullWidth value={form.city} onChange={e=>setForm({...form,city:e.target.value})} required />
-          <TextField label="State*" fullWidth value={form.state} onChange={e=>setForm({...form,state:e.target.value})} required />
-          <TextField label="Country*" fullWidth value={form.country} onChange={e=>setForm({...form,country:e.target.value})} required />
-          <TextField label="Zip Code*" fullWidth value={form.zipCode} onChange={e=>setForm({...form,zipCode:e.target.value})} required />
+        <form onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            <TextField label="Name*" fullWidth value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required />
+            <TextField label="Email*" type="email" fullWidth value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required />
+            <TextField label="Phone*" fullWidth value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} required />
+            <TextField label="Street*" fullWidth value={form.street} onChange={e=>setForm({...form,street:e.target.value})} required />
+            <TextField label="City*" fullWidth value={form.city} onChange={e=>setForm({...form,city:e.target.value})} required />
+            <TextField label="State*" fullWidth value={form.state} onChange={e=>setForm({...form,state:e.target.value})} required />
+            <TextField label="Country*" fullWidth value={form.country} onChange={e=>setForm({...form,country:e.target.value})} required />
+            <TextField label="Zip Code*" fullWidth value={form.zipCode} onChange={e=>setForm({...form,zipCode:e.target.value})} required />
 
-          <Stack direction="row" spacing={2} mt={2}>
-            <Button type="submit" variant="contained">Create Supplier</Button>
-            <Button variant="outlined" onClick={()=>navigate("/admin/suppliers")}>Back</Button>
+            <Stack direction="row" spacing={2} mt={2}>
+              <Button type="submit" variant="contained">Create Supplier</Button>
+              <Button variant="outlined" onClick={()=>navigate("/admin/suppliers")}>Back</Button>
+            </Stack>
           </Stack>
-        </Stack>
-      </form>
+        </form>
 
-      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
-    </Box>
+        <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
+      </Box>
+      <AdminFooter />
+    </>
   );
 }

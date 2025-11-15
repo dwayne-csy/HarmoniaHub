@@ -18,6 +18,8 @@ import {
 import { PhotoCamera, LockReset } from "@mui/icons-material";
 import { toast, ToastContainer } from "react-toastify";
 import Loader from "../layouts/Loader";
+import Header from "../layouts/user/Header";
+import Footer from "../layouts/user/Footer";
 
 const UpdateProfile = () => {
   const navigate = useNavigate();
@@ -37,6 +39,8 @@ const UpdateProfile = () => {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
+  const [backendConnected, setBackendConnected] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
 
   // Validation errors state
   const [errors, setErrors] = useState({
@@ -76,18 +80,33 @@ const UpdateProfile = () => {
         });
 
         setAvatarPreview(data.user.avatar?.url || "");
+        setBackendConnected(true);
       } catch (error) {
         toast.error("Failed to load profile", {
           position: "top-center",
           theme: "colored"
         });
         console.error(error);
+        setBackendConnected(false);
       } finally {
         setShowLoader(false);
       }
     };
-    fetchProfile();
-  }, [token]);
+    
+    if (token) {
+      fetchProfile();
+    } else {
+      navigate("/login");
+    }
+  }, [token, navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setBackendConnected(true);
+    console.log("🚪 User logged out");
+    navigate("/login");
+  };
 
   // Validation functions
   const validateContact = (contact) => {
@@ -312,223 +331,348 @@ const UpdateProfile = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 600, mx: "auto", p: 3 }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center" color="primary">
-          Update Profile
-        </Typography>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      {/* Header Component */}
+      <Header 
+        user={user}
+        cartCount={cartCount}
+        backendConnected={backendConnected}
+        handleLogout={handleLogout}
+      />
 
-        {/* Avatar Preview */}
-        {avatarPreview && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-            <Card sx={{ width: 150, height: 150, borderRadius: '50%', overflow: 'hidden' }}>
-              <CardMedia
-                component="img"
-                image={avatarPreview}
-                alt="Avatar Preview"
-                sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </Card>
-          </Box>
+      <main style={{ flex: 1, padding: "20px 30px", backgroundColor: "#f5f5f5" }}>
+        {/* Backend status banner */}
+        {!backendConnected && (
+          <div style={{
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffeaa7',
+            borderRadius: '4px',
+            padding: '10px',
+            marginBottom: '20px',
+            textAlign: 'center'
+          }}>
+            <strong>⚠️ Limited Functionality:</strong> Backend connection issue. Some features may not work properly.
+          </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={3}>
-            <TextField
-              label="Full Name"
-              name="name"
-              value={user.name}
-              onChange={handleChange}
-              required
-              fullWidth
-            />
-            
-            <TextField
-              label="Email"
-              name="email"
-              value={user.email}
-              InputProps={{
-                readOnly: true,
-              }}
-              fullWidth
-              variant="filled"
-            />
-            
-            <TextField
-              label="Contact Number *"
-              name="contact"
-              placeholder="11-12 digits"
-              value={user.contact}
-              onChange={handleChange}
-              error={!!errors.contact}
-              helperText={errors.contact}
-              inputProps={{ maxLength: 12 }}
-              fullWidth
-            />
-            
-            <TextField
-              label="City *"
-              name="city"
-              value={user.city}
-              onChange={handleChange}
-              error={!!errors.city}
-              helperText={errors.city}
-              fullWidth
-            />
-            
-            <TextField
-              label="Barangay *"
-              name="barangay"
-              value={user.barangay}
-              onChange={handleChange}
-              error={!!errors.barangay}
-              helperText={errors.barangay}
-              fullWidth
-            />
-            
-            <TextField
-              label="Street *"
-              name="street"
-              value={user.street}
-              onChange={handleChange}
-              error={!!errors.street}
-              helperText={errors.street}
-              fullWidth
-            />
-            
-            <TextField
-              label="Zipcode *"
-              name="zipcode"
-              placeholder="4 digits"
-              value={user.zipcode}
-              onChange={handleChange}
-              error={!!errors.zipcode}
-              helperText={errors.zipcode}
-              inputProps={{ maxLength: 4 }}
-              fullWidth
-            />
+        <Box sx={{ maxWidth: 600, mx: "auto", p: 3 }}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 2, backgroundColor: "white" }}>
+            <Typography variant="h4" component="h1" gutterBottom align="center" color="primary" sx={{ fontWeight: "bold", mb: 3 }}>
+              Update Profile
+            </Typography>
 
-            <FormControl error={!!errors.avatar}>
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<PhotoCamera />}
-                fullWidth
-                sx={{ py: 1.5 }}
-              >
-                Upload Profile Picture *
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handleFileChange}
+            {/* Avatar Preview */}
+            {avatarPreview && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <Card sx={{ width: 150, height: 150, borderRadius: '50%', overflow: 'hidden', boxShadow: 3 }}>
+                  <CardMedia
+                    component="img"
+                    image={avatarPreview}
+                    alt="Avatar Preview"
+                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </Card>
+              </Box>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                <TextField
+                  label="Full Name"
+                  name="name"
+                  value={user.name}
+                  onChange={handleChange}
+                  required
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    }
+                  }}
                 />
-              </Button>
-              {errors.avatar && (
-                <FormHelperText error>{errors.avatar}</FormHelperText>
+                
+                <TextField
+                  label="Email"
+                  name="email"
+                  value={user.email}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      backgroundColor: '#f9f9f9'
+                    }
+                  }}
+                />
+                
+                <TextField
+                  label="Contact Number *"
+                  name="contact"
+                  placeholder="11-12 digits"
+                  value={user.contact}
+                  onChange={handleChange}
+                  error={!!errors.contact}
+                  helperText={errors.contact}
+                  inputProps={{ maxLength: 12 }}
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    }
+                  }}
+                />
+                
+                <TextField
+                  label="City *"
+                  name="city"
+                  value={user.city}
+                  onChange={handleChange}
+                  error={!!errors.city}
+                  helperText={errors.city}
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    }
+                  }}
+                />
+                
+                <TextField
+                  label="Barangay *"
+                  name="barangay"
+                  value={user.barangay}
+                  onChange={handleChange}
+                  error={!!errors.barangay}
+                  helperText={errors.barangay}
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    }
+                  }}
+                />
+                
+                <TextField
+                  label="Street *"
+                  name="street"
+                  value={user.street}
+                  onChange={handleChange}
+                  error={!!errors.street}
+                  helperText={errors.street}
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    }
+                  }}
+                />
+                
+                <TextField
+                  label="Zipcode *"
+                  name="zipcode"
+                  placeholder="4 digits"
+                  value={user.zipcode}
+                  onChange={handleChange}
+                  error={!!errors.zipcode}
+                  helperText={errors.zipcode}
+                  inputProps={{ maxLength: 4 }}
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    }
+                  }}
+                />
+
+                <FormControl error={!!errors.avatar}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<PhotoCamera />}
+                    fullWidth
+                    sx={{ 
+                      py: 1.5, 
+                      borderRadius: 2,
+                      borderWidth: 2,
+                      '&:hover': {
+                        borderWidth: 2,
+                        backgroundColor: '#e3f2fd'
+                      }
+                    }}
+                  >
+                    Upload Profile Picture *
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
+                  </Button>
+                  {errors.avatar && (
+                    <FormHelperText error sx={{ textAlign: 'center', mt: 1 }}>{errors.avatar}</FormHelperText>
+                  )}
+                  <FormHelperText sx={{ textAlign: 'center', mt: 1 }}>
+                    Supported formats: JPG, PNG, GIF (Max 2MB)
+                  </FormHelperText>
+                </FormControl>
+
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={loading || hasErrors}
+                  startIcon={loading && <CircularProgress size={20} />}
+                  fullWidth
+                  sx={{ 
+                    py: 1.5, 
+                    borderRadius: 2,
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    boxShadow: 2,
+                    '&:hover': {
+                      boxShadow: 4,
+                      backgroundColor: '#1565c0'
+                    }
+                  }}
+                >
+                  {loading ? "Updating Profile..." : "Update Profile"}
+                </Button>
+              </Stack>
+            </form>
+
+            <Divider sx={{ my: 4 }} />
+
+            {/* Password Change Section */}
+            <Box sx={{ textAlign: 'center' }}>
+              {!showPasswordForm ? (
+                <Button
+                  onClick={() => setShowPasswordForm(true)}
+                  variant="outlined"
+                  startIcon={<LockReset />}
+                  size="large"
+                  sx={{ 
+                    borderRadius: 2,
+                    px: 3,
+                    borderWidth: 2,
+                    '&:hover': {
+                      borderWidth: 2,
+                      backgroundColor: '#e3f2fd'
+                    }
+                  }}
+                >
+                  Change Password
+                </Button>
+              ) : (
+                <Paper elevation={2} sx={{ p: 3, borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                    Change Password
+                  </Typography>
+                  <form onSubmit={handlePasswordSubmit}>
+                    <Stack spacing={2}>
+                      <TextField
+                        type="password"
+                        name="oldPassword"
+                        label="Current Password"
+                        value={passwordData.oldPassword}
+                        onChange={handlePasswordChange}
+                        required
+                        fullWidth
+                        variant="outlined"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                          }
+                        }}
+                      />
+                      <TextField
+                        type="password"
+                        name="newPassword"
+                        label="New Password"
+                        value={passwordData.newPassword}
+                        onChange={handlePasswordChange}
+                        required
+                        fullWidth
+                        variant="outlined"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                          }
+                        }}
+                      />
+                      <TextField
+                        type="password"
+                        name="confirmPassword"
+                        label="Confirm New Password"
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordChange}
+                        required
+                        fullWidth
+                        variant="outlined"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                          }
+                        }}
+                      />
+                      <Stack direction="row" spacing={2}>
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          disabled={loading}
+                          startIcon={loading && <CircularProgress size={20} />}
+                          fullWidth
+                          sx={{ 
+                            borderRadius: 2,
+                            py: 1,
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {loading ? "Changing..." : "Save Password"}
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => setShowPasswordForm(false)}
+                          variant="outlined"
+                          fullWidth
+                          sx={{ 
+                            borderRadius: 2,
+                            py: 1
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  </form>
+                </Paper>
               )}
-              <FormHelperText>
-                Supported formats: JPG, PNG, GIF (Max 2MB)
-              </FormHelperText>
-            </FormControl>
+            </Box>
+          </Paper>
 
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading || hasErrors}
-              startIcon={loading && <CircularProgress size={20} />}
-              fullWidth
-              sx={{ py: 1.5 }}
-            >
-              {loading ? "Updating Profile..." : "Update Profile"}
-            </Button>
-          </Stack>
-        </form>
-
-        <Divider sx={{ my: 4 }} />
-
-        {/* Password Change Section */}
-        <Box sx={{ textAlign: 'center' }}>
-          {!showPasswordForm ? (
-            <Button
-              onClick={() => setShowPasswordForm(true)}
-              variant="outlined"
-              startIcon={<LockReset />}
-              size="large"
-            >
-              Change Password
-            </Button>
-          ) : (
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Change Password
-              </Typography>
-              <form onSubmit={handlePasswordSubmit}>
-                <Stack spacing={2}>
-                  <TextField
-                    type="password"
-                    name="oldPassword"
-                    label="Current Password"
-                    value={passwordData.oldPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    fullWidth
-                  />
-                  <TextField
-                    type="password"
-                    name="newPassword"
-                    label="New Password"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    fullWidth
-                  />
-                  <TextField
-                    type="password"
-                    name="confirmPassword"
-                    label="Confirm New Password"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    fullWidth
-                  />
-                  <Stack direction="row" spacing={2}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={loading}
-                      startIcon={loading && <CircularProgress size={20} />}
-                      fullWidth
-                    >
-                      {loading ? "Changing..." : "Save Password"}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => setShowPasswordForm(false)}
-                      variant="outlined"
-                      fullWidth
-                    >
-                      Cancel
-                    </Button>
-                  </Stack>
-                </Stack>
-              </form>
-            </Paper>
-          )}
+          {/* Toast Container */}
+          <ToastContainer 
+            position="top-center"
+            autoClose={3000}
+            hideProgressBar={false}
+            closeOnClick
+            pauseOnHover
+            theme="colored"
+          />
         </Box>
-      </Paper>
+      </main>
 
-      {/* Toast Container */}
-      <ToastContainer 
-        position="top-center"
-        autoClose={3000}
-        hideProgressBar={false}
-        closeOnClick
-        pauseOnHover
-        theme="colored"
-      />
-    </Box>
+      {/* Footer Component */}
+      <Footer />
+    </div>
   );
 };
 
