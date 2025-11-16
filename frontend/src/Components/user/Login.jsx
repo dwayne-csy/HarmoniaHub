@@ -17,7 +17,6 @@ const Login = () => {
   const [firebaseEmail, setFirebaseEmail] = useState("");
   const [firebasePassword, setFirebasePassword] = useState("");
   const [showFirebaseForm, setShowFirebaseForm] = useState(false);
-  const [showGoogleForm, setShowGoogleForm] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -209,238 +208,507 @@ const Login = () => {
 
   const toggleFirebaseForm = () => {
     setShowFirebaseForm(!showFirebaseForm);
-    setShowGoogleForm(false);
-    setMessage("");
-  };
-
-  const toggleGoogleForm = () => {
-    setShowGoogleForm(!showGoogleForm);
-    setShowFirebaseForm(false);
     setMessage("");
   };
 
   return (
-    <div className="form-container">
-      <h2>Login to HarmoniaHub</h2>
-      
-      {/* Regular Login Form - Always Visible */}
-      <div style={{ marginBottom: '30px' }}>
-        <h3 style={{ marginBottom: '15px', color: '#333' }}>Email & Password Login</h3>
-        <form onSubmit={handleLogin}>
-          <input 
-            type="email" 
-            placeholder="Email" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-          />
-          <input 
-            type="password" 
-            placeholder="Password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-          />
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login with Email & Password"}
-          </button>
-        </form>
-      </div>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+      position: "relative",
+      overflow: "hidden",
+      margin: 0,
+      padding: 0 
+    }}>
+      {/* Gold shimmer overlay */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "radial-gradient(circle at 20% 80%, rgba(212,175,55,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(212,175,55,0.05) 0%, transparent 50%)",
+        pointerEvents: "none",
+        zIndex: 0
+      }}></div>
 
-      {/* Divider */}
-      <div style={{ textAlign: 'center', margin: '20px 0', position: 'relative' }}>
-        <hr style={{ border: 'none', borderTop: '1px solid #ddd' }} />
-        <span style={{ 
-          background: '#fff', 
-          padding: '0 15px', 
-          position: 'absolute', 
-          top: '-10px', 
-          left: '50%', 
-          transform: 'translateX(-50%)',
-          color: '#666',
-          fontSize: '14px'
-        }}>
-          OR
-        </span>
-      </div>
+      <main style={{ 
+        flex: 1, 
+        padding: "20px 0",
+        backgroundColor: "transparent",
+        animation: "fadeIn 0.6s ease-in-out",
+        position: "relative",
+        zIndex: 1,
+        margin: 0,
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <style>
+          {`
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes pulse {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.05); }
+              100% { transform: scale(1); }
+            }
+            @keyframes shimmer {
+              0% { background-position: -1000px 0; }
+              100% { background-position: 1000px 0; }
+            }
+            @keyframes float {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-5px); }
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            
+            body {
+              margin: 0;
+              padding: 0;
+              overflow-x: hidden;
+              background: transparent;
+            }
+            * {
+              box-sizing: border-box;
+            }
+          `}
+        </style>
 
-      {/* Firebase Login Section */}
-      <div style={{ marginBottom: '20px' }}>
-        <button 
-          onClick={toggleFirebaseForm}
-          disabled={isLoading}
-          style={{ 
-            background: showFirebaseForm ? '#3367d6' : '#4285f4',
-            color: 'white', 
-            padding: '12px', 
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            width: '100%',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          <span>🔐</span>
-          {showFirebaseForm ? 'Hide Firebase Login' : 'Login with Firebase Email'}
-        </button>
-        
-        {showFirebaseForm && (
-          <div style={{ 
-            marginTop: '15px', 
-            padding: '20px', 
-            border: '1px solid #e0e0e0', 
-            borderRadius: '8px',
-            backgroundColor: '#f8f9fa'
-          }}>
-            <h4 style={{ margin: '0 0 15px 0', color: '#333' }}>Firebase Email Login</h4>
-            <form onSubmit={handleFirebaseLogin}>
-              <input 
-                type="email" 
-                placeholder="Email" 
-                value={firebaseEmail}
-                onChange={(e) => setFirebaseEmail(e.target.value)} 
-                required 
-                style={{ marginBottom: '10px' }}
-              />
-              <input 
-                type="password" 
-                placeholder="Password" 
-                value={firebasePassword}
-                onChange={(e) => setFirebasePassword(e.target.value)} 
-                required 
-                style={{ marginBottom: '15px' }}
-              />
-              <button type="submit" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in with Firebase"}
-              </button>
-            </form>
-            <p style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-              Uses Firebase Authentication for secure login
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Google Login Section */}
-      <div style={{ marginBottom: '20px' }}>
-        <button 
-          onClick={toggleGoogleForm}
-          disabled={isLoading}
-          style={{ 
-            background: showGoogleForm ? '#c53929' : '#db4437',
-            color: 'white', 
-            padding: '12px', 
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            width: '100%',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          <span>🔍</span>
-          {showGoogleForm ? 'Hide Google Login' : 'Login with Google'}
-        </button>
-        
-        {showGoogleForm && (
-          <div style={{ 
-            marginTop: '15px', 
-            padding: '20px', 
-            border: '1px solid #e0e0e0', 
-            borderRadius: '8px',
-            backgroundColor: '#f8f9fa',
-            textAlign: 'center'
-          }}>
-            <h4 style={{ margin: '0 0 15px 0', color: '#333' }}>Google Login</h4>
-            <p style={{ marginBottom: '15px', color: '#666' }}>
-              Sign in with your Google account
-            </p>
-            <button 
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              style={{ 
-                background: '#ffffff',
-                color: '#757575',
-                padding: '12px 20px',
-                border: '1px solid #dadce0',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px',
-                width: '100%',
-                maxWidth: '250px',
-                margin: '0 auto'
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <div style={{ width: '20px', height: '20px', border: '2px solid #f3f3f3', borderTop: '2px solid #757575', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <img 
-                    src="https://developers.google.com/identity/images/g-logo.png" 
-                    alt="Google" 
-                    style={{ width: '20px', height: '20px' }}
-                  />
-                  Sign in with Google
-                </>
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Message Display */}
-      {message && (
         <div style={{ 
-          color: message.includes("successful") ? "green" : "red", 
-          marginTop: "15px", 
-          padding: "12px",
-          borderRadius: "6px",
-          backgroundColor: message.includes("successful") ? "#f0fff0" : "#fff0f0",
-          border: `1px solid ${message.includes("successful") ? "#00ff00" : "#ff0000"}`,
-          textAlign: 'center'
+          maxWidth: "500px", 
+          width: "100%",
+          margin: "0 auto",
+          padding: "0 20px"
         }}>
-          {message}
-        </div>
-      )}
-      
-      <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <Link to="/forgot-password" style={{ color: '#4285f4', textDecoration: 'none' }}>
-          Forgot Password?
-        </Link>
-      </div>
-      
-      <p style={{ textAlign: 'center', marginTop: '20px' }}>
-        Don't have an account? <Link to="/register" style={{ color: '#4285f4', textDecoration: 'none' }}>Register</Link>
-      </p>
+          {/* Main Login Card */}
+          <div style={{ 
+            background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
+            padding: "40px 30px",
+            borderRadius: "18px",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(212,175,55,0.2)",
+            border: "1px solid rgba(212,175,55,0.3)",
+            position: "relative",
+            overflow: "hidden",
+            animation: "fadeIn 0.8s ease-out"
+          }}>
+            {/* Gold accent line */}
+            <div style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "3px",
+              background: "linear-gradient(90deg, transparent, #d4af37, transparent)",
+              animation: "shimmer 3s infinite linear"
+            }}></div>
 
-      {/* Add CSS for spinner */}
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
+            {/* Header */}
+            <div style={{ textAlign: "center", marginBottom: "30px" }}>
+              <div style={{
+                fontSize: "3rem",
+                marginBottom: "15px",
+                animation: "float 4s ease-in-out infinite"
+              }}>
+                🔐
+              </div>
+              <h1 style={{ 
+                margin: "0 0 10px 0",
+                background: "linear-gradient(135deg, #d4af37, #f9e076, #d4af37)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundSize: "200% 100%",
+                animation: "shimmer 3s infinite linear",
+                fontSize: "2.5rem",
+                fontWeight: "bold",
+                textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+              }}>
+                Welcome Back
+              </h1>
+              <p style={{ 
+                color: "rgba(255,255,255,0.8)",
+                fontSize: "1.1rem",
+                margin: 0
+              }}>
+                Sign in to your HarmoniaHub account
+              </p>
+            </div>
+
+            {/* Regular Login Form */}
+            <div style={{ marginBottom: '25px' }}>
+              <form onSubmit={handleLogin}>
+                <div style={{ marginBottom: '20px' }}>
+                  <input 
+                    type="email" 
+                    placeholder="Email Address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)} 
+                    required 
+                    style={{
+                      width: "100%",
+                      padding: "15px 20px",
+                      background: "rgba(20,20,20,0.7)",
+                      border: "1px solid rgba(212,175,55,0.3)",
+                      borderRadius: "12px",
+                      color: "#ffffff",
+                      fontSize: "16px",
+                      transition: "all 0.3s ease",
+                      backdropFilter: "blur(10px)",
+                      outline: "none"
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#d4af37";
+                      e.target.style.boxShadow = "0 0 0 2px rgba(212,175,55,0.2)";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                      e.target.style.boxShadow = "none";
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '25px' }}>
+                  <input 
+                    type="password" 
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)} 
+                    required 
+                    style={{
+                      width: "100%",
+                      padding: "15px 20px",
+                      background: "rgba(20,20,20,0.7)",
+                      border: "1px solid rgba(212,175,55,0.3)",
+                      borderRadius: "12px",
+                      color: "#ffffff",
+                      fontSize: "16px",
+                      transition: "all 0.3s ease",
+                      backdropFilter: "blur(10px)",
+                      outline: "none"
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#d4af37";
+                      e.target.style.boxShadow = "0 0 0 2px rgba(212,175,55,0.2)";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                      e.target.style.boxShadow = "none";
+                    }}
+                  />
+                </div>
+                
+                <button 
+                  type="submit" 
+                  disabled={isLoading}
+                  style={{
+                    width: "100%",
+                    padding: "15px 20px",
+                    background: isLoading 
+                      ? "linear-gradient(135deg, rgba(212,175,55,0.5) 0%, rgba(249,224,118,0.5) 100%)" 
+                      : "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
+                    color: "#1a1a1a",
+                    border: "none",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    cursor: isLoading ? "not-allowed" : "pointer",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 6px 20px rgba(212,175,55,0.4)",
+                    position: "relative",
+                    overflow: "hidden"
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoading) {
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.boxShadow = "0 8px 25px rgba(212,175,55,0.6)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLoading) {
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow = "0 6px 20px rgba(212,175,55,0.4)";
+                    }
+                  }}
+                >
+                  {isLoading ? (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                      <div style={{ width: '20px', height: '20px', border: '2px solid rgba(26,26,26,0.3)', borderTop: '2px solid #1a1a1a', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                      Signing In...
+                    </div>
+                  ) : (
+                    "🔑 Sign In with Email & Password"
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* Divider */}
+            <div style={{ textAlign: 'center', margin: '30px 0', position: 'relative' }}>
+              <div style={{ border: 'none', borderTop: '1px solid rgba(212,175,55,0.3)' }}></div>
+              <span style={{ 
+                background: 'rgba(30,30,30,0.95)', 
+                padding: '0 20px', 
+                position: 'absolute', 
+                top: '-12px', 
+                left: '50%', 
+                transform: 'translateX(-50%)',
+                color: '#d4af37',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}>
+                OR CONTINUE WITH
+              </span>
+            </div>
+
+            {/* Google Login Button */}
+            <div style={{ marginBottom: '20px' }}>
+              <button 
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                style={{ 
+                  width: "100%",
+                  padding: "15px 20px",
+                  background: "rgba(20,20,20,0.7)",
+                  color: "#ffffff", 
+                  border: "1px solid rgba(212,175,55,0.3)",
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "15px",
+                  transition: "all 0.3s ease",
+                  backdropFilter: "blur(10px)"
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    e.target.style.background = "rgba(212,175,55,0.1)";
+                    e.target.style.borderColor = "#d4af37";
+                    e.target.style.transform = "translateY(-2px)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading) {
+                    e.target.style.background = "rgba(20,20,20,0.7)";
+                    e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                    e.target.style.transform = "translateY(0)";
+                  }
+                }}
+              >
+                {isLoading ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ width: '20px', height: '20px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #ffffff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    Connecting...
+                  </div>
+                ) : (
+                  <>
+                    <img 
+                      src="https://developers.google.com/identity/images/g-logo.png" 
+                      alt="Google" 
+                      style={{ width: '20px', height: '20px' }}
+                    />
+                    Sign in with Google
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Firebase Login Toggle */}
+            <div style={{ marginBottom: '20px' }}>
+              <button 
+                onClick={toggleFirebaseForm}
+                disabled={isLoading}
+                style={{ 
+                  width: "100%",
+                  padding: "15px 20px",
+                  background: showFirebaseForm ? "rgba(212,175,55,0.2)" : "rgba(20,20,20,0.7)",
+                  color: "#d4af37", 
+                  border: "1px solid rgba(212,175,55,0.3)",
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
+                  transition: "all 0.3s ease",
+                  backdropFilter: "blur(10px)"
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    e.target.style.background = "rgba(212,175,55,0.1)";
+                    e.target.style.borderColor = "#d4af37";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading) {
+                    e.target.style.background = showFirebaseForm ? "rgba(212,175,55,0.2)" : "rgba(20,20,20,0.7)";
+                    e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                  }
+                }}
+              >
+                <span>🔥</span>
+                {showFirebaseForm ? 'Hide Firebase Login' : 'Sign in with Firebase'}
+              </button>
+              
+              {showFirebaseForm && (
+                <div style={{ 
+                  marginTop: '15px', 
+                  padding: '25px', 
+                  border: '1px solid rgba(212,175,55,0.3)', 
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(20,20,20,0.7)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <h4 style={{ 
+                    margin: '0 0 15px 0', 
+                    color: '#d4af37',
+                    textAlign: 'center',
+                    fontWeight: '600'
+                  }}>
+                    Firebase Authentication
+                  </h4>
+                  <form onSubmit={handleFirebaseLogin}>
+                    <div style={{ marginBottom: '15px' }}>
+                      <input 
+                        type="email" 
+                        placeholder="Firebase Email" 
+                        value={firebaseEmail}
+                        onChange={(e) => setFirebaseEmail(e.target.value)} 
+                        required 
+                        style={{
+                          width: "100%",
+                          padding: "12px 15px",
+                          background: "rgba(10,10,10,0.7)",
+                          border: "1px solid rgba(212,175,55,0.3)",
+                          borderRadius: "8px",
+                          color: "#ffffff",
+                          fontSize: "14px",
+                          transition: "all 0.3s ease",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '20px' }}>
+                      <input 
+                        type="password" 
+                        placeholder="Firebase Password" 
+                        value={firebasePassword}
+                        onChange={(e) => setFirebasePassword(e.target.value)} 
+                        required 
+                        style={{
+                          width: "100%",
+                          padding: "12px 15px",
+                          background: "rgba(10,10,10,0.7)",
+                          border: "1px solid rgba(212,175,55,0.3)",
+                          borderRadius: "8px",
+                          color: "#ffffff",
+                          fontSize: "14px",
+                          transition: "all 0.3s ease",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={isLoading}
+                      style={{
+                        width: "100%",
+                        padding: "12px 15px",
+                        background: "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
+                        color: "#1a1a1a",
+                        border: "none",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease"
+                      }}
+                    >
+                      {isLoading ? "Signing in..." : "Sign in with Firebase"}
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            {/* Message Display */}
+            {message && (
+              <div style={{ 
+                color: message.includes("successful") ? "#4caf50" : "#f44336", 
+                marginTop: "20px", 
+                padding: "15px",
+                borderRadius: "12px",
+                backgroundColor: message.includes("successful") ? "rgba(76,175,80,0.1)" : "rgba(244,67,54,0.1)",
+                border: `1px solid ${message.includes("successful") ? "rgba(76,175,80,0.3)" : "rgba(244,67,54,0.3)"}`,
+                textAlign: 'center',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>
+                {message}
+              </div>
+            )}
+            
+            {/* Links */}
+            <div style={{ marginTop: '25px', textAlign: 'center' }}>
+              <Link 
+                to="/forgot-password" 
+                style={{ 
+                  color: '#d4af37', 
+                  textDecoration: 'none',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.color = '#f9e076';
+                  e.target.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.color = '#d4af37';
+                  e.target.style.textDecoration = 'none';
+                }}
+              >
+                Forgot Password?
+              </Link>
+            </div>
+            
+            <p style={{ textAlign: 'center', marginTop: '20px', color: 'rgba(255,255,255,0.7)' }}>
+              Don't have an account?{' '}
+              <Link 
+                to="/register" 
+                style={{ 
+                  color: '#d4af37', 
+                  textDecoration: 'none',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.color = '#f9e076';
+                  e.target.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.color = '#d4af37';
+                  e.target.style.textDecoration = 'none';
+                }}
+              >
+                Create Account
+              </Link>
+            </p>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
