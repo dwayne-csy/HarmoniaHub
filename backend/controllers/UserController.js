@@ -896,3 +896,91 @@ exports.firebaseGoogleAuth = async (req, res) => {
     });
   }
 };
+
+
+// ========== FIREBASE FACEBOOK AUTH ==========
+exports.firebaseFacebookAuth = async (req, res) => {
+  try {
+    console.log('🔥 Firebase Facebook auth attempt');
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: 'Firebase ID token is required' });
+    }
+
+    // Verify Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { email, uid, name, picture } = decodedToken;
+
+    console.log('✅ Firebase Facebook token verified for:', email);
+
+    // Find or create user in database
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      // Auto-create user for Facebook auth
+      user = await User.create({
+        name: name || email.split('@')[0],
+        email: email,
+        password: uid,
+        avatar: {
+          public_id: `facebook_${uid}`,
+          url: picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || email.split('@')[0])}&background=random&color=fff&size=150`
+        },
+        isVerified: true,
+        isActive: true,
+        firebaseUID: uid,
+        authProvider: 'facebook'
+      });
+      console.log('✅ User auto-created for Facebook login');
+    } else {
+      // Update existing user with Facebook info if needed
+      if (!user.firebaseUID) {
+        user.firebaseUID = uid;
+        user.authProvider = 'facebook';
+        await user.save({ validateBeforeSave: false });
+      }
+    }
+
+    // Check if user is deleted or inactive
+    if (user.isDeleted) {
+      return res.status(403).json({ message: 'Your account has been deleted. Please contact support.' });
+    }
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Your account is inactive. Please contact support.' });
+    }
+
+    // Generate JWT token
+    const token = user.getJwtToken();
+
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    console.log('✅ Firebase Facebook auth successful for:', email);
+    console.log('✅ JWT Token generated:', token ? 'Yes' : 'No');
+    
+    res.status(200).json({
+      success: true,
+      token,
+      user: userResponse,
+      message: 'Facebook authentication successful'
+    });
+
+  } catch (error) {
+    console.error('❌ FIREBASE FACEBOOK AUTH ERROR:', error);
+    
+    if (error.code === 'auth/id-token-expired') {
+      return res.status(401).json({ message: 'Facebook token expired' });
+    }
+    if (error.code === 'auth/invalid-id-token') {
+      return res.status(401).json({ message: 'Invalid Facebook token' });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Facebook authentication failed',
+      error: error.message
+    });
+  }
+};

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
-import { auth, googleProvider } from "../../config/firebase";
+import { signInWithPopup, signInWithEmailAndPassword, getRedirectResult } from "firebase/auth";
+import { auth, googleProvider, facebookProvider } from "../../config/firebase";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -13,10 +13,74 @@ const Login = () => {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
+  // Individual loading states for each login method
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isFacebookLoading, setIsFacebookLoading] = useState(false);
+  const [isFirebaseLoading, setIsFirebaseLoading] = useState(false);
+  
   // Firebase login state
   const [firebaseEmail, setFirebaseEmail] = useState("");
   const [firebasePassword, setFirebasePassword] = useState("");
   const [showFirebaseForm, setShowFirebaseForm] = useState(false);
+
+  // Handle redirect result for Facebook
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          setIsFacebookLoading(true);
+          const user = result.user;
+          
+          // Get the Firebase ID token
+          const idToken = await user.getIdToken();
+
+          console.log("🔥 Facebook login successful:", user.email);
+
+          // Send the token to your backend
+          const { data } = await axios.post("http://localhost:4001/api/v1/firebase/auth/facebook", {
+            idToken
+          });
+
+          console.log("✅ Backend authentication successful");
+
+          if (!data.token) {
+            throw new Error("No JWT token received from backend");
+          }
+
+          // Store user data in localStorage
+          localStorage.setItem("token", data.token);
+          localStorage.setItem(
+            "user",
+            JSON.stringify({
+              name: data.user.name,
+              email: data.user.email,
+              role: data.user.role,
+              id: data.user._id,
+              avatar: data.user.avatar
+            })
+          );
+
+          setMessage("Facebook login successful! Redirecting...");
+
+          // Redirect based on role
+          setTimeout(() => {
+            if (data.user.role === "admin") {
+              navigate("/admin/dashboard");
+            } else {
+              navigate("/user/home");
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        console.error("❌ Facebook redirect error:", error);
+        setMessage("Facebook authentication failed. Please try again.");
+        setIsFacebookLoading(false);
+      }
+    };
+
+    handleRedirectResult();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -68,7 +132,7 @@ const Login = () => {
   const handleFirebaseLogin = async (e) => {
     e.preventDefault();
     setMessage("");
-    setIsLoading(true);
+    setIsFirebaseLoading(true);
 
     try {
       // Sign in with Firebase Auth
@@ -136,13 +200,13 @@ const Login = () => {
         setMessage("Firebase login failed. Please try again.");
       }
     } finally {
-      setIsLoading(false);
+      setIsFirebaseLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
     setMessage("");
-    setIsLoading(true);
+    setIsGoogleLoading(true);
 
     try {
       // Sign in with Google using Firebase
@@ -202,7 +266,100 @@ const Login = () => {
         setMessage("Google login failed. Please try again.");
       }
     } finally {
-      setIsLoading(false);
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    setMessage("");
+    setIsFacebookLoading(true);
+
+    try {
+      // Clear any existing auth state to force account selection
+      await auth.signOut();
+      
+      // Add a small delay to ensure signOut completes
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Sign in with Facebook using Firebase
+      const result = await signInWithPopup(auth, facebookProvider);
+      const user = result.user;
+      
+      // Get the Firebase ID token
+      const idToken = await user.getIdToken();
+
+      console.log("🔥 Facebook login successful:", user.email);
+      console.log("👤 Facebook user info:", {
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL
+      });
+
+      // Send the token to your backend
+      const { data } = await axios.post("http://localhost:4001/api/v1/firebase/auth/facebook", {
+        idToken
+      });
+
+      console.log("✅ Backend authentication successful");
+
+      if (!data.token) {
+        throw new Error("No JWT token received from backend");
+      }
+
+      // Store user data in localStorage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: data.user.name,
+          email: data.user.email,
+          role: data.user.role,
+          id: data.user._id,
+          avatar: data.user.avatar
+        })
+      );
+
+      setMessage("Facebook login successful! Redirecting...");
+
+      // Redirect based on role
+      setTimeout(() => {
+        if (data.user.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/user/home");
+        }
+      }, 1000);
+
+    } catch (error) {
+      console.error("❌ Facebook login error:", error);
+      
+      // Handle specific Facebook auth errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        // This is not really an error - user just closed the popup
+        console.log("ℹ️ User closed Facebook login popup");
+        setMessage(""); // Clear any previous messages
+        return; // Just return without showing error message
+      } else if (error.code === 'auth/popup-blocked') {
+        setMessage("Popup was blocked by your browser. Please allow popups for this site.");
+      } else if (error.code === 'auth/network-request-failed') {
+        setMessage("Network error. Please check your internet connection.");
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        setMessage("An account already exists with the same email but different sign-in method.");
+      } else if (error.code === 'auth/auth-domain-config-required') {
+        setMessage("Facebook authentication is not properly configured. Please contact support.");
+      } else if (error.code === 'auth/operation-not-allowed') {
+        setMessage("Facebook login is not enabled. Please contact support.");
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setMessage("This domain is not authorized for Facebook login.");
+      } else if (error.code === 'auth/invalid-credential') {
+        setMessage("Invalid Facebook credentials. Please try again.");
+      } else if (error.code === 'auth/configuration-not-found') {
+        setMessage("Facebook authentication is not configured. Please contact support.");
+      } else {
+        setMessage("Facebook login failed. Please try again.");
+      }
+    } finally {
+      setIsFacebookLoading(false);
     }
   };
 
@@ -468,66 +625,131 @@ const Login = () => {
               </span>
             </div>
 
-            {/* Google Login Button */}
-            <div style={{ marginBottom: '20px' }}>
+            {/* Social Login Buttons */}
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+              {/* Google Login Button */}
               <button 
                 onClick={handleGoogleLogin}
-                disabled={isLoading}
+                disabled={isGoogleLoading || isFacebookLoading || isFirebaseLoading}
                 style={{ 
-                  width: "100%",
+                  flex: 1,
                   padding: "15px 20px",
-                  background: "rgba(20,20,20,0.7)",
+                  background: isGoogleLoading ? "rgba(212,175,55,0.2)" : "rgba(20,20,20,0.7)",
                   color: "#ffffff", 
-                  border: "1px solid rgba(212,175,55,0.3)",
+                  border: isGoogleLoading ? "1px solid #d4af37" : "1px solid rgba(212,175,55,0.3)",
                   borderRadius: "12px",
-                  cursor: "pointer",
-                  fontSize: "16px",
+                  cursor: isGoogleLoading ? "not-allowed" : "pointer",
+                  fontSize: "14px",
                   fontWeight: "600",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "15px",
+                  gap: "10px",
                   transition: "all 0.3s ease",
-                  backdropFilter: "blur(10px)"
+                  backdropFilter: "blur(10px)",
+                  minHeight: "54px"
                 }}
                 onMouseEnter={(e) => {
-                  if (!isLoading) {
+                  if (!isGoogleLoading && !isFacebookLoading && !isFirebaseLoading) {
                     e.target.style.background = "rgba(212,175,55,0.1)";
                     e.target.style.borderColor = "#d4af37";
                     e.target.style.transform = "translateY(-2px)";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isLoading) {
-                    e.target.style.background = "rgba(20,20,20,0.7)";
-                    e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                  if (!isGoogleLoading && !isFacebookLoading && !isFirebaseLoading) {
+                    e.target.style.background = isGoogleLoading ? "rgba(212,175,55,0.2)" : "rgba(20,20,20,0.7)";
+                    e.target.style.borderColor = isGoogleLoading ? "#d4af37" : "rgba(212,175,55,0.3)";
                     e.target.style.transform = "translateY(0)";
                   }
                 }}
               >
-                {isLoading ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{ width: '20px', height: '20px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #ffffff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                    Connecting...
+                {isGoogleLoading ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #ffffff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    Loading...
                   </div>
                 ) : (
                   <>
                     <img 
                       src="https://developers.google.com/identity/images/g-logo.png" 
                       alt="Google" 
-                      style={{ width: '20px', height: '20px' }}
+                      style={{ width: '18px', height: '18px' }}
                     />
-                    Sign in with Google
+                    Google
                   </>
                 )}
               </button>
+
+              {/* Facebook Login Button */}
+              <button 
+                onClick={handleFacebookLogin}
+                disabled={isFacebookLoading || isGoogleLoading || isFirebaseLoading}
+                style={{ 
+                  flex: 1,
+                  padding: "15px 20px",
+                  background: isFacebookLoading ? "rgba(59,89,152,0.3)" : "rgba(20,20,20,0.7)",
+                  color: "#ffffff", 
+                  border: isFacebookLoading ? "1px solid #3b5998" : "1px solid rgba(212,175,55,0.3)",
+                  borderRadius: "12px",
+                  cursor: isFacebookLoading ? "not-allowed" : "pointer",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
+                  transition: "all 0.3s ease",
+                  backdropFilter: "blur(10px)",
+                  minHeight: "54px"
+                }}
+                onMouseEnter={(e) => {
+                  if (!isFacebookLoading && !isGoogleLoading && !isFirebaseLoading) {
+                    e.target.style.background = "rgba(59,89,152,0.1)";
+                    e.target.style.borderColor = "#3b5998";
+                    e.target.style.transform = "translateY(-2px)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isFacebookLoading && !isGoogleLoading && !isFirebaseLoading) {
+                    e.target.style.background = isFacebookLoading ? "rgba(59,89,152,0.3)" : "rgba(20,20,20,0.7)";
+                    e.target.style.borderColor = isFacebookLoading ? "#3b5998" : "rgba(212,175,55,0.3)";
+                    e.target.style.transform = "translateY(0)";
+                  }
+                }}
+              >
+                {isFacebookLoading ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #ffffff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    Loading...
+                  </div>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#3b5998">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Facebook
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Account Selection Info */}
+            <div style={{ 
+              textAlign: 'center', 
+              marginBottom: '15px', 
+              fontSize: '12px', 
+              color: 'rgba(255,255,255,0.6)',
+              fontStyle: 'italic'
+            }}>
+              Click Facebook button to choose from different accounts
             </div>
 
             {/* Firebase Login Toggle */}
             <div style={{ marginBottom: '20px' }}>
               <button 
                 onClick={toggleFirebaseForm}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading || isFacebookLoading || isFirebaseLoading}
                 style={{ 
                   width: "100%",
                   padding: "15px 20px",
@@ -535,7 +757,7 @@ const Login = () => {
                   color: "#d4af37", 
                   border: "1px solid rgba(212,175,55,0.3)",
                   borderRadius: "12px",
-                  cursor: "pointer",
+                  cursor: (isLoading || isGoogleLoading || isFacebookLoading || isFirebaseLoading) ? "not-allowed" : "pointer",
                   fontSize: "16px",
                   fontWeight: "600",
                   display: "flex",
@@ -543,16 +765,17 @@ const Login = () => {
                   justifyContent: "center",
                   gap: "10px",
                   transition: "all 0.3s ease",
-                  backdropFilter: "blur(10px)"
+                  backdropFilter: "blur(10px)",
+                  opacity: (isLoading || isGoogleLoading || isFacebookLoading || isFirebaseLoading) ? 0.6 : 1
                 }}
                 onMouseEnter={(e) => {
-                  if (!isLoading) {
+                  if (!isLoading && !isGoogleLoading && !isFacebookLoading && !isFirebaseLoading) {
                     e.target.style.background = "rgba(212,175,55,0.1)";
                     e.target.style.borderColor = "#d4af37";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isLoading) {
+                  if (!isLoading && !isGoogleLoading && !isFacebookLoading && !isFirebaseLoading) {
                     e.target.style.background = showFirebaseForm ? "rgba(212,175,55,0.2)" : "rgba(20,20,20,0.7)";
                     e.target.style.borderColor = "rgba(212,175,55,0.3)";
                   }
@@ -587,6 +810,7 @@ const Login = () => {
                         value={firebaseEmail}
                         onChange={(e) => setFirebaseEmail(e.target.value)} 
                         required 
+                        disabled={isFirebaseLoading}
                         style={{
                           width: "100%",
                           padding: "12px 15px",
@@ -596,7 +820,8 @@ const Login = () => {
                           color: "#ffffff",
                           fontSize: "14px",
                           transition: "all 0.3s ease",
-                          outline: "none"
+                          outline: "none",
+                          opacity: isFirebaseLoading ? 0.6 : 1
                         }}
                       />
                     </div>
@@ -607,6 +832,7 @@ const Login = () => {
                         value={firebasePassword}
                         onChange={(e) => setFirebasePassword(e.target.value)} 
                         required 
+                        disabled={isFirebaseLoading}
                         style={{
                           width: "100%",
                           padding: "12px 15px",
@@ -616,27 +842,35 @@ const Login = () => {
                           color: "#ffffff",
                           fontSize: "14px",
                           transition: "all 0.3s ease",
-                          outline: "none"
+                          outline: "none",
+                          opacity: isFirebaseLoading ? 0.6 : 1
                         }}
                       />
                     </div>
                     <button 
                       type="submit" 
-                      disabled={isLoading}
+                      disabled={isFirebaseLoading}
                       style={{
                         width: "100%",
                         padding: "12px 15px",
-                        background: "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
+                        background: isFirebaseLoading 
+                          ? "linear-gradient(135deg, rgba(212,175,55,0.5) 0%, rgba(249,224,118,0.5) 100%)" 
+                          : "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
                         color: "#1a1a1a",
                         border: "none",
                         borderRadius: "8px",
                         fontSize: "14px",
                         fontWeight: "600",
-                        cursor: "pointer",
+                        cursor: isFirebaseLoading ? "not-allowed" : "pointer",
                         transition: "all 0.3s ease"
                       }}
                     >
-                      {isLoading ? "Signing in..." : "Sign in with Firebase"}
+                      {isFirebaseLoading ? (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                          <div style={{ width: '16px', height: '16px', border: '2px solid rgba(26,26,26,0.3)', borderTop: '2px solid #1a1a1a', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                          Signing in...
+                        </div>
+                      ) : "Sign in with Firebase"}
                     </button>
                   </form>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Loader from "../layouts/Loader";
@@ -17,6 +17,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import SearchIcon from "@mui/icons-material/Search";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 const Home = () => {
   const [user, setUser] = useState(null);
@@ -40,7 +41,27 @@ const Home = () => {
   const [productReviews, setProductReviews] = useState({});
   const [loadingReviews, setLoadingReviews] = useState({});
   
+  // Infinite scroll states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [allProducts, setAllProducts] = useState([]);
+  
+  // Dropdown states
+  const [isRatingDropdownOpen, setIsRatingDropdownOpen] = useState(false);
+  
   const navigate = useNavigate();
+  const observer = useRef();
+  const lastProductElementRef = useCallback(node => {
+    if (loadingMore) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMoreProducts();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loadingMore, hasMore]);
 
   // Categories from product model
   const categories = [
@@ -52,6 +73,17 @@ const Home = () => {
     "Keyboard Instruments"
   ];
 
+  // Rating options for dropdown
+  const ratingOptions = [
+    { value: 0, label: "All Ratings", stars: "⭐" },
+    { value: 5, label: "", stars: "⭐⭐⭐⭐⭐" },
+    { value: 4, label: "", stars: "⭐⭐⭐⭐" },
+    { value: 3, label: "", stars: "⭐⭐⭐" },
+    { value: 2, label: "", stars: "⭐⭐" },
+    { value: 1, label: "", stars: "⭐" }
+  ];
+
+  // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -116,12 +148,22 @@ const Home = () => {
           return;
         }
 
-        // Fetch products (public route)
-        console.log("🛍️ Fetching products...");
+        // Fetch initial products (public route)
+        console.log("🛍️ Fetching initial products...");
         const productsRes = await axios.get("http://localhost:4001/api/v1/products");
         const productsData = productsRes.data.products || productsRes.data || [];
-        setProducts(productsData);
+        
+        // Store all products for infinite scroll
+        setAllProducts(productsData);
+        
+        // Show first 6 products initially (changed from 8 to 6)
+        const initialProducts = productsData.slice(0, 6);
+        setProducts(initialProducts);
         console.log("✅ Products loaded:", productsData.length);
+        console.log("📦 Initial products displayed:", initialProducts.length);
+
+        // Set hasMore based on whether there are more products to load
+        setHasMore(productsData.length > 6);
 
         // Calculate max price for slider
         if (productsData.length > 0) {
@@ -131,7 +173,7 @@ const Home = () => {
         }
 
         const initialIndexes = {};
-        productsData.forEach((product) => {
+        initialProducts.forEach((product) => {
           if (product.images && product.images.length > 0) {
             initialIndexes[product._id] = 0;
           }
@@ -148,6 +190,123 @@ const Home = () => {
 
     fetchData();
   }, [navigate]);
+
+  // Filter products function - UPDATED RATING FILTER
+  const filterProducts = (productsList) => {
+    return productsList.filter((product) => {
+      // Price filter
+      const passesPrice = product.price >= priceRange.min && product.price <= priceRange.max;
+      
+      // Category filter
+      const passesCategory = selectedCategory === "all" || product.category === selectedCategory;
+      
+      // Rating filter - FIXED: Show products with exactly the selected rating
+      const passesRating = selectedRating === 0 || Math.floor(product.ratings) === selectedRating;
+      
+      // Search filter
+      const passesSearch = searchQuery === "" || 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Stock filter
+      const inStock = product.stock > 0;
+      
+      return passesPrice && passesCategory && passesRating && passesSearch && inStock;
+    });
+  };
+
+  // Get filtered products
+  const filteredProducts = filterProducts(allProducts);
+
+  // Load more products for infinite scroll - FIXED VERSION
+  const loadMoreProducts = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+
+    console.log("🔄 Loading more products...", { currentPage, hasMore });
+
+    setLoadingMore(true);
+    
+    setTimeout(() => {
+      const nextPage = currentPage + 1;
+      const productsPerPage = 6;
+      const startIndex = products.length; // Start from current loaded count
+      const endIndex = startIndex + productsPerPage;
+      
+      console.log("📊 Loading products:", { startIndex, endIndex, total: filteredProducts.length });
+
+      if (startIndex >= filteredProducts.length) {
+        console.log("⏹️ No more products to load");
+        setHasMore(false);
+        setLoadingMore(false);
+        return;
+      }
+      
+      const nextProducts = [...products, ...filteredProducts.slice(startIndex, endIndex)];
+      console.log("✅ Loaded products:", nextProducts.length);
+      
+      setProducts(nextProducts);
+      setCurrentPage(nextPage);
+      
+      // Check if there are more products to load
+      const hasMoreProducts = endIndex < filteredProducts.length;
+      setHasMore(hasMoreProducts);
+      console.log("🔍 More products available:", hasMoreProducts);
+      
+      // Update image indexes for new products
+      const newIndexes = { ...currentImageIndexes };
+      nextProducts.forEach((product) => {
+        if (product.images && product.images.length > 0 && !newIndexes[product._id]) {
+          newIndexes[product._id] = 0;
+        }
+      });
+      setCurrentImageIndexes(newIndexes);
+      
+      setLoadingMore(false);
+    }, 800); // Small delay for better UX
+  }, [currentPage, loadingMore, hasMore, filteredProducts, products, currentImageIndexes]);
+
+  // Update products when filters change - FIXED VERSION
+  useEffect(() => {
+    if (allProducts.length === 0) return;
+    
+    console.log("🔄 Filters changed, updating products...");
+    setLoadingProducts(true);
+    
+    const filtered = filterProducts(allProducts);
+    console.log("📊 Filtered products:", filtered.length);
+    
+    const initialProducts = filtered.slice(0, 6);
+    setProducts(initialProducts);
+    setCurrentPage(1);
+    
+    const hasMoreProducts = filtered.length > 6;
+    setHasMore(hasMoreProducts);
+    console.log("🔍 More products available after filter:", hasMoreProducts);
+    
+    // Reset image indexes
+    const newIndexes = {};
+    initialProducts.forEach((product) => {
+      if (product.images && product.images.length > 0) {
+        newIndexes[product._id] = 0;
+      }
+    });
+    setCurrentImageIndexes(newIndexes);
+    
+    setLoadingProducts(false);
+  }, [priceRange, selectedCategory, selectedRating, searchQuery, allProducts]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.rating-dropdown')) {
+        setIsRatingDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const nextImage = (productId, totalImages, e) => {
     e.stopPropagation();
@@ -340,30 +499,26 @@ const Home = () => {
     setSelectedCategory("all");
     setSelectedRating(0);
     setSearchQuery("");
+    setIsRatingDropdownOpen(false);
   };
 
-  // Filter products
-  const filteredProducts = products.filter((product) => {
-    // Price filter
-    const passesPrice = product.price >= priceRange.min && product.price <= priceRange.max;
-    
-    // Category filter
-    const passesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    
-    // Rating filter
-    const passesRating = selectedRating === 0 || product.ratings >= selectedRating;
-    
-    // Search filter
-    const passesSearch = searchQuery === "" || 
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Stock filter
-    const inStock = product.stock > 0;
-    
-    return passesPrice && passesCategory && passesRating && passesSearch && inStock;
-  });
+  // Handle rating selection from dropdown
+  const handleRatingSelect = (rating) => {
+    setSelectedRating(rating);
+    setIsRatingDropdownOpen(false);
+  };
+
+  // Get current rating label
+  const getCurrentRatingLabel = () => {
+    const option = ratingOptions.find(opt => opt.value === selectedRating);
+    return option ? option.label : "All Ratings";
+  };
+
+  // Get current rating stars
+  const getCurrentRatingStars = () => {
+    const option = ratingOptions.find(opt => opt.value === selectedRating);
+    return option ? option.stars : "⭐";
+  };
 
   // Render star rating with half stars
   const renderStars = (rating) => {
@@ -391,6 +546,10 @@ const Home = () => {
       day: 'numeric'
     });
   };
+
+  // Get displayed products count
+  const displayedProductsCount = products.length;
+  const totalFilteredProducts = filteredProducts.length;
 
   return (
     <div style={{ 
@@ -805,8 +964,8 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Rating Filter */}
-                <div>
+                {/* Rating Filter - Dropdown with Scroll */}
+                <div className="rating-dropdown">
                   <label style={{ 
                     fontWeight: "700", 
                     marginBottom: "15px", 
@@ -816,43 +975,94 @@ const Home = () => {
                   }}>
                     ⭐ Minimum Rating
                   </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-                    {[0, 1, 2, 3, 4, 5].map((rating) => (
-                      <button
-                        key={rating}
-                        onClick={() => setSelectedRating(rating)}
-                        style={{
-                          padding: "12px 8px",
-                          background: selectedRating === rating 
-                            ? "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)" 
-                            : "rgba(255,255,255,0.05)",
-                          color: selectedRating === rating ? "#1a1a1a" : "#ffffff",
-                          border: selectedRating === rating ? "none" : "2px solid rgba(212,175,55,0.3)",
-                          borderRadius: "10px",
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          fontWeight: selectedRating === rating ? "700" : "500",
-                          transition: "all 0.3s ease",
-                          boxShadow: selectedRating === rating ? "0 4px 15px rgba(212,175,55,0.4)" : "none"
-                        }}
-                        onMouseEnter={(e) => {
-                          if (selectedRating !== rating) {
-                            e.target.style.background = "rgba(212,175,55,0.1)";
-                            e.target.style.border = "2px solid rgba(212,175,55,0.5)";
-                            e.target.style.transform = "translateY(-2px)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (selectedRating !== rating) {
-                            e.target.style.background = "rgba(255,255,255,0.05)";
-                            e.target.style.border = "2px solid rgba(212,175,55,0.3)";
-                            e.target.style.transform = "translateY(0)";
-                          }
-                        }}
-                      >
-                        {rating === 0 ? "All ⭐" : `${rating}★`}
-                      </button>
-                    ))}
+                  <div style={{ position: "relative" }}>
+                    <button
+                      onClick={() => setIsRatingDropdownOpen(!isRatingDropdownOpen)}
+                      style={{
+                        width: "100%",
+                        padding: "15px 45px 15px 15px",
+                        background: "rgba(255,255,255,0.05)",
+                        border: "2px solid rgba(212,175,55,0.3)",
+                        borderRadius: "10px",
+                        fontSize: "14px",
+                        color: "#ffffff",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                        textAlign: "left",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}
+                      onFocus={(e) => e.target.style.border = "2px solid rgba(212,175,55,0.6)"}
+                      onBlur={(e) => e.target.style.border = "2px solid rgba(212,175,55,0.3)"}
+                    >
+                      <span>
+                        {getCurrentRatingStars()} {getCurrentRatingLabel()}
+                      </span>
+                      <KeyboardArrowDownIcon 
+                        style={{ 
+                          color: "#d4af37",
+                          transition: "transform 0.3s ease",
+                          transform: isRatingDropdownOpen ? "rotate(180deg)" : "rotate(0)"
+                        }} 
+                      />
+                    </button>
+
+                    {isRatingDropdownOpen && (
+                      <div style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        background: "rgba(30,30,30,0.95)",
+                        border: "2px solid rgba(212,175,55,0.3)",
+                        borderRadius: "10px",
+                        marginTop: "5px",
+                        zIndex: 1000,
+                        boxShadow: "0 8px 25px rgba(0,0,0,0.4)",
+                        backdropFilter: "blur(10px)",
+                        overflow: "hidden",
+                        maxHeight: "200px", // Added max height for scroll
+                        overflowY: "auto" // Added scroll for dropdown
+                      }}>
+                        {ratingOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => handleRatingSelect(option.value)}
+                            style={{
+                              width: "100%",
+                              padding: "12px 15px",
+                              background: selectedRating === option.value 
+                                ? "rgba(212,175,55,0.2)" 
+                                : "transparent",
+                              border: "none",
+                              color: selectedRating === option.value ? "#d4af37" : "#ffffff",
+                              cursor: "pointer",
+                              fontSize: "14px",
+                              textAlign: "left",
+                              transition: "all 0.3s ease",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              borderBottom: "1px solid rgba(212,175,55,0.1)"
+                            }}
+                            onMouseEnter={(e) => {
+                              if (selectedRating !== option.value) {
+                                e.target.style.background = "rgba(212,175,55,0.1)";
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (selectedRating !== option.value) {
+                                e.target.style.background = "transparent";
+                              }
+                            }}
+                          >
+                            <span style={{ fontSize: "16px", minWidth: "70px" }}>{option.stars}</span>
+                            <span>{option.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -869,7 +1079,12 @@ const Home = () => {
                 border: "1px solid rgba(212,175,55,0.2)",
                 fontWeight: "600"
               }}>
-                Showing <strong style={{ color: "#d4af37" }}>{filteredProducts.length}</strong> of <strong style={{ color: "#d4af37" }}>{products.filter(p => p.stock > 0).length}</strong> available products
+                Showing <strong style={{ color: "#d4af37" }}>{displayedProductsCount}</strong> of <strong style={{ color: "#d4af37" }}>{totalFilteredProducts}</strong> available products
+                {hasMore && displayedProductsCount < totalFilteredProducts && (
+                  <div style={{ marginTop: "8px", fontSize: "14px", color: "rgba(212,175,55,0.7)" }}>
+                    Scroll down to load more products...
+                  </div>
+                )}
               </div>
             </div>
             
@@ -893,7 +1108,7 @@ const Home = () => {
                 <Loader />
                 <p style={{ marginTop: "20px", color: "#d4af37", fontSize: "18px", fontWeight: "600" }}>Loading products...</p>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <div style={{ 
                 textAlign: "center", 
                 padding: "80px",
@@ -937,437 +1152,464 @@ const Home = () => {
                 </button>
               </div>
             ) : (
-              <div className="products-grid" style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
-                gap: "30px",
-                padding: "10px 0"
-              }}>
-                {filteredProducts.map((product) => {
-                  const currentIndex = currentImageIndexes[product._id] || 0;
-                  const totalImages = product.images?.length || 0;
-                  const hasMultipleImages = totalImages > 1;
-                  const isReviewsExpanded = expandedReviews[product._id];
-                  const reviews = productReviews[product._id] || [];
-                  const isLoadingReviews = loadingReviews[product._id];
+              <>
+                <div className="products-grid" style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+                  gap: "30px",
+                  padding: "10px 0"
+                }}>
+                  {products.map((product, index) => {
+                    const currentIndex = currentImageIndexes[product._id] || 0;
+                    const totalImages = product.images?.length || 0;
+                    const hasMultipleImages = totalImages > 1;
+                    const isReviewsExpanded = expandedReviews[product._id];
+                    const reviews = productReviews[product._id] || [];
+                    const isLoadingReviews = loadingReviews[product._id];
 
-                  return (
-                    <div
-                      key={product._id}
-                      className="product-card"
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "space-between",
-                        padding: "25px",
-                        borderRadius: "18px",
-                        background: "linear-gradient(135deg, rgba(30,30,30,0.9) 0%, rgba(40,40,40,0.9) 100%)",
-                        boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(212,175,55,0.2)",
-                        border: "1px solid rgba(212,175,55,0.3)",
-                        transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                        position: "relative",
-                        overflow: "hidden",
-                        animation: "fadeIn 0.8s ease-out"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-8px) scale(1.02)";
-                        e.currentTarget.style.boxShadow = "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,175,55,0.2)";
-                        e.currentTarget.style.border = "1px solid rgba(212,175,55,0.5)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0) scale(1)";
-                        e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(212,175,55,0.2)";
-                        e.currentTarget.style.border = "1px solid rgba(212,175,55,0.3)";
-                      }}
-                    >
-                      {/* Stock Badge */}
-                      <div style={{
-                        position: "absolute",
-                        top: "20px",
-                        right: "20px",
-                        background: product.stock > 10 
-                          ? "linear-gradient(135deg, #27ae60, #2ecc71)" 
-                          : product.stock > 0 
-                            ? "linear-gradient(135deg, #f39c12, #f1c40f)"
-                            : "linear-gradient(135deg, #e74c3c, #c0392b)",
-                        color: "white",
-                        padding: "6px 14px",
-                        borderRadius: "20px",
-                        fontSize: "12px",
-                        fontWeight: "700",
-                        zIndex: 2,
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.2)"
-                      }}>
-                        {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
-                      </div>
-
-                      <div style={{ position: "relative" }}>
-                        <img
-                          src={product.images?.[currentIndex]?.url}
-                          alt={product.name}
-                          style={{
-                            width: "100%",
-                            height: "240px",
-                            objectFit: "cover",
-                            borderRadius: "12px",
-                            marginBottom: "20px",
-                            border: "2px solid rgba(212,175,55,0.2)",
-                            boxShadow: "0 4px 15px rgba(0,0,0,0.3)"
-                          }}
-                        />
-                        {hasMultipleImages && (
-                          <>
-                            <button
-                              onClick={(e) => prevImage(product._id, totalImages, e)}
-                              style={{
-                                position: "absolute",
-                                left: "12px",
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                background: "rgba(212,175,55,0.8)",
-                                color: "#1a1a1a",
-                                border: "none",
-                                borderRadius: "50%",
-                                width: "36px",
-                                height: "36px",
-                                fontSize: "18px",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                transition: "all 0.3s ease",
-                                fontWeight: "bold",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
-                              }}
-                              onMouseOver={(e) => {
-                                e.target.style.background = "rgba(212,175,55,1)";
-                                e.target.style.transform = "translateY(-50%) scale(1.1)";
-                              }}
-                              onMouseOut={(e) => {
-                                e.target.style.background = "rgba(212,175,55,0.8)";
-                                e.target.style.transform = "translateY(-50%) scale(1)";
-                              }}
-                            >
-                              ‹
-                            </button>
-                            <button
-                              onClick={(e) => nextImage(product._id, totalImages, e)}
-                              style={{
-                                position: "absolute",
-                                right: "12px",
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                background: "rgba(212,175,55,0.8)",
-                                color: "#1a1a1a",
-                                border: "none",
-                                borderRadius: "50%",
-                                width: "36px",
-                                height: "36px",
-                                fontSize: "18px",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                transition: "all 0.3s ease",
-                                fontWeight: "bold",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
-                              }}
-                              onMouseOver={(e) => {
-                                e.target.style.background = "rgba(212,175,55,1)";
-                                e.target.style.transform = "translateY(-50%) scale(1.1)";
-                              }}
-                              onMouseOut={(e) => {
-                                e.target.style.background = "rgba(212,175,55,0.8)";
-                                e.target.style.transform = "translateY(-50%) scale(1)";
-                              }}
-                            >
-                              ›
-                            </button>
-                          </>
-                        )}
-                      </div>
-
-                      <div style={{ marginBottom: "25px" }}>
-                        <h3 style={{ 
-                          fontSize: "1.4rem", 
-                          marginBottom: "12px", 
-                          color: "#ffffff",
-                          fontWeight: "700",
-                          lineHeight: "1.3",
-                          textShadow: "0 2px 4px rgba(0,0,0,0.3)"
-                        }}>
-                          {product.name}
-                        </h3>
-                        
-                        <p style={{ 
-                          marginBottom: "15px", 
-                          fontWeight: "800", 
-                          background: "linear-gradient(135deg, #d4af37, #f9e076, #d4af37)",
-                          WebkitBackgroundClip: "text",
-                          WebkitTextFillColor: "transparent",
-                          backgroundSize: "200% 100%",
-                          animation: "shimmer 3s infinite linear",
-                          fontSize: "1.6rem",
-                          textShadow: "0 2px 4px rgba(0,0,0,0.3)"
-                        }}>
-                          ₱{product.price.toLocaleString()}
-                        </p>
-                        
-                        <div style={{ 
-                          display: "flex", 
-                          alignItems: "center", 
-                          gap: "10px", 
-                          marginBottom: "15px",
-                          flexWrap: "wrap"
-                        }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                            {renderStars(product.ratings)}
-                          </div>
-                          <span style={{ 
-                            fontSize: "15px", 
-                            color: "rgba(255,255,255,0.7)",
-                            fontWeight: "600"
-                          }}>
-                            ({product.ratings.toFixed(1)}) • {product.numOfReviews || 0} reviews
-                          </span>
-                        </div>
-                        
-                        <p style={{ 
-                          marginBottom: "12px", 
-                          fontSize: "14px", 
-                          color: "rgba(255,255,255,0.8)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px"
-                        }}>
-                          <span style={{
-                            background: "rgba(212,175,55,0.2)",
-                            color: "#d4af37",
-                            padding: "6px 12px",
-                            borderRadius: "15px",
-                            fontSize: "13px",
-                            fontWeight: "700",
-                            border: "1px solid rgba(212,175,55,0.3)"
-                          }}>
-                            {product.category}
-                          </span>
-                        </p>
-                      </div>
-
-                      {/* Reviews Section */}
-                      <div style={{ marginBottom: "25px" }}>
-                        <button
-                          onClick={() => toggleReviews(product._id)}
-                          disabled={isLoadingReviews}
-                          style={{
-                            width: "100%",
-                            padding: "14px",
-                            background: isReviewsExpanded 
-                              ? "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)" 
-                              : "rgba(212,175,55,0.1)",
-                            color: isReviewsExpanded ? "#1a1a1a" : "#d4af37",
-                            border: isReviewsExpanded ? "none" : "2px solid rgba(212,175,55,0.4)",
-                            borderRadius: "12px",
-                            cursor: "pointer",
-                            fontSize: "15px",
-                            fontWeight: "700",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "10px",
-                            transition: "all 0.3s ease",
-                            boxShadow: isReviewsExpanded ? "0 4px 15px rgba(212,175,55,0.4)" : "none"
-                          }}
-                          onMouseOver={(e) => {
-                            if (!isReviewsExpanded && !isLoadingReviews) {
-                              e.target.style.background = "rgba(212,175,55,0.2)";
-                              e.target.style.transform = "translateY(-2px)";
-                            }
-                          }}
-                          onMouseOut={(e) => {
-                            if (!isReviewsExpanded && !isLoadingReviews) {
-                              e.target.style.background = "rgba(212,175,55,0.1)";
-                              e.target.style.transform = "translateY(0)";
-                            }
-                          }}
-                        >
-                          {isLoadingReviews ? (
-                            <>🔄 Loading Reviews...</>
-                          ) : (
-                            <>
-                              {isReviewsExpanded ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
-                              {isReviewsExpanded ? "Hide Reviews" : "Show Reviews"} 
-                              ({product.numOfReviews || 0})
-                            </>
-                          )}
-                        </button>
-
-                        {isReviewsExpanded && (
-                          <div style={{
-                            marginTop: "20px",
-                            maxHeight: "220px",
-                            overflowY: "auto",
-                            border: "1px solid rgba(212,175,55,0.2)",
-                            borderRadius: "12px",
-                            padding: "20px",
-                            background: "rgba(20,20,20,0.6)",
-                            backdropFilter: "blur(10px)"
-                          }}>
-                            {reviews.length === 0 ? (
-                              <p style={{ 
-                                textAlign: "center", 
-                                color: "rgba(255,255,255,0.6)", 
-                                fontSize: "15px",
-                                fontStyle: "italic",
-                                margin: "0"
-                              }}>
-                                No reviews yet. Be the first to review this product!
-                              </p>
-                            ) : (
-                              reviews.map((review) => (
-                                <div key={review._id} style={{
-                                  padding: "15px",
-                                  marginBottom: "12px",
-                                  background: "rgba(255,255,255,0.05)",
-                                  borderRadius: "10px",
-                                  border: "1px solid rgba(212,175,55,0.1)",
-                                  boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
-                                }}>
-                                  <div style={{ 
-                                    display: "flex", 
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                    marginBottom: "10px"
-                                  }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                      <PersonIcon style={{ color: "#d4af37", fontSize: "18px" }} />
-                                      <span style={{ fontWeight: "700", fontSize: "15px", color: "#ffffff" }}>
-                                        {review.user?.name || review.name}
-                                      </span>
-                                    </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                      <CalendarTodayIcon style={{ color: "rgba(212,175,55,0.7)", fontSize: "16px" }} />
-                                      <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>
-                                        {formatDate(review.createdAt)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
-                                    {renderStars(review.rating)}
-                                  </div>
-                                  <p style={{ 
-                                    fontSize: "15px", 
-                                    color: "rgba(255,255,255,0.9)",
-                                    lineHeight: "1.4",
-                                    margin: 0
-                                  }}>
-                                    {review.comment}
-                                  </p>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
+                    // Add ref to the last product element for infinite scroll
+                    const isLastProduct = index === products.length - 1;
+                    
+                    return (
                       <div
+                        key={product._id}
+                        ref={isLastProduct ? lastProductElementRef : null}
+                        className="product-card"
                         style={{
                           display: "flex",
-                          gap: "15px",
+                          flexDirection: "column",
                           justifyContent: "space-between",
+                          padding: "25px",
+                          borderRadius: "18px",
+                          background: "linear-gradient(135deg, rgba(30,30,30,0.9) 0%, rgba(40,40,40,0.9) 100%)",
+                          boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(212,175,55,0.2)",
+                          border: "1px solid rgba(212,175,55,0.3)",
+                          transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                          position: "relative",
+                          overflow: "hidden",
+                          animation: "fadeIn 0.8s ease-out"
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-8px) scale(1.02)";
+                          e.currentTarget.style.boxShadow = "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,175,55,0.2)";
+                          e.currentTarget.style.border = "1px solid rgba(212,175,55,0.5)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0) scale(1)";
+                          e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(212,175,55,0.2)";
+                          e.currentTarget.style.border = "1px solid rgba(212,175,55,0.3)";
                         }}
                       >
-                        <button
-                          onClick={() => handleAddToCart(product._id)}
-                          disabled={!backendConnected || product.stock === 0}
-                          style={{
-                            flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "8px",
-                            padding: "14px 12px",
-                            background: (!backendConnected || product.stock === 0) 
-                              ? "rgba(255,255,255,0.1)" 
-                              : "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
-                            color: (!backendConnected || product.stock === 0) ? "rgba(255,255,255,0.3)" : "#1a1a1a",
-                            border: "none",
-                            borderRadius: "12px",
-                            cursor: (!backendConnected || product.stock === 0) ? "not-allowed" : "pointer",
-                            fontWeight: "700",
-                            fontSize: "15px",
-                            transition: "all 0.3s ease",
-                            boxShadow: (!backendConnected || product.stock === 0) ? "none" : "0 6px 20px rgba(212,175,55,0.4)"
-                          }}
-                          onMouseOver={(e) => {
-                            if (backendConnected && product.stock > 0) {
-                              e.target.style.transform = "translateY(-3px)";
-                              e.target.style.boxShadow = "0 10px 25px rgba(212,175,55,0.6)";
-                            }
-                          }}
-                          onMouseOut={(e) => {
-                            if (backendConnected && product.stock > 0) {
-                              e.target.style.transform = "translateY(0)";
-                              e.target.style.boxShadow = "0 6px 20px rgba(212,175,55,0.4)";
-                            }
-                          }}
-                        >
-                          <ShoppingCartIcon fontSize="small" /> 
-                          {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
-                        </button>
+                        {/* Stock Badge */}
+                        <div style={{
+                          position: "absolute",
+                          top: "20px",
+                          right: "20px",
+                          background: product.stock > 10 
+                            ? "linear-gradient(135deg, #27ae60, #2ecc71)" 
+                            : product.stock > 0 
+                              ? "linear-gradient(135deg, #f39c12, #f1c40f)"
+                              : "linear-gradient(135deg, #e74c3c, #c0392b)",
+                          color: "white",
+                          padding: "6px 14px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          zIndex: 2,
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                          border: "1px solid rgba(255,255,255,0.2)"
+                        }}>
+                          {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                        </div>
 
-                        <button
-                          onClick={() => handleSoloCheckout(product._id)}
-                          disabled={processingCheckout === product._id || !backendConnected || product.stock === 0}
-                          style={{
-                            flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "8px",
-                            padding: "14px 12px",
-                            background: (processingCheckout === product._id || !backendConnected || product.stock === 0) 
-                              ? "rgba(255,255,255,0.1)" 
-                              : "linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)",
-                            color: (processingCheckout === product._id || !backendConnected || product.stock === 0) 
-                              ? "rgba(255,255,255,0.3)" 
-                              : "#ffffff",
-                            border: "none",
-                            borderRadius: "12px",
-                            cursor: (processingCheckout === product._id || !backendConnected || product.stock === 0) ? "not-allowed" : "pointer",
-                            fontWeight: "700",
-                            fontSize: "15px",
-                            transition: "all 0.3s ease",
-                            boxShadow: (processingCheckout === product._id || !backendConnected || product.stock === 0) ? "none" : "0 6px 20px rgba(39, 174, 96, 0.4)"
-                          }}
-                          onMouseOver={(e) => {
-                            if (backendConnected && product.stock > 0 && processingCheckout !== product._id) {
-                              e.target.style.transform = "translateY(-3px)";
-                              e.target.style.boxShadow = "0 10px 25px rgba(39, 174, 96, 0.6)";
-                            }
-                          }}
-                          onMouseOut={(e) => {
-                            if (backendConnected && product.stock > 0 && processingCheckout !== product._id) {
-                              e.target.style.transform = "translateY(0)";
-                              e.target.style.boxShadow = "0 6px 20px rgba(39, 174, 96, 0.4)";
-                            }
-                          }}
-                        >
-                          {processingCheckout === product._id ? (
-                            "🔄 Processing..."
-                          ) : (
+                        <div style={{ position: "relative" }}>
+                          <img
+                            src={product.images?.[currentIndex]?.url}
+                            alt={product.name}
+                            style={{
+                              width: "100%",
+                              height: "240px",
+                              objectFit: "cover",
+                              borderRadius: "12px",
+                              marginBottom: "20px",
+                              border: "2px solid rgba(212,175,55,0.2)",
+                              boxShadow: "0 4px 15px rgba(0,0,0,0.3)"
+                            }}
+                          />
+                          {hasMultipleImages && (
                             <>
-                              Checkout <ArrowForwardIcon fontSize="small" />
+                              <button
+                                onClick={(e) => prevImage(product._id, totalImages, e)}
+                                style={{
+                                  position: "absolute",
+                                  left: "12px",
+                                  top: "50%",
+                                  transform: "translateY(-50%)",
+                                  background: "rgba(212,175,55,0.8)",
+                                  color: "#1a1a1a",
+                                  border: "none",
+                                  borderRadius: "50%",
+                                  width: "36px",
+                                  height: "36px",
+                                  fontSize: "18px",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.3s ease",
+                                  fontWeight: "bold",
+                                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+                                }}
+                                onMouseOver={(e) => {
+                                  e.target.style.background = "rgba(212,175,55,1)";
+                                  e.target.style.transform = "translateY(-50%) scale(1.1)";
+                                }}
+                                onMouseOut={(e) => {
+                                  e.target.style.background = "rgba(212,175,55,0.8)";
+                                  e.target.style.transform = "translateY(-50%) scale(1)";
+                                }}
+                              >
+                                ‹
+                              </button>
+                              <button
+                                onClick={(e) => nextImage(product._id, totalImages, e)}
+                                style={{
+                                  position: "absolute",
+                                  right: "12px",
+                                  top: "50%",
+                                  transform: "translateY(-50%)",
+                                  background: "rgba(212,175,55,0.8)",
+                                  color: "#1a1a1a",
+                                  border: "none",
+                                  borderRadius: "50%",
+                                  width: "36px",
+                                  height: "36px",
+                                  fontSize: "18px",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.3s ease",
+                                  fontWeight: "bold",
+                                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+                                }}
+                                onMouseOver={(e) => {
+                                  e.target.style.background = "rgba(212,175,55,1)";
+                                  e.target.style.transform = "translateY(-50%) scale(1.1)";
+                                }}
+                                onMouseOut={(e) => {
+                                  e.target.style.background = "rgba(212,175,55,0.8)";
+                                  e.target.style.transform = "translateY(-50%) scale(1)";
+                                }}
+                              >
+                                ›
+                              </button>
                             </>
                           )}
-                        </button>
+                        </div>
+
+                        <div style={{ marginBottom: "25px" }}>
+                          <h3 style={{ 
+                            fontSize: "1.4rem", 
+                            marginBottom: "12px", 
+                            color: "#ffffff",
+                            fontWeight: "700",
+                            lineHeight: "1.3",
+                            textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+                          }}>
+                            {product.name}
+                          </h3>
+                          
+                          <p style={{ 
+                            marginBottom: "15px", 
+                            fontWeight: "800", 
+                            background: "linear-gradient(135deg, #d4af37, #f9e076, #d4af37)",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                            backgroundSize: "200% 100%",
+                            animation: "shimmer 3s infinite linear",
+                            fontSize: "1.6rem",
+                            textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+                          }}>
+                            ₱{product.price.toLocaleString()}
+                          </p>
+                          
+                          <div style={{ 
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: "10px", 
+                            marginBottom: "15px",
+                            flexWrap: "wrap"
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                              {renderStars(product.ratings)}
+                            </div>
+                            <span style={{ 
+                              fontSize: "15px", 
+                              color: "rgba(255,255,255,0.7)",
+                              fontWeight: "600"
+                            }}>
+                              ({product.ratings.toFixed(1)}) • {product.numOfReviews || 0} reviews
+                            </span>
+                          </div>
+                          
+                          <p style={{ 
+                            marginBottom: "12px", 
+                            fontSize: "14px", 
+                            color: "rgba(255,255,255,0.8)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px"
+                          }}>
+                            <span style={{
+                              background: "rgba(212,175,55,0.2)",
+                              color: "#d4af37",
+                              padding: "6px 12px",
+                              borderRadius: "15px",
+                              fontSize: "13px",
+                              fontWeight: "700",
+                              border: "1px solid rgba(212,175,55,0.3)"
+                            }}>
+                              {product.category}
+                            </span>
+                          </p>
+                        </div>
+
+                        {/* Reviews Section */}
+                        <div style={{ marginBottom: "25px" }}>
+                          <button
+                            onClick={() => toggleReviews(product._id)}
+                            disabled={isLoadingReviews}
+                            style={{
+                              width: "100%",
+                              padding: "14px",
+                              background: isReviewsExpanded 
+                                ? "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)" 
+                                : "rgba(212,175,55,0.1)",
+                              color: isReviewsExpanded ? "#1a1a1a" : "#d4af37",
+                              border: isReviewsExpanded ? "none" : "2px solid rgba(212,175,55,0.4)",
+                              borderRadius: "12px",
+                              cursor: "pointer",
+                              fontSize: "15px",
+                              fontWeight: "700",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "10px",
+                              transition: "all 0.3s ease",
+                              boxShadow: isReviewsExpanded ? "0 4px 15px rgba(212,175,55,0.4)" : "none"
+                            }}
+                            onMouseOver={(e) => {
+                              if (!isReviewsExpanded && !isLoadingReviews) {
+                                e.target.style.background = "rgba(212,175,55,0.2)";
+                                e.target.style.transform = "translateY(-2px)";
+                              }
+                            }}
+                            onMouseOut={(e) => {
+                              if (!isReviewsExpanded && !isLoadingReviews) {
+                                e.target.style.background = "rgba(212,175,55,0.1)";
+                                e.target.style.transform = "translateY(0)";
+                              }
+                            }}
+                          >
+                            {isLoadingReviews ? (
+                              <>🔄 Loading Reviews...</>
+                            ) : (
+                              <>
+                                {isReviewsExpanded ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                                {isReviewsExpanded ? "Hide Reviews" : "Show Reviews"} 
+                                ({product.numOfReviews || 0})
+                              </>
+                            )}
+                          </button>
+
+                          {isReviewsExpanded && (
+                            <div style={{
+                              marginTop: "20px",
+                              maxHeight: "220px",
+                              overflowY: "auto",
+                              border: "1px solid rgba(212,175,55,0.2)",
+                              borderRadius: "12px",
+                              padding: "20px",
+                              background: "rgba(20,20,20,0.6)",
+                              backdropFilter: "blur(10px)"
+                            }}>
+                              {reviews.length === 0 ? (
+                                <p style={{ 
+                                  textAlign: "center", 
+                                  color: "rgba(255,255,255,0.6)", 
+                                  fontSize: "15px",
+                                  fontStyle: "italic",
+                                  margin: "0"
+                                }}>
+                                  No reviews yet. Be the first to review this product!
+                                </p>
+                              ) : (
+                                reviews.map((review) => (
+                                  <div key={review._id} style={{
+                                    padding: "15px",
+                                    marginBottom: "12px",
+                                    background: "rgba(255,255,255,0.05)",
+                                    borderRadius: "10px",
+                                    border: "1px solid rgba(212,175,55,0.1)",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+                                  }}>
+                                    <div style={{ 
+                                      display: "flex", 
+                                      justifyContent: "space-between",
+                                      alignItems: "flex-start",
+                                      marginBottom: "10px"
+                                    }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <PersonIcon style={{ color: "#d4af37", fontSize: "18px" }} />
+                                        <span style={{ fontWeight: "700", fontSize: "15px", color: "#ffffff" }}>
+                                          {review.user?.name || review.name}
+                                        </span>
+                                      </div>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                        <CalendarTodayIcon style={{ color: "rgba(212,175,55,0.7)", fontSize: "16px" }} />
+                                        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>
+                                          {formatDate(review.createdAt)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+                                      {renderStars(review.rating)}
+                                    </div>
+                                    <p style={{ 
+                                      fontSize: "15px", 
+                                      color: "rgba(255,255,255,0.9)",
+                                      lineHeight: "1.4",
+                                      margin: 0
+                                    }}>
+                                      {review.comment}
+                                    </p>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "15px",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <button
+                            onClick={() => handleAddToCart(product._id)}
+                            disabled={!backendConnected || product.stock === 0}
+                            style={{
+                              flex: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px",
+                              padding: "14px 12px",
+                              background: (!backendConnected || product.stock === 0) 
+                                ? "rgba(255,255,255,0.1)" 
+                                : "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
+                              color: (!backendConnected || product.stock === 0) ? "rgba(255,255,255,0.3)" : "#1a1a1a",
+                              border: "none",
+                              borderRadius: "12px",
+                              cursor: (!backendConnected || product.stock === 0) ? "not-allowed" : "pointer",
+                              fontWeight: "700",
+                              fontSize: "15px",
+                              transition: "all 0.3s ease",
+                              boxShadow: (!backendConnected || product.stock === 0) ? "none" : "0 6px 20px rgba(212,175,55,0.4)"
+                            }}
+                            onMouseOver={(e) => {
+                              if (backendConnected && product.stock > 0) {
+                                e.target.style.transform = "translateY(-3px)";
+                                e.target.style.boxShadow = "0 10px 25px rgba(212,175,55,0.6)";
+                              }
+                            }}
+                            onMouseOut={(e) => {
+                              if (backendConnected && product.stock > 0) {
+                                e.target.style.transform = "translateY(0)";
+                                e.target.style.boxShadow = "0 6px 20px rgba(212,175,55,0.4)";
+                              }
+                            }}
+                          >
+                            <ShoppingCartIcon fontSize="small" /> 
+                            {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+                          </button>
+
+                          <button
+                            onClick={() => handleSoloCheckout(product._id)}
+                            disabled={processingCheckout === product._id || !backendConnected || product.stock === 0}
+                            style={{
+                              flex: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px",
+                              padding: "14px 12px",
+                              background: (processingCheckout === product._id || !backendConnected || product.stock === 0) 
+                                ? "rgba(255,255,255,0.1)" 
+                                : "linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)",
+                              color: (processingCheckout === product._id || !backendConnected || product.stock === 0) 
+                                ? "rgba(255,255,255,0.3)" 
+                                : "#ffffff",
+                              border: "none",
+                              borderRadius: "12px",
+                              cursor: (processingCheckout === product._id || !backendConnected || product.stock === 0) ? "not-allowed" : "pointer",
+                              fontWeight: "700",
+                              fontSize: "15px",
+                              transition: "all 0.3s ease",
+                              boxShadow: (processingCheckout === product._id || !backendConnected || product.stock === 0) ? "none" : "0 6px 20px rgba(39, 174, 96, 0.4)"
+                            }}
+                            onMouseOver={(e) => {
+                              if (backendConnected && product.stock > 0 && processingCheckout !== product._id) {
+                                e.target.style.transform = "translateY(-3px)";
+                                e.target.style.boxShadow = "0 10px 25px rgba(39, 174, 96, 0.6)";
+                              }
+                            }}
+                            onMouseOut={(e) => {
+                              if (backendConnected && product.stock > 0 && processingCheckout !== product._id) {
+                                e.target.style.transform = "translateY(0)";
+                                e.target.style.boxShadow = "0 6px 20px rgba(39, 174, 96, 0.4)";
+                              }
+                            }}
+                          >
+                            {processingCheckout === product._id ? (
+                              "🔄 Processing..."
+                            ) : (
+                              <>
+                                Checkout <ArrowForwardIcon fontSize="small" />
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+
+                {/* Loading More Indicator */}
+                {loadingMore && (
+                  <div style={{ textAlign: "center", padding: "40px" }}>
+                    <Loader />
+                    <p style={{ marginTop: "15px", color: "#d4af37", fontWeight: "600" }}>Loading more products...</p>
+                  </div>
+                )}
+
+                {/* End of Results Message */}
+                {!hasMore && products.length > 0 && (
+                  <div style={{ 
+                    textAlign: "center", 
+                    padding: "40px",
+                    color: "rgba(212,175,55,0.8)",
+                    fontSize: "16px",
+                    fontWeight: "600"
+                  }}>
+                    🎉 You've reached the end of the products list!
+                  </div>
+                )}
+              </>
             )}
           </div>
 

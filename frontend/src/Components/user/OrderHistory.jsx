@@ -337,7 +337,7 @@ const OrderHistory = () => {
                 opacity: "0.7",
                 animation: "float 4s ease-in-out infinite"
               }}>
-                📦
+                
               </div>
               <Typography variant="h6" sx={{ 
                 color: "rgba(255,255,255,0.8)",
@@ -682,7 +682,7 @@ const OrderHistory = () => {
                 }
               }}
             >
-              🏠 Back to Home
+              Back to Home
             </Button>
           </Box>
         </Box>

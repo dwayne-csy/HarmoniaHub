@@ -12,6 +12,7 @@ const {
   // Firebase Auth
   firebaseEmailLogin,
   firebaseGoogleAuth,
+  firebaseFacebookAuth, 
   checkEmailVerification,
   resendVerificationEmail
 } = require('../controllers/UserController');
@@ -21,13 +22,14 @@ const { isAuthenticatedUser } = require('../middlewares/auth');
 const router = express.Router();
 
 // AUTH
-router.post('/register', registerUser); // For local registration
+router.post('/register', registerUser);
 router.get('/verify-email/:token', verifyEmail);
 router.post('/login', loginUser);
 
 // FIREBASE AUTH
 router.post('/firebase/login', firebaseEmailLogin);
 router.post('/firebase/auth/google', firebaseGoogleAuth);
+router.post('/firebase/auth/facebook', firebaseFacebookAuth); 
 
 // VERIFICATION
 router.post('/check-verification', checkEmailVerification);

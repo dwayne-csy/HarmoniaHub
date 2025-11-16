@@ -1,6 +1,6 @@
 // src/config/firebase.js - FRONTEND FILE
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 
 // Firebase configuration using the API key from your .env
 const firebaseConfig = {
@@ -28,6 +28,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 let app;
 let auth;
 let googleProvider;
+let facebookProvider;
 
 try {
   console.log('🚀 Initializing Firebase app...');
@@ -43,11 +44,18 @@ try {
   googleProvider.addScope('email');
   googleProvider.addScope('profile');
   
+  console.log('🔍 Initializing Facebook Auth Provider...');
+  facebookProvider = new FacebookAuthProvider();
+  
+  // Add scopes for Facebook auth
+  facebookProvider.addScope('email');
+  facebookProvider.addScope('public_profile');
+  
   console.log('✅ Firebase initialized successfully!');
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error);
   throw error;
 }
 
-export { auth, googleProvider };
+export { auth, googleProvider, facebookProvider };
 export default app;

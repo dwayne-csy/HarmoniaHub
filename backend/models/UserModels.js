@@ -88,9 +88,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+
     authProvider: {
         type: String,
-        enum: ['local', 'firebase-email', 'google'],
+        enum: ['local', 'firebase-email', 'google', 'facebook'], // Added 'facebook'
         default: 'local'
     },
     // Keep existing fields for backward compatibility
