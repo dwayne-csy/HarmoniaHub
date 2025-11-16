@@ -7,12 +7,10 @@ import {
   Typography,
   Box,
   Card,
-  CardMedia,
   CardContent,
   Grid,
   Divider,
   Stack,
-  Container,
   IconButton,
   Chip
 } from "@mui/material";
@@ -57,28 +55,35 @@ export default function ViewOrder() {
     }
   };
 
+  const getStatusColor = (status) => {
+    const colors = {
+      "Processing": "linear-gradient(135deg, #FF9800, #F57C00)",
+      "Accepted": "linear-gradient(135deg, #2196F3, #1976D2)",
+      "Cancelled": "linear-gradient(135deg, #F44336, #d32f2f)",
+      "Out for Delivery": "linear-gradient(135deg, #9C27B0, #7B1FA2)",
+      "Delivered": "linear-gradient(135deg, #4CAF50, #45a049)"
+    };
+    return colors[status] || "linear-gradient(135deg, #d4af37, #b8860b)";
+  };
+
   if (loading) {
     return (
-      <div style={{ 
-        display: "flex", 
-        flexDirection: "column", 
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
         minHeight: "100vh",
         background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
         margin: 0,
         padding: 0
       }}>
         <AdminHeader admin={currentUser} handleLogout={handleLogout} />
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "80vh",
-            flex: 1,
-            margin: 0,
-            padding: 0
-          }}
-        >
+        <Box sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "80vh",
+          flex: 1
+        }}>
           <Loader />
         </Box>
         <AdminFooter />
@@ -88,18 +93,17 @@ export default function ViewOrder() {
 
   if (!order) {
     return (
-      <div style={{ 
-        display: "flex", 
-        flexDirection: "column", 
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
         minHeight: "100vh",
         background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
         margin: 0,
         padding: 0
       }}>
         <AdminHeader admin={currentUser} handleLogout={handleLogout} />
-        <main style={{ 
-          flex: 1, 
-          padding: "0",
+        <main style={{
+          flex: 1,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -115,21 +119,10 @@ export default function ViewOrder() {
     );
   }
 
-  const getStatusColor = (status) => {
-    const colors = {
-      "Processing": "linear-gradient(135deg, #FF9800, #F57C00)",
-      "Accepted": "linear-gradient(135deg, #2196F3, #1976D2)",
-      "Cancelled": "linear-gradient(135deg, #F44336, #d32f2f)",
-      "Out for Delivery": "linear-gradient(135deg, #9C27B0, #7B1FA2)",
-      "Delivered": "linear-gradient(135deg, #4CAF50, #45a049)"
-    };
-    return colors[status] || "linear-gradient(135deg, #d4af37, #b8860b)";
-  };
-
   return (
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
       minHeight: "100vh",
       background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
       position: "relative",
@@ -137,7 +130,7 @@ export default function ViewOrder() {
       margin: 0,
       padding: 0
     }}>
-      
+
       {/* Gold shimmer overlay */}
       <div style={{
         position: "absolute",
@@ -151,9 +144,9 @@ export default function ViewOrder() {
       }}></div>
 
       <AdminHeader admin={currentUser} handleLogout={handleLogout} />
-      
-      <main style={{ 
-        flex: 1, 
+
+      <main style={{
+        flex: 1,
         padding: "0",
         backgroundColor: "transparent",
         position: "relative",
@@ -161,24 +154,13 @@ export default function ViewOrder() {
         margin: 0,
         width: "100%"
       }}>
-        <style>
-          {`
-            /* Remove default body margins */
-            body {
-              margin: 0;
-              padding: 0;
-              overflow-x: hidden;
-            }
-          `}
-        </style>
-        
-        <Box sx={{ 
-          maxWidth: "100%", 
+        <Box sx={{
+          maxWidth: "100%",
           margin: "0",
           padding: "20px 0"
         }}>
-          <Box sx={{ 
-            maxWidth: "100%", 
+          <Box sx={{
+            maxWidth: "100%",
             margin: '0',
             background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
             backdropFilter: "blur(15px)",
@@ -190,7 +172,7 @@ export default function ViewOrder() {
             overflow: "hidden",
             minHeight: "calc(100vh - 140px)"
           }}>
-            
+
             {/* Gold accent line */}
             <div style={{
               position: "absolute",
@@ -220,8 +202,8 @@ export default function ViewOrder() {
                   >
                     <ArrowBack />
                   </IconButton>
-                  <Typography variant="h4" sx={{ 
-                    fontWeight: "bold", 
+                  <Typography variant="h4" sx={{
+                    fontWeight: "bold",
                     color: "#d4af37",
                     textShadow: "0 2px 4px rgba(0,0,0,0.5)"
                   }}>
@@ -284,7 +266,7 @@ export default function ViewOrder() {
                         Customer Information
                       </Typography>
                       <Stack spacing={1}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Typography sx={{ color: '#ccc' }}>Name:</Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography sx={{ color: '#fff', fontWeight: '500' }}>
@@ -362,51 +344,35 @@ export default function ViewOrder() {
               <Grid container spacing={3} mb={4}>
                 {order.orderItems.map((item) => (
                   <Grid item xs={12} sm={6} md={4} key={item._id || item.product}>
-                    <Card sx={{ 
-                      background: "linear-gradient(135deg, rgba(40,40,40,0.9) 0%, rgba(50,50,50,0.9) 100%)",
-                      border: "1px solid rgba(212,175,55,0.3)",
-                      borderRadius: "12px",
-                      overflow: "hidden",
-                      transition: "all 0.3s ease",
-                      boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
-                      '&:hover': {
-                        transform: "translateY(-4px)",
-                        boxShadow: "0 8px 25px rgba(212,175,55,0.2)"
-                      }
-                    }}>
-                      <CardMedia
-                        component="img"
-                        height="160"
-                        image={item.image}
-                        alt={item.name}
-                        sx={{ objectFit: 'cover' }}
-                      />
-                      <CardContent>
-                        <Typography variant="h6" sx={{ color: '#d4af37', mb: 1, fontSize: '1rem', fontWeight: '600' }}>
-                          {item.name}
-                        </Typography>
-                        <Stack spacing={1}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography sx={{ color: '#ccc' }}>Quantity:</Typography>
-                            <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                              {item.quantity}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography sx={{ color: '#ccc' }}>Price:</Typography>
-                            <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                              ${item.price.toFixed(2)}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography sx={{ color: '#ccc' }}>Subtotal:</Typography>
-                            <Typography sx={{ color: '#d4af37', fontWeight: 'bold' }}>
-                              ${(item.price * item.quantity).toFixed(2)}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </CardContent>
-                    </Card>
+
+                    {/* Image Slider */}
+                    <ImageSlider images={item.images || [item.image]} name={item.name} />
+
+                    <CardContent>
+                      <Typography variant="h6" sx={{ color: '#d4af37', mb: 1, fontSize: '1rem', fontWeight: '600' }}>
+                        {item.name}
+                      </Typography>
+                      <Stack spacing={1}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography sx={{ color: '#ccc' }}>Quantity:</Typography>
+                          <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                            {item.quantity}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography sx={{ color: '#ccc' }}>Price:</Typography>
+                          <Typography sx={{ color: '#fff', fontWeight: '500' }}>
+                            ${item.price.toFixed(2)}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography sx={{ color: '#ccc' }}>Subtotal:</Typography>
+                          <Typography sx={{ color: '#d4af37', fontWeight: 'bold' }}>
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </CardContent>
                   </Grid>
                 ))}
               </Grid>
@@ -465,5 +431,74 @@ export default function ViewOrder() {
 
       <AdminFooter />
     </div>
+  );
+}
+
+// ImageSlider Component
+function ImageSlider({ images, name }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % images.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  const next = () => setIndex((prev) => (prev + 1) % images.length);
+  const previous = () => setIndex((prev) => (prev - 1 + images.length) % images.length);
+
+  return (
+    <Box sx={{
+      position: "relative",
+      borderRadius: "12px",
+      overflow: "hidden",
+      marginBottom: 1,
+      border: "1px solid rgba(212,175,55,0.3)"
+    }}>
+      <img
+        src={images[index]}
+        alt={name}
+        style={{
+          width: "100%",
+          height: "200px",
+          objectFit: "cover",
+          transition: "opacity 0.6s ease-in-out",
+          display: "block"
+        }}
+      />
+      {images.length > 1 && (
+        <>
+          <IconButton
+            onClick={previous}
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: 0,
+              transform: "translateY(-50%)",
+              color: "#fff",
+              background: "rgba(0,0,0,0.3)",
+              '&:hover': { background: "rgba(0,0,0,0.5)" }
+            }}
+          >
+            ‹
+          </IconButton>
+          <IconButton
+            onClick={next}
+            sx={{
+              position: "absolute",
+              top: "50%",
+              right: 0,
+              transform: "translateY(-50%)",
+              color: "#fff",
+              background: "rgba(0,0,0,0.3)",
+              '&:hover': { background: "rgba(0,0,0,0.5)" }
+            }}
+          >
+            ›
+          </IconButton>
+        </>
+      )}
+    </Box>
   );
 }

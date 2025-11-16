@@ -331,7 +331,28 @@ const UpdateProfile = () => {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%)",
+      position: "relative",
+      overflow: "hidden",
+      margin: 0,
+      padding: 0 
+    }}>
+      {/* Gold shimmer overlay */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "radial-gradient(circle at 20% 80%, rgba(212,175,55,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(212,175,55,0.05) 0%, transparent 50%)",
+        pointerEvents: "none",
+        zIndex: 0
+      }}></div>
+
       {/* Header Component */}
       <Header 
         user={user}
@@ -340,31 +361,128 @@ const UpdateProfile = () => {
         handleLogout={handleLogout}
       />
 
-      <main style={{ flex: 1, padding: "20px 30px", backgroundColor: "#f5f5f5" }}>
+      <main style={{ 
+        flex: 1, 
+        padding: "20px 0",
+        backgroundColor: "transparent",
+        animation: "fadeIn 0.6s ease-in-out",
+        position: "relative",
+        zIndex: 1,
+        margin: 0,
+        width: "100%"
+      }}>
+        <style>
+          {`
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes pulse {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.05); }
+              100% { transform: scale(1); }
+            }
+            @keyframes shimmer {
+              0% { background-position: -1000px 0; }
+              100% { background-position: 1000px 0; }
+            }
+            @keyframes float {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-10px); }
+            }
+            
+            body {
+              margin: 0;
+              padding: 0;
+              overflow-x: hidden;
+              background: transparent;
+            }
+            * {
+              box-sizing: border-box;
+            }
+          `}
+        </style>
+
         {/* Backend status banner */}
         {!backendConnected && (
           <div style={{
-            backgroundColor: '#fff3cd',
-            border: '1px solid #ffeaa7',
-            borderRadius: '4px',
-            padding: '10px',
-            marginBottom: '20px',
-            textAlign: 'center'
+            backgroundColor: 'rgba(212,175,55,0.1)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(212,175,55,0.3)',
+            borderRadius: '12px',
+            padding: '15px 20px',
+            margin: '0 auto 25px',
+            textAlign: 'center',
+            maxWidth: '600px',
+            color: '#d4af37',
+            fontWeight: '600',
+            animation: 'fadeIn 0.5s ease-out',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+            marginLeft: '20px',
+            marginRight: '20px'
           }}>
             <strong>⚠️ Limited Functionality:</strong> Backend connection issue. Some features may not work properly.
           </div>
         )}
 
-        <Box sx={{ maxWidth: 600, mx: "auto", p: 3 }}>
-          <Paper elevation={3} sx={{ p: 4, borderRadius: 2, backgroundColor: "white" }}>
-            <Typography variant="h4" component="h1" gutterBottom align="center" color="primary" sx={{ fontWeight: "bold", mb: 3 }}>
-              Update Profile
+        <Box sx={{ 
+          maxWidth: 600, 
+          mx: "auto", 
+          p: 3,
+          padding: "0 20px"
+        }}>
+          <Paper elevation={3} sx={{ 
+            p: 4, 
+            borderRadius: "18px", 
+            background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)",
+            border: "1px solid rgba(212,175,55,0.3)",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(212,175,55,0.2)",
+            position: "relative",
+            overflow: "hidden",
+            animation: "fadeIn 0.8s ease-out"
+          }}>
+            {/* Gold accent line */}
+            <div style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "3px",
+              background: "linear-gradient(90deg, transparent, #d4af37, transparent)",
+              animation: "shimmer 3s infinite linear"
+            }}></div>
+
+            <Typography 
+              variant="h4" 
+              component="h1" 
+              gutterBottom 
+              align="center" 
+              sx={{ 
+                fontWeight: "bold", 
+                mb: 3,
+                background: "linear-gradient(135deg, #d4af37, #f9e076, #d4af37)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundSize: "200% 100%",
+                animation: "shimmer 3s infinite linear",
+                textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+              }}
+            >
+              ✏️ Update Profile
             </Typography>
 
             {/* Avatar Preview */}
             {avatarPreview && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-                <Card sx={{ width: 150, height: 150, borderRadius: '50%', overflow: 'hidden', boxShadow: 3 }}>
+                <Card sx={{ 
+                  width: 150, 
+                  height: 150, 
+                  borderRadius: '50%', 
+                  overflow: 'hidden', 
+                  boxShadow: "0 4px 15px rgba(212,175,55,0.4)",
+                  border: "3px solid rgba(212,175,55,0.5)",
+                  animation: "float 4s ease-in-out infinite"
+                }}>
                   <CardMedia
                     component="img"
                     image={avatarPreview}
@@ -388,6 +506,26 @@ const UpdateProfile = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      color: '#ffffff',
+                      '& fieldset': {
+                        borderColor: 'rgba(212,175,55,0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(212,175,55,0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#d4af37',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255,255,255,0.7)',
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#d4af37',
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      color: '#ffffff',
                     }
                   }}
                 />
@@ -404,7 +542,17 @@ const UpdateProfile = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
-                      backgroundColor: '#f9f9f9'
+                      backgroundColor: 'rgba(255,255,255,0.03)',
+                      color: 'rgba(255,255,255,0.5)',
+                      '& fieldset': {
+                        borderColor: 'rgba(212,175,55,0.2)',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255,255,255,0.5)',
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      color: 'rgba(255,255,255,0.5)',
                     }
                   }}
                 />
@@ -423,6 +571,32 @@ const UpdateProfile = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      color: '#ffffff',
+                      '& fieldset': {
+                        borderColor: 'rgba(212,175,55,0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(212,175,55,0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#d4af37',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ff6b6b',
+                      }
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255,255,255,0.7)',
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#d4af37',
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      color: '#ffffff',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: errors.contact ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
                     }
                   }}
                 />
@@ -439,6 +613,32 @@ const UpdateProfile = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      color: '#ffffff',
+                      '& fieldset': {
+                        borderColor: 'rgba(212,175,55,0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(212,175,55,0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#d4af37',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ff6b6b',
+                      }
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255,255,255,0.7)',
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#d4af37',
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      color: '#ffffff',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: errors.city ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
                     }
                   }}
                 />
@@ -455,6 +655,32 @@ const UpdateProfile = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      color: '#ffffff',
+                      '& fieldset': {
+                        borderColor: 'rgba(212,175,55,0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(212,175,55,0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#d4af37',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ff6b6b',
+                      }
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255,255,255,0.7)',
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#d4af37',
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      color: '#ffffff',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: errors.barangay ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
                     }
                   }}
                 />
@@ -471,6 +697,32 @@ const UpdateProfile = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      color: '#ffffff',
+                      '& fieldset': {
+                        borderColor: 'rgba(212,175,55,0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(212,175,55,0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#d4af37',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ff6b6b',
+                      }
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255,255,255,0.7)',
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#d4af37',
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      color: '#ffffff',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: errors.street ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
                     }
                   }}
                 />
@@ -489,6 +741,32 @@ const UpdateProfile = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      color: '#ffffff',
+                      '& fieldset': {
+                        borderColor: 'rgba(212,175,55,0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(212,175,55,0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#d4af37',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ff6b6b',
+                      }
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255,255,255,0.7)',
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#d4af37',
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      color: '#ffffff',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: errors.zipcode ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
                     }
                   }}
                 />
@@ -502,14 +780,21 @@ const UpdateProfile = () => {
                     sx={{ 
                       py: 1.5, 
                       borderRadius: 2,
-                      borderWidth: 2,
+                      border: "2px solid rgba(212,175,55,0.4)",
+                      color: "#d4af37",
+                      backgroundColor: "rgba(212,175,55,0.1)",
+                      fontWeight: "600",
+                      fontSize: "1rem",
+                      transition: "all 0.3s ease",
                       '&:hover': {
-                        borderWidth: 2,
-                        backgroundColor: '#e3f2fd'
+                        border: "2px solid rgba(212,175,55,0.6)",
+                        backgroundColor: "rgba(212,175,55,0.2)",
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 6px 20px rgba(212,175,55,0.3)",
                       }
                     }}
                   >
-                    Upload Profile Picture *
+                    📷 Upload Profile Picture *
                     <input
                       type="file"
                       hidden
@@ -518,9 +803,9 @@ const UpdateProfile = () => {
                     />
                   </Button>
                   {errors.avatar && (
-                    <FormHelperText error sx={{ textAlign: 'center', mt: 1 }}>{errors.avatar}</FormHelperText>
+                    <FormHelperText error sx={{ textAlign: 'center', mt: 1, color: '#ff6b6b' }}>{errors.avatar}</FormHelperText>
                   )}
-                  <FormHelperText sx={{ textAlign: 'center', mt: 1 }}>
+                  <FormHelperText sx={{ textAlign: 'center', mt: 1, color: 'rgba(255,255,255,0.5)' }}>
                     Supported formats: JPG, PNG, GIF (Max 2MB)
                   </FormHelperText>
                 </FormControl>
@@ -530,26 +815,36 @@ const UpdateProfile = () => {
                   variant="contained"
                   size="large"
                   disabled={loading || hasErrors}
-                  startIcon={loading && <CircularProgress size={20} />}
+                  startIcon={loading && <CircularProgress size={20} sx={{ color: '#1a1a1a' }} />}
                   fullWidth
                   sx={{ 
                     py: 1.5, 
-                    borderRadius: 2,
+                    borderRadius: "12px",
                     fontSize: '1rem',
                     fontWeight: 'bold',
-                    boxShadow: 2,
+                    background: "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
+                    color: "#1a1a1a",
+                    boxShadow: "0 6px 20px rgba(212,175,55,0.4)",
+                    transition: "all 0.3s ease",
                     '&:hover': {
-                      boxShadow: 4,
-                      backgroundColor: '#1565c0'
+                      boxShadow: "0 10px 25px rgba(212,175,55,0.6)",
+                      transform: "translateY(-2px)",
+                      background: "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
+                    },
+                    '&:disabled': {
+                      background: "rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.3)",
+                      boxShadow: "none",
+                      transform: "none",
                     }
                   }}
                 >
-                  {loading ? "Updating Profile..." : "Update Profile"}
+                  {loading ? "🔄 Updating Profile..." : "💾 Update Profile"}
                 </Button>
               </Stack>
             </form>
 
-            <Divider sx={{ my: 4 }} />
+            <Divider sx={{ my: 4, backgroundColor: 'rgba(212,175,55,0.3)' }} />
 
             {/* Password Change Section */}
             <Box sx={{ textAlign: 'center' }}>
@@ -560,21 +855,38 @@ const UpdateProfile = () => {
                   startIcon={<LockReset />}
                   size="large"
                   sx={{ 
-                    borderRadius: 2,
+                    borderRadius: "12px",
                     px: 3,
-                    borderWidth: 2,
+                    border: "2px solid rgba(212,175,55,0.4)",
+                    color: "#d4af37",
+                    backgroundColor: "rgba(212,175,55,0.1)",
+                    fontWeight: "600",
+                    transition: "all 0.3s ease",
                     '&:hover': {
-                      borderWidth: 2,
-                      backgroundColor: '#e3f2fd'
+                      border: "2px solid rgba(212,175,55,0.6)",
+                      backgroundColor: "rgba(212,175,55,0.2)",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 6px 20px rgba(212,175,55,0.3)",
                     }
                   }}
                 >
-                  Change Password
+                  🔒 Change Password
                 </Button>
               ) : (
-                <Paper elevation={2} sx={{ p: 3, borderRadius: 2, border: '1px solid #e0e0e0' }}>
-                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                    Change Password
+                <Paper elevation={2} sx={{ 
+                  p: 3, 
+                  borderRadius: "12px", 
+                  border: '1px solid rgba(212,175,55,0.3)',
+                  background: "rgba(20,20,20,0.6)",
+                  backdropFilter: "blur(10px)",
+                  color: "#ffffff"
+                }}>
+                  <Typography variant="h6" gutterBottom sx={{ 
+                    fontWeight: 'bold', 
+                    color: '#d4af37',
+                    textAlign: 'center'
+                  }}>
+                    🔒 Change Password
                   </Typography>
                   <form onSubmit={handlePasswordSubmit}>
                     <Stack spacing={2}>
@@ -590,6 +902,26 @@ const UpdateProfile = () => {
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: 2,
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            color: '#ffffff',
+                            '& fieldset': {
+                              borderColor: 'rgba(212,175,55,0.3)',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: 'rgba(212,175,55,0.5)',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: '#d4af37',
+                            },
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: 'rgba(255,255,255,0.7)',
+                          },
+                          '& .MuiInputLabel-root.Mui-focused': {
+                            color: '#d4af37',
+                          },
+                          '& .MuiOutlinedInput-input': {
+                            color: '#ffffff',
                           }
                         }}
                       />
@@ -605,6 +937,26 @@ const UpdateProfile = () => {
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: 2,
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            color: '#ffffff',
+                            '& fieldset': {
+                              borderColor: 'rgba(212,175,55,0.3)',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: 'rgba(212,175,55,0.5)',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: '#d4af37',
+                            },
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: 'rgba(255,255,255,0.7)',
+                          },
+                          '& .MuiInputLabel-root.Mui-focused': {
+                            color: '#d4af37',
+                          },
+                          '& .MuiOutlinedInput-input': {
+                            color: '#ffffff',
                           }
                         }}
                       />
@@ -620,6 +972,26 @@ const UpdateProfile = () => {
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: 2,
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            color: '#ffffff',
+                            '& fieldset': {
+                              borderColor: 'rgba(212,175,55,0.3)',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: 'rgba(212,175,55,0.5)',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: '#d4af37',
+                            },
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: 'rgba(255,255,255,0.7)',
+                          },
+                          '& .MuiInputLabel-root.Mui-focused': {
+                            color: '#d4af37',
+                          },
+                          '& .MuiOutlinedInput-input': {
+                            color: '#ffffff',
                           }
                         }}
                       />
@@ -628,15 +1000,24 @@ const UpdateProfile = () => {
                           type="submit"
                           variant="contained"
                           disabled={loading}
-                          startIcon={loading && <CircularProgress size={20} />}
+                          startIcon={loading && <CircularProgress size={20} sx={{ color: '#1a1a1a' }} />}
                           fullWidth
                           sx={{ 
-                            borderRadius: 2,
+                            borderRadius: "10px",
                             py: 1,
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            background: "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
+                            color: "#1a1a1a",
+                            boxShadow: "0 4px 15px rgba(212,175,55,0.3)",
+                            transition: "all 0.3s ease",
+                            '&:hover': {
+                              boxShadow: "0 6px 20px rgba(212,175,55,0.5)",
+                              transform: "translateY(-2px)",
+                              background: "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)",
+                            }
                           }}
                         >
-                          {loading ? "Changing..." : "Save Password"}
+                          {loading ? "🔄 Changing..." : "💾 Save Password"}
                         </Button>
                         <Button
                           type="button"
@@ -644,11 +1025,21 @@ const UpdateProfile = () => {
                           variant="outlined"
                           fullWidth
                           sx={{ 
-                            borderRadius: 2,
-                            py: 1
+                            borderRadius: "10px",
+                            py: 1,
+                            border: "2px solid rgba(212,175,55,0.4)",
+                            color: "#d4af37",
+                            backgroundColor: "rgba(212,175,55,0.1)",
+                            transition: "all 0.3s ease",
+                            '&:hover': {
+                              border: "2px solid rgba(212,175,55,0.6)",
+                              backgroundColor: "rgba(212,175,55,0.2)",
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 4px 15px rgba(212,175,55,0.3)",
+                            }
                           }}
                         >
-                          Cancel
+                          ❌ Cancel
                         </Button>
                       </Stack>
                     </Stack>
@@ -668,6 +1059,7 @@ const UpdateProfile = () => {
             theme="colored"
           />
         </Box>
+
       </main>
 
       {/* Footer Component */}

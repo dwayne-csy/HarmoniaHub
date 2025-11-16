@@ -41,13 +41,14 @@ import ReviewList from "./Components/admin/reviewmanagement/ReviewList";
 import ViewReview from "./Components/admin/reviewmanagement/ViewReview";
 
 import SalesChart from "./Components/admin/SalesChart";
+import LandingPage from "./Components/LandingPage"; // Add this import
 
 const App = () => {
   const token = localStorage.getItem("token");
   const user = getUser();
 
   const getDefaultRoute = () => {
-    if (!token) return "/login";
+    if (!token) return "/landing"; // Changed from "/login" to "/landing"
     if (user && user.role === "admin") return "/admin/dashboard";
     return "/home";
   };
@@ -59,6 +60,7 @@ const App = () => {
         <Route path="/" element={<Navigate to={getDefaultRoute()} />} />
 
         {/* Public Routes */}
+        <Route path="/landing" element={<LandingPage />} /> {/* Add this route */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
