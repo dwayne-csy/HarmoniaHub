@@ -5,7 +5,8 @@ const {
   getMonthlySales,
   getSalesWithDateRange,
   getProductSales,
-  getSalesStatistics
+  getSalesStatistics,
+  getRecentBuyers
 } = require("../controllers/SalesAnalyticsController");
 const { isAuthenticatedUser, isAdmin } = require('../middlewares/auth');
 
@@ -20,6 +21,8 @@ router.get("/sales/products", isAuthenticatedUser, isAdmin, getProductSales);
 
 // Get sales statistics
 router.get("/sales/statistics", isAuthenticatedUser, isAdmin, getSalesStatistics);
+
+router.get("/sales/recent-buyers", isAuthenticatedUser, isAdmin, getRecentBuyers);
 
 
 module.exports = router;

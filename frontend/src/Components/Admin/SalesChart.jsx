@@ -17,6 +17,7 @@ const SalesChart = () => {
   const navigate = useNavigate();
   const [salesData, setSalesData] = useState([]);
   const [productData, setProductData] = useState([]);
+  const [recentBuyers, setRecentBuyers] = useState([]);
   const [summary, setSummary] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -157,6 +158,30 @@ const SalesChart = () => {
     }
   };
 
+  // Fetch recent buyers data
+  const fetchRecentBuyers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const apiUrl = `http://localhost:4001/api/v1/order/sales/recent-buyers?limit=20`;
+      
+      const response = await axios.get(apiUrl, { 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      });
+
+      if (response.data.success) {
+        setRecentBuyers(response.data.data.recentBuyers || []);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching recent buyers:', error);
+    }
+  };
+
   const handleApiError = (error) => {
     if (error.code === 'ECONNABORTED') {
       setError('Request timeout. Please check if the server is running.');
@@ -181,6 +206,7 @@ const SalesChart = () => {
   useEffect(() => {
     fetchSalesData();
     fetchProductData();
+    fetchRecentBuyers();
   }, [filterType, selectedYear, dateRange]);
 
   const handleFilterTypeChange = (type) => {
@@ -201,6 +227,7 @@ const SalesChart = () => {
   const handleRefresh = () => {
     fetchSalesData();
     fetchProductData();
+    fetchRecentBuyers();
   };
 
   const formatCurrency = (amount) => {
@@ -587,7 +614,7 @@ const SalesChart = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {salesData.slice(0, 6).map((item, index) => (
+                  {salesData.map((item, index) => (
                     <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
                       <td style={styles.tableCell}>{item.period}</td>
                       <td style={styles.tableCell}>{formatCurrency(item.totalSales)}</td>
@@ -612,8 +639,8 @@ const SalesChart = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {productData.slice(0, 6).map((product, index) => (
-                    <tr key={product.productId} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                  {productData.map((product, index) => (
+                    <tr key={product.productId || index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
                       <td style={styles.tableCell}>
                         {product.productName?.length > 20 
                           ? product.productName.substring(0, 20) + '...' 
@@ -625,6 +652,65 @@ const SalesChart = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Buyers Section */}
+        <div style={styles.recentBuyersSection}>
+          <div style={styles.sectionHeader}>
+            <h3 style={styles.sectionTitle}>🛍️ Recent Buyers</h3>
+            <div style={styles.buyersCount}>
+              {recentBuyers.length} transactions
+            </div>
+          </div>
+          
+          <div style={styles.buyersGridContainer}>
+            <div style={styles.buyersGrid}>
+              {recentBuyers.map((buyer, index) => (
+                <div key={buyer._id || index} style={styles.buyerCard}>
+                  <div style={styles.buyerHeader}>
+                    <div style={styles.buyerAvatar}>
+                      {buyer.userName?.charAt(0).toUpperCase() || 'G'}
+                    </div>
+                    <div style={styles.buyerInfo}>
+                      <h4 style={styles.buyerName}>{buyer.userName}</h4>
+                      <p style={styles.buyerEmail}>{buyer.userEmail}</p>
+                    </div>
+                    <div style={styles.purchaseDate}>
+                      {new Date(buyer.purchaseDate).toLocaleDateString()}
+                    </div>
+                  </div>
+                  
+                  <div style={styles.purchaseItems}>
+                    {buyer.items.slice(0, 3).map((item, itemIndex) => (
+                      <div key={itemIndex} style={styles.purchaseItem}>
+                        <span style={styles.itemName}>
+                          {item.productName?.length > 25 
+                            ? item.productName.substring(0, 25) + '...' 
+                            : item.productName}
+                        </span>
+                        <div style={styles.itemDetails}>
+                          <span style={styles.itemQuantity}>x{item.quantity}</span>
+                          <span style={styles.itemPrice}>{formatCurrency(item.totalPrice)}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {buyer.items.length > 3 && (
+                      <div style={styles.moreItems}>
+                        +{buyer.items.length - 3} more items
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div style={styles.orderTotal}>
+                    <span>Order Total:</span>
+                    <strong style={styles.totalAmount}>
+                      {formatCurrency(buyer.items.reduce((sum, item) => sum + item.totalPrice, 0))}
+                    </strong>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -912,6 +998,7 @@ const styles = {
   tableContainer: {
     maxHeight: '300px',
     overflowY: 'auto',
+    overflowX: 'hidden',
   },
   table: {
     width: '100%',
@@ -925,6 +1012,10 @@ const styles = {
     fontWeight: 'bold',
     color: '#d4af37',
     fontSize: '0.75rem',
+    position: 'sticky',
+    top: 0,
+    backgroundColor: 'rgba(30,30,30,0.95)',
+    zIndex: 1,
   },
   tableRowEven: {
     backgroundColor: 'rgba(212,175,55,0.05)',
@@ -937,6 +1028,157 @@ const styles = {
     borderBottom: '1px solid rgba(212,175,55,0.1)',
     color: '#f9e076',
     fontSize: '0.75rem',
+  },
+  recentBuyersSection: {
+    background: 'linear-gradient(135deg, rgba(30,30,30,0.9) 0%, rgba(40,40,40,0.9) 100%)',
+    padding: '25px',
+    borderRadius: '12px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.1)',
+    border: '1px solid rgba(212,175,55,0.2)',
+    marginTop: '25px',
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+  },
+  sectionTitle: {
+    margin: 0,
+    color: '#d4af37',
+    fontSize: '1.3rem',
+    fontWeight: '600',
+  },
+  buyersCount: {
+    fontSize: '0.8rem',
+    color: '#d4af37',
+    fontWeight: '600',
+    background: 'rgba(212,175,55,0.1)',
+    padding: '6px 12px',
+    borderRadius: '6px',
+  },
+  buyersGridContainer: {
+    maxHeight: '500px',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+  },
+  buyersGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '20px',
+    padding: '5px',
+  },
+  buyerCard: {
+    background: 'rgba(20,20,20,0.6)',
+    padding: '20px',
+    borderRadius: '10px',
+    border: '1px solid rgba(212,175,55,0.15)',
+    transition: 'all 0.3s ease',
+    minHeight: '180px',
+  },
+  buyerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '15px',
+    paddingBottom: '15px',
+    borderBottom: '1px solid rgba(212,175,55,0.1)',
+  },
+  buyerAvatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #d4af37, #f9e076)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#1a1a1a',
+    fontWeight: 'bold',
+    fontSize: '0.9rem',
+  },
+  buyerInfo: {
+    flex: 1,
+  },
+  buyerName: {
+    margin: '0 0 4px 0',
+    color: '#f9e076',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+  },
+  buyerEmail: {
+    margin: 0,
+    color: '#d4af37',
+    fontSize: '0.75rem',
+    opacity: 0.8,
+  },
+  purchaseDate: {
+    fontSize: '0.7rem',
+    color: '#d4af37',
+    background: 'rgba(212,175,55,0.1)',
+    padding: '4px 8px',
+    borderRadius: '4px',
+  },
+  purchaseItems: {
+    marginBottom: '15px',
+    maxHeight: '120px',
+    overflowY: 'auto',
+  },
+  purchaseItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 0',
+    borderBottom: '1px solid rgba(212,175,55,0.05)',
+  },
+  itemName: {
+    color: '#f9e076',
+    fontSize: '0.8rem',
+    flex: 1,
+  },
+  itemDetails: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  itemQuantity: {
+    color: '#d4af37',
+    fontSize: '0.75rem',
+    background: 'rgba(212,175,55,0.1)',
+    padding: '2px 6px',
+    borderRadius: '3px',
+  },
+  itemPrice: {
+    color: '#f9e076',
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    minWidth: '60px',
+    textAlign: 'right',
+  },
+  moreItems: {
+    textAlign: 'center',
+    color: '#d4af37',
+    fontSize: '0.75rem',
+    padding: '8px',
+    background: 'rgba(212,175,55,0.05)',
+    borderRadius: '4px',
+    marginTop: '5px',
+  },
+  orderTotal: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: '12px',
+    borderTop: '1px solid rgba(212,175,55,0.1)',
+    color: '#d4af37',
+    fontSize: '0.85rem',
+    fontWeight: '600',
+  },
+  totalAmount: {
+    color: '#f9e076',
+    fontSize: '1rem',
+    background: 'linear-gradient(135deg, #f9e076, #d4af37)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
   },
   chartLoading: {
     display: 'flex',

@@ -856,7 +856,7 @@ const Home = () => {
                     color: "#d4af37",
                     fontSize: "1.1rem"
                   }}>
-                    💰 Price Range: ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}
+                    Price Range: ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}
                   </label>
                   <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                     <input
@@ -924,7 +924,7 @@ const Home = () => {
                     color: "#d4af37",
                     fontSize: "1.1rem"
                   }}>
-                    🎵 Category
+                     Category
                   </label>
                   <div style={{ position: "relative" }}>
                     <ExpandMoreIcon style={{
@@ -945,7 +945,7 @@ const Home = () => {
                         border: "2px solid rgba(212,175,55,0.3)",
                         borderRadius: "10px",
                         fontSize: "14px",
-                        color: "#ffffff",
+                        color: "#000000ff",
                         cursor: "pointer",
                         transition: "all 0.3s ease",
                         appearance: "none",
@@ -954,7 +954,7 @@ const Home = () => {
                       onFocus={(e) => e.target.style.border = "2px solid rgba(212,175,55,0.6)"}
                       onBlur={(e) => e.target.style.border = "2px solid rgba(212,175,55,0.3)"}
                     >
-                      <option value="all">🎯 All Categories</option>
+                      <option value="all">All Categories</option>
                       {categories.map((category) => (
                         <option key={category} value={category}>
                           {category}
@@ -1122,7 +1122,6 @@ const Home = () => {
                   marginBottom: "20px",
                   opacity: "0.7"
                 }}>
-                  😔
                 </div>
                 <p style={{ fontSize: "20px", color: "rgba(255,255,255,0.8)", marginBottom: "25px", fontWeight: "500" }}>No products match your filters.</p>
                 <button
@@ -1606,7 +1605,7 @@ const Home = () => {
                     fontSize: "16px",
                     fontWeight: "600"
                   }}>
-                    🎉 You've reached the end of the products list!
+                     You've reached the end of the products list!
                   </div>
                 )}
               </>

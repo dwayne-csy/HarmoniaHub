@@ -1,6 +1,8 @@
 // backend/controllers/SalesAnalyticsController.js
 const Order = require("../models/OrderModels");
 const Product = require("../models/ProductModels");
+const User = require("../models/UserModels");
+
 const moment = require('moment');
 
 // Get monthly sales data - FIXED VERSION
@@ -561,6 +563,108 @@ exports.getSalesStatistics = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch sales statistics"
+    });
+  }
+};
+
+// NEW: Get recent buyers with their purchase details
+exports.getRecentBuyers = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    const recentBuyers = await Order.aggregate([
+      {
+        $match: {
+          orderStatus: "Delivered"
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $limit: parseInt(limit)
+      },
+      {
+        $unwind: "$orderItems"
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "userDetails"
+        }
+      },
+      {
+        $unwind: {
+          path: "$userDetails",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          orderId: "$_id",
+          userName: {
+            $cond: {
+              if: { $and: ["$userDetails", "$userDetails.name"] },
+              then: "$userDetails.name",
+              else: "Guest User"
+            }
+          },
+          userEmail: {
+            $cond: {
+              if: { $and: ["$userDetails", "$userDetails.email"] },
+              then: "$userDetails.email",
+              else: "No Email"
+            }
+          },
+          productName: "$orderItems.name",
+          productPrice: "$orderItems.price",
+          quantity: "$orderItems.quantity",
+          totalPrice: { $multiply: ["$orderItems.quantity", "$orderItems.price"] },
+          purchaseDate: "$createdAt",
+          orderStatus: 1
+        }
+      },
+      {
+        $group: {
+          _id: "$orderId",
+          userName: { $first: "$userName" },
+          userEmail: { $first: "$userEmail" },
+          purchaseDate: { $first: "$purchaseDate" },
+          items: {
+            $push: {
+              productName: "$productName",
+              productPrice: "$productPrice",
+              quantity: "$quantity",
+              totalPrice: "$totalPrice"
+            }
+          },
+          orderTotal: { $first: "$totalPrice" }
+        }
+      },
+      {
+        $sort: { purchaseDate: -1 }
+      },
+      {
+        $limit: parseInt(limit)
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        recentBuyers,
+        total: recentBuyers.length
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching recent buyers:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch recent buyers data.",
+      error: error.message
     });
   }
 };
