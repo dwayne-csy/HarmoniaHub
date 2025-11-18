@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import {
   TextField,
   Button,
@@ -37,33 +40,72 @@ const categories = [
   "Keyboard Instruments",
 ];
 
+// Yup Validation Schema
+const productSchema = yup.object({
+  name: yup
+    .string()
+    .required("Name is required")
+    .matches(/^[A-Z]/, "First letter must be capitalized")
+    .matches(/^[^0-9]*$/, "Name should not contain numbers")
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must not exceed 100 characters"),
+  price: yup
+    .number()
+    .typeError("Price must be a number")
+    .required("Price is required")
+    .positive("Price must be a positive number")
+    .min(0.01, "Price must be greater than 0")
+    .max(1000000, "Price must not exceed 1,000,000"),
+  description: yup
+    .string()
+    .required("Description is required")
+    .min(50, "Description must be at least 50 characters")
+    .max(2000, "Description must not exceed 2000 characters"),
+  category: yup
+    .string()
+    .required("Category is required")
+    .oneOf(categories, "Invalid category"),
+  supplier: yup
+    .string()
+    .required("Supplier is required"),
+  stock: yup
+    .number()
+    .typeError("Stock must be a number")
+    .required("Stock is required")
+    .integer("Stock must be a whole number")
+    .min(0, "Stock must be a non-negative number")
+    .max(10000, "Stock must not exceed 10,000"),
+});
+
 export default function CreateProduct() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const [form, setForm] = useState({
-    name: "",
-    price: "",
-    description: "",
-    category: categories[0],
-    supplier: "",
-    stock: "",
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+    trigger
+  } = useForm({
+    resolver: yupResolver(productSchema),
+    defaultValues: {
+      name: "",
+      price: "",
+      description: "",
+      category: categories[0],
+      supplier: "",
+      stock: "",
+    },
+    mode: "onBlur"
   });
+
   const [suppliers, setSuppliers] = useState([]);
   const [imagesFiles, setImagesFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
-  const [errors, setErrors] = useState({
-    name: "",
-    price: "",
-    description: "",
-    category: "",
-    supplier: "",
-    stock: "",
-    images: ""
-  });
 
   useEffect(() => {
     const fetchSuppliers = async () => {
@@ -84,54 +126,6 @@ export default function CreateProduct() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
-  };
-
-  const validateName = (name) => {
-    if (!name.trim()) return "Name is required";
-    if (!/^[A-Z]/.test(name)) return "First letter must be capitalized";
-    if (/\d/.test(name)) return "Name should not contain numbers";
-    return "";
-  };
-
-  const validatePrice = (price) => {
-    if (!price) return "Price is required";
-    if (isNaN(price) || parseFloat(price) <= 0) return "Price must be a positive number";
-    return "";
-  };
-
-  const validateDescription = (d) => {
-    if (!d.trim()) return "Description is required";
-    if (d.length < 50) return "Description must be at least 50 characters";
-    return "";
-  };
-
-  const validateCategory = (c) => (!c ? "Category is required" : "");
-  const validateSupplier = (s) => (!s ? "Supplier is required" : "");
-  const validateStock = (s) => {
-    if (!s) return "Stock is required";
-    if (isNaN(s) || parseInt(s, 10) < 0) return "Stock must be a non-negative number";
-    return "";
-  };
-
-  const validateImages = (imgs) => imgs.length < 2 ? "At least 2 images are required" : "";
-
-  const validateField = (field, value) => {
-    switch (field) {
-      case "name": return validateName(value);
-      case "price": return validatePrice(value);
-      case "description": return validateDescription(value);
-      case "category": return validateCategory(value);
-      case "supplier": return validateSupplier(value);
-      case "stock": return validateStock(value);
-      case "images": return validateImages(value);
-      default: return "";
-    }
-  };
-
-  const handleFieldChange = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    const error = validateField(field, value);
-    setErrors(prev => ({ ...prev, [field]: error }));
   };
 
   const handleFileChange = (e) => {
@@ -171,51 +165,34 @@ export default function CreateProduct() {
 
     const newImages = [...imagesFiles, ...valid];
     setImagesFiles(newImages);
-
-    const imagesError = validateImages(newImages);
-    setErrors(prev => ({ ...prev, images: imagesError }));
   };
 
   const removeImage = (i) => {
     setImagesFiles(prev => prev.filter((_, idx) => idx !== i));
     setImagePreviews(prev => prev.filter((_, idx) => idx !== i));
-
-    const newImages = imagesFiles.filter((_, idx) => idx !== i);
-    setErrors(prev => ({ ...prev, images: validateImages(newImages) }));
   };
 
-  const validateAllFields = () => {
-    const newErrors = {
-      name: validateName(form.name),
-      price: validatePrice(form.price),
-      description: validateDescription(form.description),
-      category: validateCategory(form.category),
-      supplier: validateSupplier(form.supplier),
-      stock: validateStock(form.stock),
-      images: validateImages(imagesFiles)
-    };
-    setErrors(newErrors);
-    return Object.values(newErrors).every(err => err === "");
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateAllFields()) {
-      toast.error("Fix validation errors first.");
-      return;
+  const validateImages = () => {
+    if (imagesFiles.length < 2) {
+      toast.error("At least 2 images are required");
+      return false;
     }
+    return true;
+  };
+
+  const onSubmit = async (data) => {
+    if (!validateImages()) return;
 
     const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("price", parseFloat(form.price));
-    formData.append("description", form.description);
-    formData.append("category", form.category);
-    formData.append("supplier", form.supplier);
-    formData.append("stock", parseInt(form.stock, 10));
+    formData.append("name", data.name);
+    formData.append("price", parseFloat(data.price));
+    formData.append("description", data.description);
+    formData.append("category", data.category);
+    formData.append("supplier", data.supplier);
+    formData.append("stock", parseInt(data.stock, 10));
     imagesFiles.forEach((f) => formData.append("images", f));
 
     try {
-      setLoading(true);
       setShowLoader(true);
       await axios.post(`${BASE_URL}/admin/products`, formData, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -226,12 +203,9 @@ export default function CreateProduct() {
       const text = error?.response?.data?.message || error.message;
       toast.error(`Creation failed: ${text}`);
     } finally {
-      setLoading(false);
       setShowLoader(false);
     }
   };
-
-  const hasErrors = Object.values(errors).some(e => e !== "");
 
   if (showLoader) {
     return (
@@ -297,7 +271,6 @@ export default function CreateProduct() {
       }}>
         <style>
           {`
-            /* Remove default body margins */
             body {
               margin: 0;
               padding: 0;
@@ -375,149 +348,180 @@ export default function CreateProduct() {
                 boxShadow: "0 8px 25px rgba(0,0,0,0.2)"
               }}>
                 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit(onSubmit)}>
                   <Stack spacing={3}>
 
-                    {/* Styled Input Fields */}
-                    <TextField
-                      label="Name*"
-                      fullWidth
-                      value={form.name}
-                      onChange={(e) => handleFieldChange('name', e.target.value)}
-                      onBlur={(e) => handleFieldChange('name', e.target.value)}
-                      error={!!errors.name}
-                      helperText={errors.name}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          color: "#fff",
-                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                        },
-                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                        "& .MuiFormHelperText-root": { color: "#ff6b6b" }
-                      }}
+                    {/* Name Field */}
+                    <Controller
+                      name="name"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          label="Name*"
+                          fullWidth
+                          error={!!errors.name}
+                          helperText={errors.name?.message}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              color: "#fff",
+                              "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                              "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                              "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                            },
+                            "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                            "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                            "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                          }}
+                        />
+                      )}
                     />
 
-                    <TextField
-                      label="Price*"
-                      type="number"
-                      fullWidth
-                      value={form.price}
-                      onChange={(e) => handleFieldChange('price', e.target.value)}
-                      onBlur={(e) => handleFieldChange('price', e.target.value)}
-                      error={!!errors.price}
-                      helperText={errors.price}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          color: "#fff",
-                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                        },
-                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                        "& .MuiFormHelperText-root": { color: "#ff6b6b" }
-                      }}
+                    {/* Price Field */}
+                    <Controller
+                      name="price"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          label="Price*"
+                          type="number"
+                          fullWidth
+                          error={!!errors.price}
+                          helperText={errors.price?.message}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              color: "#fff",
+                              "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                              "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                              "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                            },
+                            "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                            "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                            "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                          }}
+                        />
+                      )}
                     />
 
-                    <TextField
-                      label="Description*"
-                      multiline
-                      rows={4}
-                      fullWidth
-                      value={form.description}
-                      onChange={(e) => handleFieldChange('description', e.target.value)}
-                      onBlur={(e) => handleFieldChange('description', e.target.value)}
-                      error={!!errors.description}
-                      helperText={errors.description}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          color: "#fff",
-                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                        },
-                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                        "& .MuiFormHelperText-root": { color: "#ff6b6b" }
-                      }}
+                    {/* Description Field */}
+                    <Controller
+                      name="description"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          label="Description*"
+                          multiline
+                          rows={4}
+                          fullWidth
+                          error={!!errors.description}
+                          helperText={errors.description?.message}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              color: "#fff",
+                              "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                              "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                              "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                            },
+                            "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                            "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                            "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                          }}
+                        />
+                      )}
                     />
 
-                    <FormControl fullWidth error={!!errors.category}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          color: "#fff",
-                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                        },
-                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                      }}>
-                      <InputLabel>Category*</InputLabel>
-                      <Select
-                        value={form.category}
-                        label="Category*"
-                        onChange={(e) => handleFieldChange('category', e.target.value)}
-                      >
-                        {categories.map((c) => (
-                          <MenuItem key={c} value={c} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{c}</MenuItem>
-                        ))}
-                      </Select>
-                      {errors.category && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.category}</FormHelperText>}
-                    </FormControl>
+                    {/* Category Field */}
+                    <Controller
+                      name="category"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControl fullWidth error={!!errors.category}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              color: "#fff",
+                              "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                              "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                              "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                            },
+                            "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                            "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                          }}>
+                          <InputLabel>Category*</InputLabel>
+                          <Select
+                            {...field}
+                            label="Category*"
+                          >
+                            {categories.map((c) => (
+                              <MenuItem key={c} value={c} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{c}</MenuItem>
+                            ))}
+                          </Select>
+                          {errors.category && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.category.message}</FormHelperText>}
+                        </FormControl>
+                      )}
+                    />
 
-                    <FormControl fullWidth error={!!errors.supplier}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          color: "#fff",
-                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                        },
-                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
-                      }}>
-                      <InputLabel>Supplier*</InputLabel>
-                      <Select
-                        value={form.supplier}
-                        label="Supplier*"
-                        onChange={(e) => handleFieldChange('supplier', e.target.value)}
-                      >
-                        <MenuItem value="" sx={{ color: "#fff", background: "#2d2d2d" }}>-- Select Supplier --</MenuItem>
-                        {suppliers.map((s) => (
-                          <MenuItem key={s._id} value={s._id} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{s.name}</MenuItem>
-                        ))}
-                      </Select>
-                      {errors.supplier && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.supplier}</FormHelperText>}
-                    </FormControl>
+                    {/* Supplier Field */}
+                    <Controller
+                      name="supplier"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControl fullWidth error={!!errors.supplier}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              color: "#fff",
+                              "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                              "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                              "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                            },
+                            "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                            "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" }
+                          }}>
+                          <InputLabel>Supplier*</InputLabel>
+                          <Select
+                            {...field}
+                            label="Supplier*"
+                          >
+                            <MenuItem value="" sx={{ color: "#fff", background: "#2d2d2d" }}>-- Select Supplier --</MenuItem>
+                            {suppliers.map((s) => (
+                              <MenuItem key={s._id} value={s._id} sx={{ color: "#000000ff", background: "#2d2d2d" }}>{s.name}</MenuItem>
+                            ))}
+                          </Select>
+                          {errors.supplier && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.supplier.message}</FormHelperText>}
+                        </FormControl>
+                      )}
+                    />
 
-                    <TextField
-                      label="Stock*"
-                      type="number"
-                      fullWidth
-                      value={form.stock}
-                      onChange={(e) => handleFieldChange('stock', e.target.value)}
-                      onBlur={(e) => handleFieldChange('stock', e.target.value)}
-                      error={!!errors.stock}
-                      helperText={errors.stock}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          color: "#fff",
-                          "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
-                          "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
-                          "&.Mui-focused fieldset": { borderColor: "#d4af37" }
-                        },
-                        "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
-                        "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
-                        "& .MuiFormHelperText-root": { color: "#ff6b6b" }
-                      }}
+                    {/* Stock Field */}
+                    <Controller
+                      name="stock"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          label="Stock*"
+                          type="number"
+                          fullWidth
+                          error={!!errors.stock}
+                          helperText={errors.stock?.message}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              color: "#fff",
+                              "& fieldset": { borderColor: "rgba(212,175,55,0.3)" },
+                              "&:hover fieldset": { borderColor: "rgba(212,175,55,0.5)" },
+                              "&.Mui-focused fieldset": { borderColor: "#d4af37" }
+                            },
+                            "& .MuiInputLabel-root": { color: "rgba(212,175,55,0.7)" },
+                            "& .MuiInputLabel-root.Mui-focused": { color: "#d4af37" },
+                            "& .MuiFormHelperText-root": { color: "#ff6b6b" }
+                          }}
+                        />
+                      )}
                     />
 
                     {/* Image Upload */}
-                    <FormControl error={!!errors.images}>
+                    <FormControl>
                       <Button
                         variant="contained"
                         component="label"
@@ -538,7 +542,9 @@ export default function CreateProduct() {
                          Choose Images* (Min 2)
                         <input type="file" hidden multiple accept="image/*" onChange={handleFileChange} />
                       </Button>
-                      {errors.images && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.images}</FormHelperText>}
+                      <FormHelperText sx={{ color: "rgba(255,255,255,0.7)" }}>
+                        At least 2 images required
+                      </FormHelperText>
                     </FormControl>
 
                     {/* Image Preview Grid */}
@@ -581,13 +587,13 @@ export default function CreateProduct() {
                       </Grid>
                     )}
 
-                    {/* Submit Buttons */}
+                    {/* Submit Button */}
                     <Stack direction="row" spacing={2} mt={2}>
                       <Button
                         type="submit"
                         variant="contained"
-                        disabled={loading || hasErrors}
-                        startIcon={loading && <CircularProgress size={16} sx={{ color: "#1a1a1a" }} />}
+                        disabled={isSubmitting || imagesFiles.length < 2}
+                        startIcon={isSubmitting && <CircularProgress size={16} sx={{ color: "#1a1a1a" }} />}
                         sx={{
                           background: "linear-gradient(135deg, #d4af37, #b8860b)",
                           color: "#1a1a1a",
@@ -606,9 +612,8 @@ export default function CreateProduct() {
                           transition: "all 0.3s ease"
                         }}
                       >
-                        {loading ? "Creating..." : "Create Product"}
+                        {isSubmitting ? "Creating..." : "Create Product"}
                       </Button>
-
                     </Stack>
 
                   </Stack>

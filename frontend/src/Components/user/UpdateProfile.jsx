@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import {
   Box,
   TextField,
@@ -21,44 +24,114 @@ import Loader from "../layouts/Loader";
 import Header from "../layouts/user/Header";
 import Footer from "../layouts/user/Footer";
 
+// Yup Validation Schema for Profile
+const profileSchema = yup.object({
+  name: yup
+    .string()
+    .required("Name is required")
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name must not exceed 50 characters"),
+  email: yup
+    .string()
+    .email("Invalid email format")
+    .required("Email is required"),
+  contact: yup
+    .string()
+    .required("Contact number is required")
+    .matches(/^\d+$/, "Contact must contain only numbers")
+    .min(11, "Contact must be at least 11 digits")
+    .max(12, "Contact must be at most 12 digits"),
+  city: yup
+    .string()
+    .required("City is required")
+    .matches(/^[A-Z]/, "First letter must be capitalized")
+    .min(2, "City must be at least 2 characters")
+    .max(50, "City must not exceed 50 characters"),
+  barangay: yup
+    .string()
+    .required("Barangay is required")
+    .matches(/^[A-Z]/, "First letter must be capitalized")
+    .min(2, "Barangay must be at least 2 characters")
+    .max(50, "Barangay must not exceed 50 characters"),
+  street: yup
+    .string()
+    .required("Street is required")
+    .matches(/^[A-Z]/, "First letter must be capitalized")
+    .min(2, "Street must be at least 2 characters")
+    .max(100, "Street must not exceed 100 characters"),
+  zipcode: yup
+    .string()
+    .required("Zipcode is required")
+    .matches(/^\d{4}$/, "Zipcode must be exactly 4 digits"),
+});
+
+// Yup Validation Schema for Password
+const passwordSchema = yup.object({
+  oldPassword: yup
+    .string()
+    .required("Current password is required")
+    .min(6, "Current password must be at least 6 characters"),
+  newPassword: yup
+    .string()
+    .required("New password is required")
+    .min(6, "New password must be at least 6 characters")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+    )
+    .notOneOf([yup.ref('oldPassword')], "New password must be different from current password"),
+  confirmPassword: yup
+    .string()
+    .required("Please confirm your password")
+    .oneOf([yup.ref('newPassword')], "Passwords must match"),
+});
+
 const UpdateProfile = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  const [user, setUser] = useState({
-    name: "",
-    email: "",
-    contact: "",
-    city: "",
-    barangay: "",
-    street: "",
-    zipcode: "",
+  // Profile Form
+  const {
+    control: profileControl,
+    handleSubmit: handleProfileSubmit,
+    formState: { errors: profileErrors, isSubmitting: isProfileSubmitting },
+    reset: resetProfile
+  } = useForm({
+    resolver: yupResolver(profileSchema),
+    mode: "onBlur",
+    defaultValues: {
+      name: "",
+      email: "",
+      contact: "",
+      city: "",
+      barangay: "",
+      street: "",
+      zipcode: "",
+    }
+  });
+
+  // Password Form
+  const {
+    control: passwordControl,
+    handleSubmit: handlePasswordSubmit,
+    formState: { errors: passwordErrors, isSubmitting: isPasswordSubmitting },
+    reset: resetPassword
+  } = useForm({
+    resolver: yupResolver(passwordSchema),
+    mode: "onBlur",
+    defaultValues: {
+      oldPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    }
   });
 
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
-  const [loading, setLoading] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
   const [backendConnected, setBackendConnected] = useState(true);
   const [cartCount, setCartCount] = useState(0);
-
-  // Validation errors state
-  const [errors, setErrors] = useState({
-    contact: "",
-    city: "",
-    barangay: "",
-    street: "",
-    zipcode: "",
-    avatar: ""
-  });
-
-  // Password change toggle and data
   const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
 
   // Fetch current user profile
   useEffect(() => {
@@ -69,7 +142,8 @@ const UpdateProfile = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        setUser({
+        // Reset form with user data
+        resetProfile({
           name: data.user.name,
           email: data.user.email,
           contact: data.user.contact || "",
@@ -82,10 +156,7 @@ const UpdateProfile = () => {
         setAvatarPreview(data.user.avatar?.url || "");
         setBackendConnected(true);
       } catch (error) {
-        toast.error("Failed to load profile", {
-          position: "top-center",
-          theme: "colored"
-        });
+        toast.error("Failed to load profile");
         console.error(error);
         setBackendConnected(false);
       } finally {
@@ -98,111 +169,28 @@ const UpdateProfile = () => {
     } else {
       navigate("/login");
     }
-  }, [token, navigate]);
+  }, [token, navigate, resetProfile]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setBackendConnected(true);
-    console.log("🚪 User logged out");
     navigate("/login");
   };
 
-  // Validation functions
-  const validateContact = (contact) => {
-    if (!contact.trim()) return "Contact number is required";
-    if (!/^\d+$/.test(contact)) return "Contact must contain only numbers";
-    if (contact.length < 11 || contact.length > 12) return "Contact must be 11 to 12 digits";
-    return "";
-  };
-
-  const validateCity = (city) => {
-    if (!city.trim()) return "City is required";
-    if (!/^[A-Z]/.test(city)) return "First letter must be capitalized";
-    return "";
-  };
-
-  const validateBarangay = (barangay) => {
-    if (!barangay.trim()) return "Barangay is required";
-    if (!/^[A-Z]/.test(barangay)) return "First letter must be capitalized";
-    return "";
-  };
-
-  const validateStreet = (street) => {
-    if (!street.trim()) return "Street is required";
-    if (!/^[A-Z]/.test(street)) return "First letter must be capitalized";
-    return "";
-  };
-
-  const validateZipcode = (zipcode) => {
-    if (!zipcode.trim()) return "Zipcode is required";
-    if (!/^\d+$/.test(zipcode)) return "Zipcode must contain only numbers";
-    if (zipcode.length !== 4) return "Zipcode must be exactly 4 digits";
-    return "";
-  };
-
-  const validateAvatar = (avatarFile, currentAvatar) => {
-    if (!avatarFile && !currentAvatar) return "Profile image is required";
-    return "";
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUser({ ...user, [name]: value });
-    
-    // Validate field in real-time
-    let error = "";
-    switch (name) {
-      case 'contact':
-        error = validateContact(value);
-        break;
-      case 'city':
-        error = validateCity(value);
-        break;
-      case 'barangay':
-        error = validateBarangay(value);
-        break;
-      case 'street':
-        error = validateStreet(value);
-        break;
-      case 'zipcode':
-        error = validateZipcode(value);
-        break;
-      default:
-        break;
-    }
-    setErrors(prev => ({ ...prev, [name]: error }));
-  };
-
-  const handlePasswordChange = (e) =>
-    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    
-    // Clear previous file and validation
     setAvatarFile(null);
-    setErrors(prev => ({ ...prev, avatar: "" }));
 
-    if (!file) {
-      const avatarError = validateAvatar(null, avatarPreview);
-      setErrors(prev => ({ ...prev, avatar: avatarError }));
-      return;
-    }
+    if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file", {
-        position: "top-center",
-        theme: "colored"
-      });
+      toast.error("Please select an image file");
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image size should be less than 2MB", {
-        position: "top-center",
-        theme: "colored"
-      });
+      toast.error("Image size should be less than 2MB");
       return;
     }
 
@@ -212,44 +200,15 @@ const UpdateProfile = () => {
       if (reader.readyState === 2) setAvatarPreview(reader.result);
     };
     reader.readAsDataURL(file);
-
-    // Clear avatar error when file is selected
-    setErrors(prev => ({ ...prev, avatar: "" }));
-  };
-
-  const validateAllFields = () => {
-    const newErrors = {
-      contact: validateContact(user.contact),
-      city: validateCity(user.city),
-      barangay: validateBarangay(user.barangay),
-      street: validateStreet(user.street),
-      zipcode: validateZipcode(user.zipcode),
-      avatar: validateAvatar(avatarFile, avatarPreview)
-    };
-
-    setErrors(newErrors);
-    return Object.values(newErrors).every(error => error === "");
   };
 
   // Submit profile update
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const onProfileSubmit = async (data) => {
     setShowLoader(true);
-
-    if (!validateAllFields()) {
-      toast.error("Please fix all validation errors before submitting.", {
-        position: "top-center",
-        theme: "colored"
-      });
-      setLoading(false);
-      setShowLoader(false);
-      return;
-    }
 
     try {
       const formData = new FormData();
-      Object.entries(user).forEach(([key, value]) => formData.append(key, value));
+      Object.entries(data).forEach(([key, value]) => formData.append(key, value));
       if (avatarFile) formData.append("avatar", avatarFile);
 
       await axios.put(
@@ -263,67 +222,37 @@ const UpdateProfile = () => {
         }
       );
 
-      toast.success("Profile updated successfully!", {
-        position: "top-center",
-        theme: "colored"
-      });
-      
+      toast.success("Profile updated successfully!");
       setTimeout(() => navigate("/profile"), 1500);
       
     } catch (error) {
       console.error("Update error:", error);
-      toast.error(error.response?.data?.message || "Update failed", {
-        position: "top-center",
-        theme: "colored"
-      });
+      toast.error(error.response?.data?.message || "Update failed");
     } finally {
-      setLoading(false);
       setShowLoader(false);
     }
   };
 
   // Change password handler
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const onPasswordSubmit = async (data) => {
     setShowLoader(true);
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Passwords do not match", {
-        position: "top-center",
-        theme: "colored"
-      });
-      setLoading(false);
-      setShowLoader(false);
-      return;
-    }
 
     try {
       await axios.put(
         "http://localhost:4001/api/v1/password/update",
-        passwordData,
+        data,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      toast.success("Password changed successfully!", {
-        position: "top-center",
-        theme: "colored"
-      });
-      
-      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      toast.success("Password changed successfully!");
+      resetPassword();
       setShowPasswordForm(false);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Password update failed", {
-        position: "top-center",
-        theme: "colored"
-      });
+      toast.error(error.response?.data?.message || "Password update failed");
     } finally {
-      setLoading(false);
       setShowLoader(false);
     }
   };
-
-  const hasErrors = Object.values(errors).some(error => error !== "");
 
   // Show full page loader when loading profile or submitting
   if (showLoader) {
@@ -355,7 +284,7 @@ const UpdateProfile = () => {
 
       {/* Header Component */}
       <Header 
-        user={user}
+        user={{ name: "User" }}
         cartCount={cartCount}
         backendConnected={backendConnected}
         handleLogout={handleLogout}
@@ -493,285 +422,224 @@ const UpdateProfile = () => {
               </Box>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleProfileSubmit(onProfileSubmit)}>
               <Stack spacing={3}>
-                <TextField
-                  label="Full Name"
+                {/* Name Field */}
+                <Controller
                   name="name"
-                  value={user.name}
-                  onChange={handleChange}
-                  required
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      color: '#ffffff',
-                      '& fieldset': {
-                        borderColor: 'rgba(212,175,55,0.3)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(212,175,55,0.5)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#d4af37',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255,255,255,0.7)',
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#d4af37',
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      color: '#ffffff',
-                    }
-                  }}
+                  control={profileControl}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Full Name"
+                      required
+                      fullWidth
+                      variant="outlined"
+                      error={!!profileErrors.name}
+                      helperText={profileErrors.name?.message}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          color: '#ffffff',
+                          '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                          '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                          '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                        },
+                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                        '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                        '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                      }}
+                    />
+                  )}
                 />
                 
-                <TextField
-                  label="Email"
+                {/* Email Field */}
+                <Controller
                   name="email"
-                  value={user.email}
-                  InputProps={{
-                    readOnly: true,
-                  }}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255,255,255,0.03)',
-                      color: 'rgba(255,255,255,0.5)',
-                      '& fieldset': {
-                        borderColor: 'rgba(212,175,55,0.2)',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255,255,255,0.5)',
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      color: 'rgba(255,255,255,0.5)',
-                    }
-                  }}
+                  control={profileControl}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Email"
+                      InputProps={{ readOnly: true }}
+                      fullWidth
+                      variant="outlined"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(255,255,255,0.03)',
+                          color: 'rgba(255,255,255,0.5)',
+                          '& fieldset': { borderColor: 'rgba(212,175,55,0.2)' },
+                        },
+                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' },
+                        '& .MuiOutlinedInput-input': { color: 'rgba(255,255,255,0.5)' }
+                      }}
+                    />
+                  )}
                 />
                 
-                <TextField
-                  label="Contact Number *"
+                {/* Contact Field */}
+                <Controller
                   name="contact"
-                  placeholder="11-12 digits"
-                  value={user.contact}
-                  onChange={handleChange}
-                  error={!!errors.contact}
-                  helperText={errors.contact}
-                  inputProps={{ maxLength: 12 }}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      color: '#ffffff',
-                      '& fieldset': {
-                        borderColor: 'rgba(212,175,55,0.3)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(212,175,55,0.5)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#d4af37',
-                      },
-                      '&.Mui-error fieldset': {
-                        borderColor: '#ff6b6b',
-                      }
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255,255,255,0.7)',
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#d4af37',
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      color: '#ffffff',
-                    },
-                    '& .MuiFormHelperText-root': {
-                      color: errors.contact ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
-                    }
-                  }}
+                  control={profileControl}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Contact Number *"
+                      placeholder="11-12 digits"
+                      inputProps={{ maxLength: 12 }}
+                      fullWidth
+                      variant="outlined"
+                      error={!!profileErrors.contact}
+                      helperText={profileErrors.contact?.message}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          color: '#ffffff',
+                          '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                          '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                          '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                          '&.Mui-error fieldset': { borderColor: '#ff6b6b' }
+                        },
+                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                        '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                        '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                      }}
+                    />
+                  )}
                 />
                 
-                <TextField
-                  label="City *"
+                {/* City Field */}
+                <Controller
                   name="city"
-                  value={user.city}
-                  onChange={handleChange}
-                  error={!!errors.city}
-                  helperText={errors.city}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      color: '#ffffff',
-                      '& fieldset': {
-                        borderColor: 'rgba(212,175,55,0.3)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(212,175,55,0.5)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#d4af37',
-                      },
-                      '&.Mui-error fieldset': {
-                        borderColor: '#ff6b6b',
-                      }
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255,255,255,0.7)',
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#d4af37',
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      color: '#ffffff',
-                    },
-                    '& .MuiFormHelperText-root': {
-                      color: errors.city ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
-                    }
-                  }}
+                  control={profileControl}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="City *"
+                      fullWidth
+                      variant="outlined"
+                      error={!!profileErrors.city}
+                      helperText={profileErrors.city?.message}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          color: '#ffffff',
+                          '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                          '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                          '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                          '&.Mui-error fieldset': { borderColor: '#ff6b6b' }
+                        },
+                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                        '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                        '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                      }}
+                    />
+                  )}
                 />
                 
-                <TextField
-                  label="Barangay *"
+                {/* Barangay Field */}
+                <Controller
                   name="barangay"
-                  value={user.barangay}
-                  onChange={handleChange}
-                  error={!!errors.barangay}
-                  helperText={errors.barangay}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      color: '#ffffff',
-                      '& fieldset': {
-                        borderColor: 'rgba(212,175,55,0.3)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(212,175,55,0.5)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#d4af37',
-                      },
-                      '&.Mui-error fieldset': {
-                        borderColor: '#ff6b6b',
-                      }
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255,255,255,0.7)',
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#d4af37',
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      color: '#ffffff',
-                    },
-                    '& .MuiFormHelperText-root': {
-                      color: errors.barangay ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
-                    }
-                  }}
+                  control={profileControl}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Barangay *"
+                      fullWidth
+                      variant="outlined"
+                      error={!!profileErrors.barangay}
+                      helperText={profileErrors.barangay?.message}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          color: '#ffffff',
+                          '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                          '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                          '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                          '&.Mui-error fieldset': { borderColor: '#ff6b6b' }
+                        },
+                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                        '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                        '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                      }}
+                    />
+                  )}
                 />
                 
-                <TextField
-                  label="Street *"
+                {/* Street Field */}
+                <Controller
                   name="street"
-                  value={user.street}
-                  onChange={handleChange}
-                  error={!!errors.street}
-                  helperText={errors.street}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      color: '#ffffff',
-                      '& fieldset': {
-                        borderColor: 'rgba(212,175,55,0.3)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(212,175,55,0.5)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#d4af37',
-                      },
-                      '&.Mui-error fieldset': {
-                        borderColor: '#ff6b6b',
-                      }
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255,255,255,0.7)',
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#d4af37',
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      color: '#ffffff',
-                    },
-                    '& .MuiFormHelperText-root': {
-                      color: errors.street ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
-                    }
-                  }}
+                  control={profileControl}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Street *"
+                      fullWidth
+                      variant="outlined"
+                      error={!!profileErrors.street}
+                      helperText={profileErrors.street?.message}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          color: '#ffffff',
+                          '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                          '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                          '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                          '&.Mui-error fieldset': { borderColor: '#ff6b6b' }
+                        },
+                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                        '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                        '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                      }}
+                    />
+                  )}
                 />
                 
-                <TextField
-                  label="Zipcode *"
+                {/* Zipcode Field */}
+                <Controller
                   name="zipcode"
-                  placeholder="4 digits"
-                  value={user.zipcode}
-                  onChange={handleChange}
-                  error={!!errors.zipcode}
-                  helperText={errors.zipcode}
-                  inputProps={{ maxLength: 4 }}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      color: '#ffffff',
-                      '& fieldset': {
-                        borderColor: 'rgba(212,175,55,0.3)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(212,175,55,0.5)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#d4af37',
-                      },
-                      '&.Mui-error fieldset': {
-                        borderColor: '#ff6b6b',
-                      }
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255,255,255,0.7)',
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#d4af37',
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      color: '#ffffff',
-                    },
-                    '& .MuiFormHelperText-root': {
-                      color: errors.zipcode ? '#ff6b6b' : 'rgba(255,255,255,0.5)',
-                    }
-                  }}
+                  control={profileControl}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Zipcode *"
+                      placeholder="4 digits"
+                      inputProps={{ maxLength: 4 }}
+                      fullWidth
+                      variant="outlined"
+                      error={!!profileErrors.zipcode}
+                      helperText={profileErrors.zipcode?.message}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          color: '#ffffff',
+                          '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                          '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                          '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                          '&.Mui-error fieldset': { borderColor: '#ff6b6b' }
+                        },
+                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                        '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                        '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                      }}
+                    />
+                  )}
                 />
 
-                <FormControl error={!!errors.avatar}>
+                <FormControl>
                   <Button
                     variant="outlined"
                     component="label"
@@ -802,9 +670,6 @@ const UpdateProfile = () => {
                       onChange={handleFileChange}
                     />
                   </Button>
-                  {errors.avatar && (
-                    <FormHelperText error sx={{ textAlign: 'center', mt: 1, color: '#ff6b6b' }}>{errors.avatar}</FormHelperText>
-                  )}
                   <FormHelperText sx={{ textAlign: 'center', mt: 1, color: 'rgba(255,255,255,0.5)' }}>
                     Supported formats: JPG, PNG, GIF (Max 2MB)
                   </FormHelperText>
@@ -814,8 +679,8 @@ const UpdateProfile = () => {
                   type="submit"
                   variant="contained"
                   size="large"
-                  disabled={loading || hasErrors}
-                  startIcon={loading && <CircularProgress size={20} sx={{ color: '#1a1a1a' }} />}
+                  disabled={isProfileSubmitting}
+                  startIcon={isProfileSubmitting && <CircularProgress size={20} sx={{ color: '#1a1a1a' }} />}
                   fullWidth
                   sx={{ 
                     py: 1.5, 
@@ -839,7 +704,7 @@ const UpdateProfile = () => {
                     }
                   }}
                 >
-                  {loading ? "🔄 Updating Profile..." : "💾 Update Profile"}
+                  {isProfileSubmitting ? "🔄 Updating Profile..." : "💾 Update Profile"}
                 </Button>
               </Stack>
             </form>
@@ -888,119 +753,110 @@ const UpdateProfile = () => {
                   }}>
                     🔒 Change Password
                   </Typography>
-                  <form onSubmit={handlePasswordSubmit}>
+                  <form onSubmit={handlePasswordSubmit(onPasswordSubmit)}>
                     <Stack spacing={2}>
-                      <TextField
-                        type="password"
+                      {/* Current Password */}
+                      <Controller
                         name="oldPassword"
-                        label="Current Password"
-                        value={passwordData.oldPassword}
-                        onChange={handlePasswordChange}
-                        required
-                        fullWidth
-                        variant="outlined"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            color: '#ffffff',
-                            '& fieldset': {
-                              borderColor: 'rgba(212,175,55,0.3)',
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(212,175,55,0.5)',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#d4af37',
-                            },
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: 'rgba(255,255,255,0.7)',
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': {
-                            color: '#d4af37',
-                          },
-                          '& .MuiOutlinedInput-input': {
-                            color: '#ffffff',
-                          }
-                        }}
+                        control={passwordControl}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            type="password"
+                            label="Current Password"
+                            required
+                            fullWidth
+                            variant="outlined"
+                            error={!!passwordErrors.oldPassword}
+                            helperText={passwordErrors.oldPassword?.message}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                                backgroundColor: 'rgba(255,255,255,0.05)',
+                                color: '#ffffff',
+                                '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                                '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                                '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                              },
+                              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                              '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                              '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                              '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                            }}
+                          />
+                        )}
                       />
-                      <TextField
-                        type="password"
+
+                      {/* New Password */}
+                      <Controller
                         name="newPassword"
-                        label="New Password"
-                        value={passwordData.newPassword}
-                        onChange={handlePasswordChange}
-                        required
-                        fullWidth
-                        variant="outlined"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            color: '#ffffff',
-                            '& fieldset': {
-                              borderColor: 'rgba(212,175,55,0.3)',
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(212,175,55,0.5)',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#d4af37',
-                            },
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: 'rgba(255,255,255,0.7)',
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': {
-                            color: '#d4af37',
-                          },
-                          '& .MuiOutlinedInput-input': {
-                            color: '#ffffff',
-                          }
-                        }}
+                        control={passwordControl}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            type="password"
+                            label="New Password"
+                            required
+                            fullWidth
+                            variant="outlined"
+                            error={!!passwordErrors.newPassword}
+                            helperText={passwordErrors.newPassword?.message}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                                backgroundColor: 'rgba(255,255,255,0.05)',
+                                color: '#ffffff',
+                                '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                                '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                                '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                              },
+                              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                              '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                              '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                              '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                            }}
+                          />
+                        )}
                       />
-                      <TextField
-                        type="password"
+
+                      {/* Confirm Password */}
+                      <Controller
                         name="confirmPassword"
-                        label="Confirm New Password"
-                        value={passwordData.confirmPassword}
-                        onChange={handlePasswordChange}
-                        required
-                        fullWidth
-                        variant="outlined"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            color: '#ffffff',
-                            '& fieldset': {
-                              borderColor: 'rgba(212,175,55,0.3)',
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(212,175,55,0.5)',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#d4af37',
-                            },
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: 'rgba(255,255,255,0.7)',
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': {
-                            color: '#d4af37',
-                          },
-                          '& .MuiOutlinedInput-input': {
-                            color: '#ffffff',
-                          }
-                        }}
+                        control={passwordControl}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            type="password"
+                            label="Confirm New Password"
+                            required
+                            fullWidth
+                            variant="outlined"
+                            error={!!passwordErrors.confirmPassword}
+                            helperText={passwordErrors.confirmPassword?.message}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                                backgroundColor: 'rgba(255,255,255,0.05)',
+                                color: '#ffffff',
+                                '& fieldset': { borderColor: 'rgba(212,175,55,0.3)' },
+                                '&:hover fieldset': { borderColor: 'rgba(212,175,55,0.5)' },
+                                '&.Mui-focused fieldset': { borderColor: '#d4af37' },
+                              },
+                              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                              '& .MuiInputLabel-root.Mui-focused': { color: '#d4af37' },
+                              '& .MuiOutlinedInput-input': { color: '#ffffff' },
+                              '& .MuiFormHelperText-root': { color: '#ff6b6b' }
+                            }}
+                          />
+                        )}
                       />
+
                       <Stack direction="row" spacing={2}>
                         <Button
                           type="submit"
                           variant="contained"
-                          disabled={loading}
-                          startIcon={loading && <CircularProgress size={20} sx={{ color: '#1a1a1a' }} />}
+                          disabled={isPasswordSubmitting}
+                          startIcon={isPasswordSubmitting && <CircularProgress size={20} sx={{ color: '#1a1a1a' }} />}
                           fullWidth
                           sx={{ 
                             borderRadius: "10px",
@@ -1017,11 +873,14 @@ const UpdateProfile = () => {
                             }
                           }}
                         >
-                          {loading ? "🔄 Changing..." : "💾 Save Password"}
+                          {isPasswordSubmitting ? "🔄 Changing..." : "💾 Save Password"}
                         </Button>
                         <Button
                           type="button"
-                          onClick={() => setShowPasswordForm(false)}
+                          onClick={() => {
+                            setShowPasswordForm(false);
+                            resetPassword();
+                          }}
                           variant="outlined"
                           fullWidth
                           sx={{ 
@@ -1059,10 +918,8 @@ const UpdateProfile = () => {
             theme="colored"
           />
         </Box>
-
       </main>
 
-      {/* Footer Component */}
       <Footer />
     </div>
   );

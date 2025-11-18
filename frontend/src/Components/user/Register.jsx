@@ -1,149 +1,87 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 
 const Register = () => {
-  const [user, setUser] = useState({ name: "", email: "", password: "" });
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("firebase"); // "firebase" or "local"
-  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  // Validation functions
-  const validateFullName = (name) => {
-    const nameRegex = /^[A-Z][a-z]+ [A-Z][a-z]+$/;
-    if (!name.trim()) {
-      return "Full name is required";
-    }
-    if (!nameRegex.test(name)) {
-      return "Full name must contain two words, each starting with a capital letter (e.g., John Doe)";
-    }
-    return "";
-  };
+  // Yup validation schemas
+  const firebaseSchema = yup.object({
+    name: yup
+      .string()
+      .required("Full name is required")
+      .matches(/^[A-Z][a-z]+ [A-Z][a-z]+$/, "Full name must contain two words, each starting with a capital letter (e.g., John Doe)"),
+    email: yup
+      .string()
+      .required("Email is required")
+      .matches(/^[a-zA-Z0-9._%+-]+@(gmail|yahoo|email)\.com$/, "Email must be from @gmail.com, @yahoo.com, or @email.com domains"),
+    password: yup
+      .string()
+      .required("Password is required")
+      .min(9, "Password must be at least 9 characters long")
+      .matches(/^[A-Z]/, "Password must start with a capital letter")
+      .matches(/\d/, "Password must contain at least one number")
+      .matches(/[@$!%*?&]/, "Password must contain at least one special character (@$!%*?&)")
+  });
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|yahoo|email)\.com$/;
-    if (!email.trim()) {
-      return "Email is required";
-    }
-    if (!emailRegex.test(email)) {
-      return "Email must be from @gmail.com, @yahoo.com, or @email.com domains";
-    }
-    return "";
-  };
+const localSchema = yup.object({
+  name: yup
+    .string()
+    .required("Full name is required")
+    .matches(/^[A-Z][a-z]+ [A-Z][a-z]+$/, "Full name must contain two words, each starting with a capital letter (e.g., John Doe)"),
+  email: yup.string().email("Invalid email format").required("Email is required"),
+  password: yup
+    .string()
+    .required("Password is required")
+    .min(9, "Password must be at least 9 characters long")
+    .matches(/^[A-Z]/, "Password must start with a capital letter")
+    .matches(/\d/, "Password must contain at least one number")
+    .matches(/[@$!%*?&]/, "Password must contain at least one special character (@$!%*?&)"),
+  confirmPassword: yup.string()
+    .required("Please confirm your password")
+    .oneOf([yup.ref('password')], 'Passwords must match')
+});
 
-  const validatePassword = (password) => {
-    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{9,}$/;
-    if (!password) {
-      return "Password is required";
-    }
-    if (password.length < 9) {
-      return "Password must be at least 9 characters long";
-    }
-    if (!/(?=.*[A-Z])/.test(password)) {
-      return "Password must start with a capital letter";
-    }
-    if (!/(?=.*\d)/.test(password)) {
-      return "Password must contain at least one number";
-    }
-    if (!/(?=.*[@$!%*?&])/.test(password)) {
-      return "Password must contain at least one special character (@$!%*?&)";
-    }
-    if (!passwordRegex.test(password)) {
-      return "Password must start with capital letter, contain at least one number, one special character, and be minimum 9 characters";
-    }
-    return "";
-  };
+  // React Hook Form setup for Firebase
+  const { 
+    register: registerFirebase, 
+    handleSubmit: handleSubmitFirebase, 
+    formState: { errors: firebaseErrors },
+    watch: watchFirebase
+  } = useForm({
+    resolver: yupResolver(firebaseSchema),
+    mode: "onChange"
+  });
 
-  const validateForm = () => {
-    const newErrors = {
-      name: validateFullName(user.name),
-      email: validateEmail(user.email),
-      password: validatePassword(user.password),
-      confirmPassword: user.password !== confirmPassword ? "Passwords do not match" : ""
-    };
+  // React Hook Form setup for Local
+  const { 
+    register: registerLocal, 
+    handleSubmit: handleSubmitLocal, 
+    formState: { errors: localErrors },
+    watch: watchLocal
+  } = useForm({
+    resolver: yupResolver(localSchema),
+    mode: "onChange"
+  });
 
-    setErrors(newErrors);
-    return !Object.values(newErrors).some(error => error !== "");
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUser({ ...user, [name]: value });
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
-    }
-  };
-
-  const handleConfirmPasswordChange = (e) => {
-    setConfirmPassword(e.target.value);
-    if (errors.confirmPassword) {
-      setErrors({ ...errors, confirmPassword: "" });
-    }
-  };
-
-  // Local Registration (existing system)
-  const handleLocalRegister = async (e) => {
-    e.preventDefault();
-    setMessage("");
-    setIsLoading(true);
-
-    // Validate passwords match
-    if (user.password !== confirmPassword) {
-      setMessage("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate password length
-    if (user.password.length < 6) {
-      setMessage("Password must be at least 6 characters long");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const { data } = await axios.post("http://localhost:4001/api/v1/register", 
-        { ...user }, 
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      setMessage("Registration successful! Please check your email to verify your account.");
-      
-      // Clear form
-      setUser({ name: "", email: "", password: "" });
-      setConfirmPassword("");
-      
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Registration failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const watchFirebasePassword = watchFirebase('password');
+  const watchLocalPassword = watchLocal('password');
 
   // Firebase Registration
-  const handleFirebaseRegister = async (e) => {
-    e.preventDefault();
+  const handleFirebaseRegister = async (formData) => {
     setMessage("");
-    
-    // Use the new validation
-    if (!validateForm()) {
-      return;
-    }
-
     setIsLoading(true);
 
     try {
       const { data } = await axios.post("http://localhost:4001/api/v1/register", 
         { 
-          ...user,
+          ...formData,
           authProvider: "firebase-email"
         }, 
         {
@@ -154,11 +92,6 @@ const Register = () => {
       );
       
       setMessage(data.message || "Firebase registration successful! Your account is ready to use.");
-      
-      // Clear form
-      setUser({ name: "", email: "", password: "" });
-      setConfirmPassword("");
-      setErrors({});
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
@@ -177,6 +110,29 @@ const Register = () => {
       } else {
         setMessage(errorMsg);
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Local Registration
+  const handleLocalRegister = async (formData) => {
+    setMessage("");
+    setIsLoading(true);
+
+    try {
+      const { data } = await axios.post("http://localhost:4001/api/v1/register", 
+        { ...formData }, 
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      setMessage("Registration successful! Please check your email to verify your account.");
+      
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -390,20 +346,18 @@ const Register = () => {
             {/* Firebase Registration Form */}
             {activeTab === "firebase" && (
               <div>
-                <form onSubmit={handleFirebaseRegister}>
-                  <div style={{ marginBottom: errors.name ? '5px' : '20px' }}>
+                <form onSubmit={handleSubmitFirebase(handleFirebaseRegister)}>
+                  <div style={{ marginBottom: firebaseErrors.name ? '5px' : '20px' }}>
                     <input 
                       type="text" 
-                      name="name" 
                       placeholder="Full Name (e.g., John Doe)" 
-                      value={user.name}
-                      onChange={handleChange} 
+                      {...registerFirebase("name")}
                       required 
                       style={{
                         width: "100%",
                         padding: "15px 20px",
                         background: "rgba(20,20,20,0.7)",
-                        border: errors.name ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
+                        border: firebaseErrors.name ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
                         borderRadius: "12px",
                         color: "#ffffff",
                         fontSize: "16px",
@@ -412,15 +366,15 @@ const Register = () => {
                         outline: "none"
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = errors.name ? "#f44336" : "#d4af37";
-                        e.target.style.boxShadow = errors.name ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
+                        e.target.style.borderColor = firebaseErrors.name ? "#f44336" : "#d4af37";
+                        e.target.style.boxShadow = firebaseErrors.name ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = errors.name ? "#f44336" : "rgba(212,175,55,0.3)";
+                        e.target.style.borderColor = firebaseErrors.name ? "#f44336" : "rgba(212,175,55,0.3)";
                         e.target.style.boxShadow = "none";
                       }}
                     />
-                    {errors.name && (
+                    {firebaseErrors.name && (
                       <div style={{ 
                         color: '#f44336', 
                         fontSize: '12px', 
@@ -430,24 +384,22 @@ const Register = () => {
                         borderRadius: '6px',
                         border: '1px solid rgba(244,67,54,0.3)'
                       }}>
-                        {errors.name}
+                        {firebaseErrors.name.message}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ marginBottom: errors.email ? '5px' : '20px' }}>
+                  <div style={{ marginBottom: firebaseErrors.email ? '5px' : '20px' }}>
                     <input 
                       type="email" 
-                      name="email" 
                       placeholder="Email Address (@gmail.com, @yahoo.com, @email.com)" 
-                      value={user.email}
-                      onChange={handleChange} 
+                      {...registerFirebase("email")}
                       required 
                       style={{
                         width: "100%",
                         padding: "15px 20px",
                         background: "rgba(20,20,20,0.7)",
-                        border: errors.email ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
+                        border: firebaseErrors.email ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
                         borderRadius: "12px",
                         color: "#ffffff",
                         fontSize: "16px",
@@ -456,15 +408,15 @@ const Register = () => {
                         outline: "none"
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = errors.email ? "#f44336" : "#d4af37";
-                        e.target.style.boxShadow = errors.email ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
+                        e.target.style.borderColor = firebaseErrors.email ? "#f44336" : "#d4af37";
+                        e.target.style.boxShadow = firebaseErrors.email ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = errors.email ? "#f44336" : "rgba(212,175,55,0.3)";
+                        e.target.style.borderColor = firebaseErrors.email ? "#f44336" : "rgba(212,175,55,0.3)";
                         e.target.style.boxShadow = "none";
                       }}
                     />
-                    {errors.email && (
+                    {firebaseErrors.email && (
                       <div style={{ 
                         color: '#f44336', 
                         fontSize: '12px', 
@@ -474,24 +426,22 @@ const Register = () => {
                         borderRadius: '6px',
                         border: '1px solid rgba(244,67,54,0.3)'
                       }}>
-                        {errors.email}
+                        {firebaseErrors.email.message}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ marginBottom: errors.password ? '5px' : '20px' }}>
+                  <div style={{ marginBottom: firebaseErrors.password ? '5px' : '20px' }}>
                     <input 
                       type="password" 
-                      name="password" 
                       placeholder="Password (Start with capital, min 9 chars, include number & special character)" 
-                      value={user.password}
-                      onChange={handleChange} 
+                      {...registerFirebase("password")}
                       required 
                       style={{
                         width: "100%",
                         padding: "15px 20px",
                         background: "rgba(20,20,20,0.7)",
-                        border: errors.password ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
+                        border: firebaseErrors.password ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
                         borderRadius: "12px",
                         color: "#ffffff",
                         fontSize: "16px",
@@ -500,15 +450,15 @@ const Register = () => {
                         outline: "none"
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = errors.password ? "#f44336" : "#d4af37";
-                        e.target.style.boxShadow = errors.password ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
+                        e.target.style.borderColor = firebaseErrors.password ? "#f44336" : "#d4af37";
+                        e.target.style.boxShadow = firebaseErrors.password ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = errors.password ? "#f44336" : "rgba(212,175,55,0.3)";
+                        e.target.style.borderColor = firebaseErrors.password ? "#f44336" : "rgba(212,175,55,0.3)";
                         e.target.style.boxShadow = "none";
                       }}
                     />
-                    {errors.password && (
+                    {firebaseErrors.password && (
                       <div style={{ 
                         color: '#f44336', 
                         fontSize: '12px', 
@@ -518,50 +468,7 @@ const Register = () => {
                         borderRadius: '6px',
                         border: '1px solid rgba(244,67,54,0.3)'
                       }}>
-                        {errors.password}
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ marginBottom: errors.confirmPassword ? '5px' : '25px' }}>
-                    <input 
-                      type="password" 
-                      placeholder="Confirm Password" 
-                      value={confirmPassword}
-                      onChange={handleConfirmPasswordChange} 
-                      required 
-                      style={{
-                        width: "100%",
-                        padding: "15px 20px",
-                        background: "rgba(20,20,20,0.7)",
-                        border: errors.confirmPassword ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
-                        borderRadius: "12px",
-                        color: "#ffffff",
-                        fontSize: "16px",
-                        transition: "all 0.3s ease",
-                        backdropFilter: "blur(10px)",
-                        outline: "none"
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = errors.confirmPassword ? "#f44336" : "#d4af37";
-                        e.target.style.boxShadow = errors.confirmPassword ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = errors.confirmPassword ? "#f44336" : "rgba(212,175,55,0.3)";
-                        e.target.style.boxShadow = "none";
-                      }}
-                    />
-                    {errors.confirmPassword && (
-                      <div style={{ 
-                        color: '#f44336', 
-                        fontSize: '12px', 
-                        marginBottom: '15px',
-                        padding: '5px 10px',
-                        background: 'rgba(244,67,54,0.1)',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(244,67,54,0.3)'
-                      }}>
-                        {errors.confirmPassword}
+                        {firebaseErrors.password.message}
                       </div>
                     )}
                   </div>
@@ -633,20 +540,18 @@ const Register = () => {
             {/* Local Registration Form */}
             {activeTab === "local" && (
               <div>
-                <form onSubmit={handleLocalRegister}>
-                  <div style={{ marginBottom: '20px' }}>
+                <form onSubmit={handleSubmitLocal(handleLocalRegister)}>
+                  <div style={{ marginBottom: localErrors.name ? '5px' : '20px' }}>
                     <input 
                       type="text" 
-                      name="name" 
                       placeholder="Full Name" 
-                      value={user.name}
-                      onChange={handleChange} 
+                      {...registerLocal("name")}
                       required 
                       style={{
                         width: "100%",
                         padding: "15px 20px",
                         background: "rgba(20,20,20,0.7)",
-                        border: "1px solid rgba(212,175,55,0.3)",
+                        border: localErrors.name ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
                         borderRadius: "12px",
                         color: "#ffffff",
                         fontSize: "16px",
@@ -655,29 +560,40 @@ const Register = () => {
                         outline: "none"
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = "#d4af37";
-                        e.target.style.boxShadow = "0 0 0 2px rgba(212,175,55,0.2)";
+                        e.target.style.borderColor = localErrors.name ? "#f44336" : "#d4af37";
+                        e.target.style.boxShadow = localErrors.name ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                        e.target.style.borderColor = localErrors.name ? "#f44336" : "rgba(212,175,55,0.3)";
                         e.target.style.boxShadow = "none";
                       }}
                     />
+                    {localErrors.name && (
+                      <div style={{ 
+                        color: '#f44336', 
+                        fontSize: '12px', 
+                        marginBottom: '15px',
+                        padding: '5px 10px',
+                        background: 'rgba(244,67,54,0.1)',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(244,67,54,0.3)'
+                      }}>
+                        {localErrors.name.message}
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ marginBottom: '20px' }}>
+                  <div style={{ marginBottom: localErrors.email ? '5px' : '20px' }}>
                     <input 
                       type="email" 
-                      name="email" 
                       placeholder="Email Address" 
-                      value={user.email}
-                      onChange={handleChange} 
+                      {...registerLocal("email")}
                       required 
                       style={{
                         width: "100%",
                         padding: "15px 20px",
                         background: "rgba(20,20,20,0.7)",
-                        border: "1px solid rgba(212,175,55,0.3)",
+                        border: localErrors.email ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
                         borderRadius: "12px",
                         color: "#ffffff",
                         fontSize: "16px",
@@ -686,30 +602,40 @@ const Register = () => {
                         outline: "none"
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = "#d4af37";
-                        e.target.style.boxShadow = "0 0 0 2px rgba(212,175,55,0.2)";
+                        e.target.style.borderColor = localErrors.email ? "#f44336" : "#d4af37";
+                        e.target.style.boxShadow = localErrors.email ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                        e.target.style.borderColor = localErrors.email ? "#f44336" : "rgba(212,175,55,0.3)";
                         e.target.style.boxShadow = "none";
                       }}
                     />
+                    {localErrors.email && (
+                      <div style={{ 
+                        color: '#f44336', 
+                        fontSize: '12px', 
+                        marginBottom: '15px',
+                        padding: '5px 10px',
+                        background: 'rgba(244,67,54,0.1)',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(244,67,54,0.3)'
+                      }}>
+                        {localErrors.email.message}
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ marginBottom: '20px' }}>
+                  <div style={{ marginBottom: localErrors.password ? '5px' : '20px' }}>
                     <input 
                       type="password" 
-                      name="password" 
                       placeholder="Password (min. 9 characters)" 
-                      value={user.password}
-                      onChange={handleChange} 
+                      {...registerLocal("password")}
                       required 
-                      minLength="6"
                       style={{
                         width: "100%",
                         padding: "15px 20px",
                         background: "rgba(20,20,20,0.7)",
-                        border: "1px solid rgba(212,175,55,0.3)",
+                        border: localErrors.password ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
                         borderRadius: "12px",
                         color: "#ffffff",
                         fontSize: "16px",
@@ -718,28 +644,40 @@ const Register = () => {
                         outline: "none"
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = "#d4af37";
-                        e.target.style.boxShadow = "0 0 0 2px rgba(212,175,55,0.2)";
+                        e.target.style.borderColor = localErrors.password ? "#f44336" : "#d4af37";
+                        e.target.style.boxShadow = localErrors.password ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                        e.target.style.borderColor = localErrors.password ? "#f44336" : "rgba(212,175,55,0.3)";
                         e.target.style.boxShadow = "none";
                       }}
                     />
+                    {localErrors.password && (
+                      <div style={{ 
+                        color: '#f44336', 
+                        fontSize: '12px', 
+                        marginBottom: '15px',
+                        padding: '5px 10px',
+                        background: 'rgba(244,67,54,0.1)',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(244,67,54,0.3)'
+                      }}>
+                        {localErrors.password.message}
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ marginBottom: '25px' }}>
+                  <div style={{ marginBottom: localErrors.confirmPassword ? '5px' : '25px' }}>
                     <input 
                       type="password" 
                       placeholder="Confirm Password" 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)} 
+                      {...registerLocal("confirmPassword")}
                       required 
                       style={{
                         width: "100%",
                         padding: "15px 20px",
                         background: "rgba(20,20,20,0.7)",
-                        border: "1px solid rgba(212,175,55,0.3)",
+                        border: localErrors.confirmPassword ? "1px solid #f44336" : "1px solid rgba(212,175,55,0.3)",
                         borderRadius: "12px",
                         color: "#ffffff",
                         fontSize: "16px",
@@ -748,14 +686,27 @@ const Register = () => {
                         outline: "none"
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = "#d4af37";
-                        e.target.style.boxShadow = "0 0 0 2px rgba(212,175,55,0.2)";
+                        e.target.style.borderColor = localErrors.confirmPassword ? "#f44336" : "#d4af37";
+                        e.target.style.boxShadow = localErrors.confirmPassword ? "0 0 0 2px rgba(244,67,54,0.2)" : "0 0 0 2px rgba(212,175,55,0.2)";
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = "rgba(212,175,55,0.3)";
+                        e.target.style.borderColor = localErrors.confirmPassword ? "#f44336" : "rgba(212,175,55,0.3)";
                         e.target.style.boxShadow = "none";
                       }}
                     />
+                    {localErrors.confirmPassword && (
+                      <div style={{ 
+                        color: '#f44336', 
+                        fontSize: '12px', 
+                        marginBottom: '15px',
+                        padding: '5px 10px',
+                        background: 'rgba(244,67,54,0.1)',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(244,67,54,0.3)'
+                      }}>
+                        {localErrors.confirmPassword.message}
+                      </div>
+                    )}
                   </div>
 
                   <button 
