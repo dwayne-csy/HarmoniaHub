@@ -10,7 +10,6 @@ import {
   CardMedia,
   IconButton,
   Stack,
-  CircularProgress,
   Paper,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -18,6 +17,7 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import Header from "../layouts/user/Header";
 import Footer from "../layouts/user/Footer";
+import Loader from "../layouts/Loader"; // Import the Loader component
 
 const Cart = () => {
   const [cart, setCart] = useState({ items: [] });
@@ -213,8 +213,11 @@ const Cart = () => {
           padding: "0 20px"
         }}>
           {loading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-              <CircularProgress sx={{ color: "#d4af37" }} />
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" flexDirection="column">
+              <Loader />
+              <Typography variant="h6" style={{ color: "#d4af37", marginTop: "15px" }}>
+                Loading your cart...
+              </Typography>
             </Box>
           ) : !cart.items.length ? (
             <Paper 

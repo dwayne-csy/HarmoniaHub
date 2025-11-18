@@ -351,7 +351,7 @@ const Register = () => {
                   }
                 }}
               >
-                🔐 Firebase Registration
+                 Firebase Registration
               </button>
               <button
                 onClick={() => setActiveTab("local")}
@@ -383,7 +383,7 @@ const Register = () => {
                   }
                 }}
               >
-                📧 Local Registration
+                 Local Registration
               </button>
             </div>
 
@@ -605,7 +605,7 @@ const Register = () => {
                         Creating Account...
                       </div>
                     ) : (
-                      "🔥 Register with Firebase"
+                      " Register with Firebase"
                     )}
                   </button>
                 </form>
@@ -797,7 +797,7 @@ const Register = () => {
                         Creating Account...
                       </div>
                     ) : (
-                      "📧 Register with Local System"
+                      " Register with Local System"
                     )}
                   </button>
                 </form>

@@ -363,7 +363,7 @@ export default function ViewProduct() {
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography sx={{ color: '#ccc', fontWeight: '500' }}>Price:</Typography>
                         <Chip 
-                          label={`$${product.price}`} 
+                          label={`₱${product.price}`} 
                           sx={{ 
                             background: 'linear-gradient(135deg, #d4af37, #b8860b)',
                             color: '#1a1a1a',

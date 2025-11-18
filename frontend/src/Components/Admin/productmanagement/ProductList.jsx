@@ -238,7 +238,7 @@ export default function ProductList() {
     options: {
       customBodyRenderLite: (dataIndex) => (
         <Typography sx={{ color: '#000000ff', fontWeight: 'bold' }}>
-          ${displayedProducts[dataIndex].price}
+          ₱{displayedProducts[dataIndex].price}
         </Typography>
       )
     }

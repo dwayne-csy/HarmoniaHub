@@ -142,7 +142,7 @@ const Login = () => {
       // Get the Firebase ID token
       const idToken = await user.getIdToken();
 
-      console.log("🔥 Firebase email login successful:", user.email);
+      console.log(" Firebase email login successful:", user.email);
 
       // Send the token to your backend
       const { data } = await axios.post("http://localhost:4001/api/v1/firebase/login", {
@@ -475,7 +475,7 @@ const Login = () => {
                 marginBottom: "15px",
                 animation: "float 4s ease-in-out infinite"
               }}>
-                🔐
+                
               </div>
               <h1 style={{ 
                 margin: "0 0 10px 0",
@@ -488,7 +488,7 @@ const Login = () => {
                 fontWeight: "bold",
                 textShadow: "0 2px 4px rgba(0,0,0,0.3)"
               }}>
-                Welcome Back
+                Welcome
               </h1>
               <p style={{ 
                 color: "rgba(255,255,255,0.8)",
@@ -601,7 +601,7 @@ const Login = () => {
                       Signing In...
                     </div>
                   ) : (
-                    "🔑 Sign In with Email & Password"
+                    " Sign In with Email & Password"
                   )}
                 </button>
               </form>
@@ -781,7 +781,7 @@ const Login = () => {
                   }
                 }}
               >
-                <span>🔥</span>
+                <span></span>
                 {showFirebaseForm ? 'Hide Firebase Login' : 'Sign in with Firebase'}
               </button>
               

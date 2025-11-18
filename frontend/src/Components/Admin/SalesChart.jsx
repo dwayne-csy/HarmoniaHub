@@ -1,4 +1,4 @@
-// frontend/src/Components/admin/analytics/SalesChart.jsx
+
 import React, { useState, useEffect } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -22,7 +22,7 @@ const SalesChart = () => {
     totalRevenue: 0,
     totalOrders: 0,
     averageOrderValue: 0
-  });
+  }); 
   const [chartType, setChartType] = useState('line');
   const [filterType, setFilterType] = useState('monthly');
   const [dateRange, setDateRange] = useState({
@@ -268,7 +268,7 @@ const SalesChart = () => {
     if (salesData.length === 0) {
       return (
         <div style={styles.chartEmpty}>
-          <h3>📊 No Sales Data Available</h3>
+          <h3> No Sales Data Available</h3>
           <p>No delivered orders found for the selected period.</p>
         </div>
       );
@@ -447,7 +447,7 @@ const SalesChart = () => {
           <div style={styles.headerContent}>
             <div style={styles.titleSection}>
               <div style={styles.iconContainer}>
-                📊
+                ₱
               </div>
               <div>
                 <h2 style={styles.chartTitle}>Sales Analytics Dashboard</h2>
@@ -465,27 +465,13 @@ const SalesChart = () => {
             </div>
           </div>
 
-          {/* Summary Cards */}
+          {/* Summary Cards - Only Total Orders remains */}
           <div style={styles.summaryCards}>
             <div style={styles.summaryCard}>
-              <div style={styles.summaryIcon}>💰</div>
-              <div>
-                <h3 style={styles.summaryCardTitle}>Total Revenue</h3>
-                <p style={styles.revenue}>{formatCurrency(summary.totalRevenue)}</p>
-              </div>
-            </div>
-            <div style={styles.summaryCard}>
-              <div style={styles.summaryIcon}>📦</div>
+              <div style={styles.summaryIcon}></div>
               <div>
                 <h3 style={styles.summaryCardTitle}>Total Orders</h3>
                 <p style={styles.orders}>{formatNumber(summary.totalOrders)}</p>
-              </div>
-            </div>
-            <div style={styles.summaryCard}>
-              <div style={styles.summaryIcon}>📊</div>
-              <div>
-                <h3 style={styles.summaryCardTitle}>Avg Order Value</h3>
-                <p style={styles.aov}>{formatCurrency(summary.averageOrderValue)}</p>
               </div>
             </div>
           </div>
@@ -559,7 +545,7 @@ const SalesChart = () => {
           </div>
 
           <button onClick={handleRefresh} style={styles.refreshBtn}>
-            🔄 Refresh Data
+             Refresh Data
           </button>
         </div>
 
@@ -568,7 +554,7 @@ const SalesChart = () => {
           {/* Sales Trend Chart */}
           <div style={styles.chartCard}>
             <div style={styles.chartHeaderSmall}>
-              <h3 style={styles.chartTitleSmall}>📈 Sales Trends</h3>
+              <h3 style={styles.chartTitleSmall}> Sales</h3>
               <div style={styles.chartLegend}>
                 <div style={styles.legendItem}>
                   <div style={{...styles.legendColor, backgroundColor: '#d4af37'}}></div>
@@ -659,7 +645,7 @@ const SalesChart = () => {
         {/* Recent Buyers Section */}
         <div style={styles.recentBuyersSection}>
           <div style={styles.sectionHeader}>
-            <h3 style={styles.sectionTitle}>🛍️ Recent Buyers</h3>
+            <h3 style={styles.sectionTitle}> Recent Buyers</h3>
             <div style={styles.buyersCount}>
               {recentBuyers.length} transactions
             </div>
@@ -835,25 +821,7 @@ const styles = {
     fontWeight: '600',
     opacity: 0.9,
   },
-  revenue: {
-    margin: 0,
-    fontSize: '1.4rem',
-    fontWeight: 'bold',
-    color: '#f9e076',
-    background: 'linear-gradient(135deg, #f9e076, #d4af37)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
   orders: {
-    margin: 0,
-    fontSize: '1.4rem',
-    fontWeight: 'bold',
-    color: '#f9e076',
-    background: 'linear-gradient(135deg, #f9e076, #d4af37)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  aov: {
     margin: 0,
     fontSize: '1.4rem',
     fontWeight: 'bold',

@@ -15,6 +15,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import StarIcon from "@mui/icons-material/Star";
 import Header from "../layouts/user/Header";
 import Footer from "../layouts/user/Footer";
+import Loader from "../layouts/Loader"; // Import the Loader component
 
 const BASE_URL = "http://localhost:4001/api/v1";
 
@@ -179,11 +180,9 @@ const OrderHistory = () => {
           handleLogout={handleLogout}
         />
         <Box display="flex" justifyContent="center" alignItems="center" flex={1} style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: "center", color: "#d4af37" }}>
-            <div style={{ fontSize: "3rem", marginBottom: "20px", animation: "pulse 2s infinite" }}>
-              📦
-            </div>
-            <Typography variant="h6" style={{ color: "#d4af37" }}>
+          <div style={{ textAlign: "center" }}>
+            <Loader />
+            <Typography variant="h6" style={{ color: "#d4af37", marginTop: "15px" }}>
               Loading your orders...
             </Typography>
           </div>

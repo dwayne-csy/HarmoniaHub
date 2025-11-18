@@ -18,6 +18,8 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import SearchIcon from "@mui/icons-material/Search";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 
 const Home = () => {
   const [user, setUser] = useState(null);
@@ -35,6 +37,9 @@ const Home = () => {
   const [selectedRating, setSelectedRating] = useState(0);
   const [maxPrice, setMaxPrice] = useState(100000);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // NEW: Stock sorting state
+  const [stockSort, setStockSort] = useState(null); // null, 'high-to-low', 'low-to-high'
   
   // Review states
   const [expandedReviews, setExpandedReviews] = useState({});
@@ -191,9 +196,9 @@ const Home = () => {
     fetchData();
   }, [navigate]);
 
-  // Filter products function - UPDATED RATING FILTER
+  // Filter products function - UPDATED with stock sorting
   const filterProducts = (productsList) => {
-    return productsList.filter((product) => {
+    let filtered = productsList.filter((product) => {
       // Price filter
       const passesPrice = product.price >= priceRange.min && product.price <= priceRange.max;
       
@@ -214,6 +219,15 @@ const Home = () => {
       
       return passesPrice && passesCategory && passesRating && passesSearch && inStock;
     });
+
+    // NEW: Apply stock sorting if selected
+    if (stockSort === 'high-to-low') {
+      filtered = filtered.sort((a, b) => b.stock - a.stock);
+    } else if (stockSort === 'low-to-high') {
+      filtered = filtered.sort((a, b) => a.stock - b.stock);
+    }
+
+    return filtered;
   };
 
   // Get filtered products
@@ -294,7 +308,7 @@ const Home = () => {
     setCurrentImageIndexes(newIndexes);
     
     setLoadingProducts(false);
-  }, [priceRange, selectedCategory, selectedRating, searchQuery, allProducts]);
+  }, [priceRange, selectedCategory, selectedRating, searchQuery, stockSort, allProducts]); // Added stockSort to dependencies
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -375,6 +389,16 @@ const Home = () => {
       ...prev,
       [productId]: !isExpanded
     }));
+  };
+
+  // NEW: Handle stock sorting
+  const handleStockSort = (sortType) => {
+    if (stockSort === sortType) {
+      // If clicking the same sort type again, remove the sort
+      setStockSort(null);
+    } else {
+      setStockSort(sortType);
+    }
   };
 
   const handleAddToCart = async (productId) => {
@@ -499,6 +523,7 @@ const Home = () => {
     setSelectedCategory("all");
     setSelectedRating(0);
     setSearchQuery("");
+    setStockSort(null); // NEW: Clear stock sort
     setIsRatingDropdownOpen(false);
   };
 
@@ -1065,6 +1090,113 @@ const Home = () => {
                     )}
                   </div>
                 </div>
+
+                {/* NEW: Stock Sorting Filter */}
+                <div>
+                  <label style={{ 
+                    fontWeight: "700", 
+                    marginBottom: "15px", 
+                    display: "block", 
+                    color: "#d4af37",
+                    fontSize: "1.1rem"
+                  }}>
+                    📦 Sort by Stock
+                  </label>
+                  <div style={{ 
+                    display: "flex", 
+                    gap: "12px",
+                    alignItems: "center"
+                  }}>
+                    <button
+                      onClick={() => handleStockSort('high-to-low')}
+                      style={{
+                        flex: 1,
+                        padding: "12px 15px",
+                        background: stockSort === 'high-to-low' 
+                          ? "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)" 
+                          : "rgba(255,255,255,0.05)",
+                        color: stockSort === 'high-to-low' ? "#1a1a1a" : "#ffffff",
+                        border: stockSort === 'high-to-low' 
+                          ? "none" 
+                          : "2px solid rgba(212,175,55,0.3)",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: "700",
+                        transition: "all 0.3s ease",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        boxShadow: stockSort === 'high-to-low' ? "0 4px 15px rgba(212,175,55,0.4)" : "none"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (stockSort !== 'high-to-low') {
+                          e.target.style.background = "rgba(212,175,55,0.1)";
+                          e.target.style.transform = "translateY(-2px)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (stockSort !== 'high-to-low') {
+                          e.target.style.background = "rgba(255,255,255,0.05)";
+                          e.target.style.transform = "translateY(0)";
+                        }
+                      }}
+                    >
+                      <ArrowUpwardIcon fontSize="small" />
+                      High to Low
+                    </button>
+                    <button
+                      onClick={() => handleStockSort('low-to-high')}
+                      style={{
+                        flex: 1,
+                        padding: "12px 15px",
+                        background: stockSort === 'low-to-high' 
+                          ? "linear-gradient(135deg, #d4af37 0%, #f9e076 100%)" 
+                          : "rgba(255,255,255,0.05)",
+                        color: stockSort === 'low-to-high' ? "#1a1a1a" : "#ffffff",
+                        border: stockSort === 'low-to-high' 
+                          ? "none" 
+                          : "2px solid rgba(212,175,55,0.3)",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: "700",
+                        transition: "all 0.3s ease",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        boxShadow: stockSort === 'low-to-high' ? "0 4px 15px rgba(212,175,55,0.4)" : "none"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (stockSort !== 'low-to-high') {
+                          e.target.style.background = "rgba(212,175,55,0.1)";
+                          e.target.style.transform = "translateY(-2px)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (stockSort !== 'low-to-high') {
+                          e.target.style.background = "rgba(255,255,255,0.05)";
+                          e.target.style.transform = "translateY(0)";
+                        }
+                      }}
+                    >
+                      <ArrowDownwardIcon fontSize="small" />
+                      Low to High
+                    </button>
+                  </div>
+                  {stockSort && (
+                    <div style={{ 
+                      marginTop: "10px", 
+                      fontSize: "12px", 
+                      color: "rgba(212,175,55,0.8)",
+                      textAlign: "center"
+                    }}>
+                      {stockSort === 'high-to-low' ? "Showing highest stock first" : "Showing lowest stock first"}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Filter Results Count */}
@@ -1412,7 +1544,7 @@ const Home = () => {
                             }}
                           >
                             {isLoadingReviews ? (
-                              <>🔄 Loading Reviews...</>
+                              <> Loading Reviews...</>
                             ) : (
                               <>
                                 {isReviewsExpanded ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
@@ -1441,7 +1573,7 @@ const Home = () => {
                                   fontStyle: "italic",
                                   margin: "0"
                                 }}>
-                                  No reviews yet. Be the first to review this product!
+                                    No reviews yet. Be the first to review this product!
                                 </p>
                               ) : (
                                 reviews.map((review) => (

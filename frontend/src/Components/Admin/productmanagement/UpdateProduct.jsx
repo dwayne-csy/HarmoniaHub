@@ -694,7 +694,7 @@ export default function UpdateProduct() {
                           transition: "all 0.3s ease"
                         }}
                       >
-                        📸 Add New Images (Max 5, 2MB each)
+                        Add New Images (Max 5, 2MB each)
                         <input type="file" hidden multiple accept="image/*" onChange={handleNewFileChange} />
                       </Button>
                     </FormControl>

@@ -222,7 +222,7 @@ const AdminDashboard = () => {
                   animation: "float 4s ease-in-out infinite"
                 }}>
                   {/* crown */}
-                  👑
+                  🎵
                 </div>
                 <div>
                   <span style={{ 
@@ -784,7 +784,7 @@ const AdminDashboard = () => {
             opacity: "0.7"
           }}
         >
-          💀
+          🎵
         </div>
       </main>
 

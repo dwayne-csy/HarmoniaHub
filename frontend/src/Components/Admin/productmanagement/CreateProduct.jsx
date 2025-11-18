@@ -535,7 +535,7 @@ export default function CreateProduct() {
                           transition: "all 0.3s ease"
                         }}
                       >
-                        📸 Choose Images* (Min 2)
+                         Choose Images* (Min 2)
                         <input type="file" hidden multiple accept="image/*" onChange={handleFileChange} />
                       </Button>
                       {errors.images && <FormHelperText sx={{ color: "#ff6b6b" }}>{errors.images}</FormHelperText>}

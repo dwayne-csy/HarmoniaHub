@@ -362,13 +362,13 @@ export default function ViewOrder() {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography sx={{ color: '#ccc' }}>Price:</Typography>
                           <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                            ${item.price.toFixed(2)}
+                            ₱{item.price.toFixed(2)}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography sx={{ color: '#ccc' }}>Subtotal:</Typography>
                           <Typography sx={{ color: '#d4af37', fontWeight: 'bold' }}>
-                            ${(item.price * item.quantity).toFixed(2)}
+                            ₱{(item.price * item.quantity).toFixed(2)}
                           </Typography>
                         </Box>
                       </Stack>
@@ -397,19 +397,19 @@ export default function ViewOrder() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={{ color: '#ccc' }}>Items Total:</Typography>
                       <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                        ${order.itemsPrice.toFixed(2)}
+                        ₱{order.itemsPrice.toFixed(2)}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={{ color: '#ccc' }}>Tax:</Typography>
                       <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                        ${order.taxPrice.toFixed(2)}
+                        ₱{order.taxPrice.toFixed(2)}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={{ color: '#ccc' }}>Shipping Fee:</Typography>
                       <Typography sx={{ color: '#fff', fontWeight: '500' }}>
-                        ${order.shippingPrice.toFixed(2)}
+                        ₱{order.shippingPrice.toFixed(2)}
                       </Typography>
                     </Box>
                     <Divider sx={{ borderColor: 'rgba(212,175,55,0.3)' }} />
@@ -418,7 +418,7 @@ export default function ViewOrder() {
                         Total Price:
                       </Typography>
                       <Typography variant="h6" sx={{ color: '#d4af37', fontWeight: 'bold' }}>
-                        ${order.totalPrice.toFixed(2)}
+                        ₱{order.totalPrice.toFixed(2)}
                       </Typography>
                     </Box>
                   </Stack>

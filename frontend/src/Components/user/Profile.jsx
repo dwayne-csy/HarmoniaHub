@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Header from "../layouts/user/Header";
 import Footer from "../layouts/user/Footer";
+import Loader from "../layouts/Loader"; // Import the Loader component
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -143,19 +144,14 @@ const Profile = () => {
           {loading ? (
             <div style={{ 
               textAlign: "center", 
-              padding: "60px 20px",
-              color: "#d4af37"
+              padding: "60px 20px"
             }}>
-              <div style={{
-                fontSize: "3rem",
-                marginBottom: "20px",
-                animation: "pulse 2s infinite"
-              }}>
-                👤
-              </div>
+              <Loader />
               <p style={{
                 fontSize: "18px",
-                fontWeight: "600"
+                fontWeight: "600",
+                color: "#d4af37",
+                marginTop: "15px"
               }}>Loading profile...</p>
             </div>
           ) : user ? (

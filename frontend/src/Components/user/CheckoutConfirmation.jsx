@@ -78,11 +78,9 @@ const CheckoutConfirmation = () => {
         }}></div>
         
         <Box display="flex" justifyContent="center" alignItems="center" flex={1} style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: "center", color: "#d4af37" }}>
-            <div style={{ fontSize: "3rem", marginBottom: "20px", animation: "pulse 2s infinite" }}>
-              🛒
-            </div>
-            <Typography variant="h6" style={{ color: "#d4af37" }}>
+          <div style={{ textAlign: "center" }}>
+            <Loader />
+            <Typography variant="h6" style={{ color: "#d4af37", marginTop: "15px" }}>
               Loading checkout...
             </Typography>
           </div>
